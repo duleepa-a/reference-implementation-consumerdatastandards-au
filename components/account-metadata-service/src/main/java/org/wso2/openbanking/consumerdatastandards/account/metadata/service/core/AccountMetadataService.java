@@ -19,6 +19,7 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core;
 
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.util.List;
 import java.util.Map;
@@ -52,5 +53,34 @@ public interface AccountMetadataService {
      * @throws AccountMetadataException if an error occurs
      */
     void updateBatchDisclosureOptions(Map<String, String> accountDisclosureMap) throws AccountMetadataException;
+
+    /**
+     * Batch retrieve secondary account instructions for multiple account-user pairs.
+     *
+     * @param items list of secondary account instruction items with accountId and userId
+     * @return list of secondary account instruction records
+     * @throws AccountMetadataException if an error occurs
+     */
+    List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions
+    (List<SecondaryAccountInstructionItem> items)
+        throws AccountMetadataException;
+
+    /**
+     * Batch add secondary account instructions.
+     *
+     * @param instructionItems list of secondary account instruction records to add
+     * @throws AccountMetadataException if an error occurs
+     */
+    void addBatchSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> instructionItems)
+        throws AccountMetadataException;
+
+    /**
+     * Batch update secondary account instructions.
+     *
+     * @param instructionItems list of secondary account instruction records to update
+     * @throws AccountMetadataException if an error occurs
+     */
+    void updateBatchSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> instructionItems)
+        throws AccountMetadataException;
 
 }

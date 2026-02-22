@@ -18,6 +18,10 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
+
+import java.util.List;
+
 /**
  * Database queries for account metadata operations.
  */
@@ -47,5 +51,27 @@ public interface AccountMetadataDBQueries {
      * @return the SQL query for batch update
      */
     String getBatchUpdateDisclosureOptionQuery();
+
+    /**
+     * Get the SQL query for retrieving secondary account instruction records for multiple account-user pairs.
+     *
+     * @param items list of secondary account instruction items with accountId and userId
+     * @return the SQL query with placeholders
+     */
+    String getBatchGetSecondaryAccountInstructionQuery(List<SecondaryAccountInstructionItem> items);
+
+    /**
+     * Get the SQL query for batch adding secondary account instruction records.
+     *
+     * @return the SQL query for batch insert
+     */
+    String getBatchAddSecondaryAccountInstructionQuery();
+
+    /**
+     * Get the SQL query for batch updating secondary account instruction records.
+     *
+     * @return the SQL query for batch update
+     */
+    String getBatchUpdateSecondaryAccountInstructionQuery();
 
 }

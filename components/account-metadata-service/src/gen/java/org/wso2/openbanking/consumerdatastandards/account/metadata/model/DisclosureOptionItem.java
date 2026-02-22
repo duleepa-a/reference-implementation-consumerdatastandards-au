@@ -89,7 +89,6 @@ public class DisclosureOptionItem   {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("class DisclosureOptionItem {\n");
-
         sb.append("    accountId: ").append(toIndentedString(accountId)).append("\n");
         sb.append("    disclosureOption: ").append(toIndentedString(disclosureOption)).append("\n");
         sb.append("}");
@@ -106,6 +105,4 @@ public class DisclosureOptionItem   {
         }
         return o.toString().replace("\n", "\n    ");
     }
-
-
 }

@@ -23,15 +23,18 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connection.provider.ConnectionProvider;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AccountMetadataServiceImplTest {
@@ -151,6 +154,94 @@ public class AccountMetadataServiceImplTest {
 
         service.updateBatchDisclosureOptions(accountMap);
     }
+
+        @Test
+        public void testGetBatchSecondaryAccountInstructions() throws Exception {
+        List<SecondaryAccountInstructionItem> queryItems = Arrays.asList(
+                buildSecondaryItem("acc-123", "user-1", true, "active"),
+                buildSecondaryItem("acc-124", "user-2", false, "inactive"));
+        List<SecondaryAccountInstructionItem> expected = new ArrayList<>(queryItems);
+        Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection, queryItems))
+            .thenReturn(expected);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        List<SecondaryAccountInstructionItem> result =
+            service.getBatchSecondaryAccountInstructions(queryItems);
+
+        Assert.assertEquals(result, expected);
+        Mockito.verify(metadataDAO).getBatchSecondaryAccountInstructions(connection, queryItems);
+        }
+
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchSecondaryAccountInstructionsDaoException() throws Exception {
+        List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
+                buildSecondaryItem("acc-125", "user-1", true, "active"));
+        Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection, queryItems))
+            .thenThrow(new AccountMetadataException("dao error"));
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.getBatchSecondaryAccountInstructions(queryItems);
+        }
+
+        @Test
+        public void testAddBatchSecondaryAccountInstructions() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+                buildSecondaryItem("acc-126", "user-1", true, "active"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.addBatchSecondaryAccountInstructions(items);
+
+        Mockito.verify(metadataDAO).addBatchSecondaryAccountInstructions(connection, items);
+        }
+
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testAddBatchSecondaryAccountInstructionsDaoException() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+                buildSecondaryItem("acc-127", "user-1", true, "active"));
+        Mockito.doThrow(new AccountMetadataException("dao error"))
+            .when(metadataDAO)
+            .addBatchSecondaryAccountInstructions(connection, items);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.addBatchSecondaryAccountInstructions(items);
+        }
+
+        @Test
+        public void testUpdateBatchSecondaryAccountInstructions() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+                buildSecondaryItem("acc-128", "user-2", false, "inactive"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.updateBatchSecondaryAccountInstructions(items);
+
+        Mockito.verify(metadataDAO).updateBatchSecondaryAccountInstructions(connection, items);
+        }
+
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testUpdateBatchSecondaryAccountInstructionsDaoException() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+                buildSecondaryItem("acc-129", "user-3", true, "active"));
+        Mockito.doThrow(new AccountMetadataException("dao error"))
+            .when(metadataDAO)
+            .updateBatchSecondaryAccountInstructions(connection, items);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.updateBatchSecondaryAccountInstructions(items);
+        }
+
+        private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
+            boolean otherAccountsAvailable,
+            String status) {
+        SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
+        item.setAccountId(accountId);
+        item.setSecondaryUserId(userId);
+        item.setOtherAccountsAvailablitiy(otherAccountsAvailable);
+        item.setSecondaryAccountInstructionStatus(status);
+        return item;
+        }
 
     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");

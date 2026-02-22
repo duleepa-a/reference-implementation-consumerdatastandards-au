@@ -18,6 +18,10 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
+
+import java.util.List;
+
 /**
  * MySQL implementation of account metadata database queries.
  */
@@ -56,6 +60,42 @@ public class AccountMetadataDBQueriesMySQLImpl implements AccountMetadataDBQueri
     public String getBatchUpdateDisclosureOptionQuery() {
         return "UPDATE fs_account_doms_status SET DISCLOSURE_OPTION_STATUS = ?, " +
                 "LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ?";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchGetSecondaryAccountInstructionQuery(List<SecondaryAccountInstructionItem> items) {
+        StringBuilder query = new StringBuilder(
+                "SELECT ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
+                        "FROM fs_account_secondary_user WHERE (ACCOUNT_ID, USER_ID) IN (");
+        for (int i = 0; i < items.size(); i++) {
+            query.append("(?,?)");
+            if (i < items.size() - 1) {
+                query.append(",");
+            }
+        }
+        query.append(")");
+        return query.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchAddSecondaryAccountInstructionQuery() {
+        return "INSERT INTO fs_account_secondary_user (ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, " +
+                "OTHER_ACCOUNTS_AVAILABILITY, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchUpdateSecondaryAccountInstructionQuery() {
+        return "UPDATE fs_account_secondary_user SET SECONDARY_ACCOUNT_INSTRUCTION_STATUS = ?, " +
+                "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
 
 
