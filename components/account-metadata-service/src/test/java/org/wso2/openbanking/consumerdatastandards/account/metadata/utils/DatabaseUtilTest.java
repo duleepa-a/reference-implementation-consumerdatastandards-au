@@ -37,11 +37,17 @@ import javax.naming.NamingEnumeration;
 import javax.naming.spi.InitialContextFactory;
 import javax.sql.DataSource;
 
+/**
+ * Unit tests for {@link DatabaseUtil} and {@link DatabaseConnectionProvider}.
+ */
 public class DatabaseUtilTest {
 
     private static final String INITIAL_CONTEXT_FACTORY_KEY = "java.naming.factory.initial";
     private static final String ORIGINAL_CONTEXT_FACTORY = System.getProperty(INITIAL_CONTEXT_FACTORY_KEY);
 
+    /**
+     * Initializes a mock datasource and registers a test initial context factory.
+     */
     @BeforeClass
     public void setUp() {
         DataSource dataSource = Mockito.mock(DataSource.class);
@@ -56,6 +62,9 @@ public class DatabaseUtilTest {
         System.setProperty(INITIAL_CONTEXT_FACTORY_KEY, TestInitialContextFactory.class.getName());
     }
 
+    /**
+     * Restores the original initial context factory system property.
+     */
     @AfterClass
     public void tearDown() {
         if (ORIGINAL_CONTEXT_FACTORY == null) {
@@ -65,12 +74,22 @@ public class DatabaseUtilTest {
         }
     }
 
+    /**
+     * Verifies that a JDBC connection can be obtained via {@link DatabaseUtil}.
+     *
+     * @throws Exception if connection retrieval fails
+     */
     @Test
     public void testDatabaseUtilGetConnection() throws Exception {
         Connection connection = DatabaseUtil.getConnection();
         Assert.assertNotNull(connection);
     }
 
+    /**
+     * Verifies that {@link DatabaseConnectionProvider} delegates to the utility connection retrieval.
+     *
+     * @throws Exception if connection retrieval fails
+     */
     @Test
     public void testDatabaseConnectionProviderDelegates() throws Exception {
         DatabaseConnectionProvider provider = new DatabaseConnectionProvider();
@@ -78,19 +97,36 @@ public class DatabaseUtilTest {
         Assert.assertNotNull(connection);
     }
 
+    /**
+     * Test initial context factory that returns a lightweight in-memory {@link Context}.
+     */
     public static class TestInitialContextFactory implements InitialContextFactory {
 
         private static DataSource dataSource;
 
+        /**
+         * Sets the datasource returned by lookups from the test context.
+         *
+         * @param dataSource datasource to expose
+         */
         public static void setDataSource(DataSource dataSource) {
             TestInitialContextFactory.dataSource = dataSource;
         }
 
+        /**
+         * Returns a test context instance.
+         *
+         * @param environment naming environment
+         * @return test context
+         */
         @Override
         public Context getInitialContext(Hashtable<?, ?> environment) {
             return new TestContext();
         }
 
+        /**
+         * Minimal {@link Context} implementation for datasource lookup in tests.
+         */
         private static class TestContext implements Context {
 
             @Override

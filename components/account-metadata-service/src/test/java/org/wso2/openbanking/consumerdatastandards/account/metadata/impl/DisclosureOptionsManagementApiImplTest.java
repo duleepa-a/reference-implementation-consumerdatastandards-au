@@ -40,12 +40,20 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+/**
+ * Unit tests for {@link DisclosureOptionsManagementApiImpl}.
+ */
 public class DisclosureOptionsManagementApiImplTest {
 
     private AccountMetadataDAO metadataDAO;
     private ConnectionProvider connectionProvider;
     private Connection connection;
 
+    /**
+     * Initializes static service dependencies for API tests.
+     *
+     * @throws Exception if class loading or singleton reset fails
+     */
     @BeforeClass
     public void setUpClass() throws Exception {
         metadataDAO = Mockito.mock(AccountMetadataDAO.class);
@@ -59,12 +67,20 @@ public class DisclosureOptionsManagementApiImplTest {
                 DisclosureOptionsManagementApiImpl.class.getClassLoader());
     }
 
+    /**
+     * Resets mocks before each test.
+     *
+     * @throws Exception if mock setup fails
+     */
     @BeforeMethod
     public void setUp() throws Exception {
         Mockito.reset(metadataDAO, connectionProvider, connection);
         Mockito.when(connectionProvider.getConnection()).thenReturn(connection);
     }
 
+    /**
+     * Verifies bad request response when update payload is null.
+     */
     @Test
     public void testUpdateDisclosureOptionsBadRequestOnNull() {
         Response response = DisclosureOptionsManagementApiImpl.updateDisclosureOptions(null);
@@ -75,6 +91,9 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "No disclosure options provided");
     }
 
+    /**
+     * Verifies bad request response when update payload has an invalid status.
+     */
     @Test
     public void testUpdateDisclosureOptionsBadRequestOnInvalidStatus() {
         List<DisclosureOptionItem> request = buildRequest("invalid");
@@ -88,6 +107,11 @@ public class DisclosureOptionsManagementApiImplTest {
             "Invalid disclosure option status. Allowed values: no-sharing, pre-approval");
     }
 
+    /**
+     * Verifies successful update for existing disclosure option records.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateDisclosureOptionsSuccess() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("no-sharing");
@@ -104,6 +128,11 @@ public class DisclosureOptionsManagementApiImplTest {
                 Collections.singletonMap("acc-1", "no-sharing"));
     }
 
+        /**
+         * Verifies successful response when none of the requested accounts exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
         @Test
         public void testUpdateDisclosureOptionsOkWhenNoAccountsExist() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("pre-approval");
@@ -121,6 +150,11 @@ public class DisclosureOptionsManagementApiImplTest {
             Mockito.any(Connection.class), Mockito.anyMap());
         }
 
+        /**
+         * Verifies partial update behavior when only a subset of accounts exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
         @Test
         public void testUpdateDisclosureOptionsOkWhenPartialAccountsExist() throws Exception {
         List<DisclosureOptionItem> request = Arrays.asList(
@@ -140,6 +174,11 @@ public class DisclosureOptionsManagementApiImplTest {
             connection, Collections.singletonMap("acc-1", "pre-approval"));
         }
 
+    /**
+     * Verifies internal server error response when update operation fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateDisclosureOptionsServiceError() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("pre-approval");
@@ -157,6 +196,9 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertTrue(body.getMessage().startsWith("Failed to update disclosure options:"));
     }
 
+    /**
+     * Verifies bad request response when account ids are missing.
+     */
     @Test
     public void testGetDisclosureOptionsBadRequestOnEmpty() {
         Response response = DisclosureOptionsManagementApiImpl.getDisclosureOptions("");
@@ -167,6 +209,9 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "At least one accountId is required");
     }
 
+    /**
+     * Verifies bad request response when account ids are blank.
+     */
     @Test
     public void testGetDisclosureOptionsBadRequestOnBlankIds() {
         Response response = DisclosureOptionsManagementApiImpl.getDisclosureOptions("   ");
@@ -177,6 +222,11 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "At least one accountId is required");
     }
 
+    /**
+     * Verifies successful retrieval of disclosure options for valid account ids.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testGetDisclosureOptionsSuccess() throws Exception {
         Map<String, String> batchResult = new HashMap<>();
@@ -197,6 +247,11 @@ public class DisclosureOptionsManagementApiImplTest {
             "acc-1".equals(item.getAccountId()) && "pre-approval".equals(item.getDisclosureOption())));
     }
 
+    /**
+     * Verifies retrieval handles account id lists with spaces.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testGetDisclosureOptionsWithSpaces() throws Exception {
         Map<String, String> batchResult = new HashMap<>();
@@ -213,6 +268,11 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertEquals(body.size(), 1);
     }
 
+    /**
+     * Verifies create response when all disclosure option records are new.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddDisclosureOptionsCreatedWhenAllNew() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("no-sharing");
@@ -231,6 +291,11 @@ public class DisclosureOptionsManagementApiImplTest {
                 Collections.singletonMap("acc-1", "no-sharing"));
     }
 
+    /**
+     * Verifies ok response when disclosure option record already exists.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddDisclosureOptionsOkWhenExisting() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("no-sharing");
@@ -247,6 +312,9 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "Disclosure options already exist for account(s): acc-1");
     }
 
+    /**
+     * Verifies bad request response when add payload has an invalid status.
+     */
     @Test
     public void testAddDisclosureOptionsBadRequestOnInvalidStatus() {
         List<DisclosureOptionItem> request = buildRequest("invalid");
@@ -260,6 +328,11 @@ public class DisclosureOptionsManagementApiImplTest {
             "Invalid disclosure option status provided for acc-1, Allowed values: pre-approval, no-sharing");
     }
 
+    /**
+     * Verifies internal server error response when add operation fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddDisclosureOptionsServiceError() throws Exception {
         List<DisclosureOptionItem> request = buildRequest("pre-approval");
@@ -274,10 +347,23 @@ public class DisclosureOptionsManagementApiImplTest {
         Assert.assertTrue(body.getMessage().startsWith("Failed to add disclosure options:"));
     }
 
+    /**
+     * Builds a one-item disclosure option request list.
+     *
+     * @param status disclosure option status
+     * @return request list
+     */
     private List<DisclosureOptionItem> buildRequest(String status) {
         return Collections.singletonList(buildRequestItem("acc-1", status));
     }
 
+    /**
+     * Builds a disclosure option item.
+     *
+     * @param accountId account id
+     * @param status disclosure option status
+     * @return disclosure option item
+     */
     private DisclosureOptionItem buildRequestItem(String accountId, String status) {
         DisclosureOptionItem item = new DisclosureOptionItem();
         item.setAccountId(accountId);
@@ -285,6 +371,11 @@ public class DisclosureOptionsManagementApiImplTest {
         return item;
     }
 
+    /**
+     * Resets singleton state to isolate test execution.
+     *
+     * @throws Exception if reflection access fails
+     */
     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");
         instanceField.setAccessible(true);

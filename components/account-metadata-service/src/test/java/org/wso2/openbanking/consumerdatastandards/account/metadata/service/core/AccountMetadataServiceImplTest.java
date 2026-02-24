@@ -37,12 +37,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Unit tests for {@link AccountMetadataServiceImpl}.
+ */
 public class AccountMetadataServiceImplTest {
 
     private AccountMetadataDAO metadataDAO;
     private Connection connection;
     private ConnectionProvider connectionProvider;
 
+    /**
+     * Initializes mocks and resets singleton state before each test.
+     *
+     * @throws Exception if reflection-based reset fails
+     */
     @BeforeMethod
     public void setUp() throws Exception {
         metadataDAO = Mockito.mock(AccountMetadataDAO.class);
@@ -56,6 +64,11 @@ public class AccountMetadataServiceImplTest {
         resetSingleton();
     }
 
+    /**
+     * Verifies singleton creation when DAO is explicitly provided.
+     *
+     * @throws Exception if singleton reset fails
+     */
     @Test
     public void testGetInstanceWithMetadataDaoOnly() throws Exception {
         resetSingleton();
@@ -65,6 +78,11 @@ public class AccountMetadataServiceImplTest {
         Assert.assertNotNull(service);
     }
 
+    /**
+     * Verifies default singleton behavior returns the same instance.
+     *
+     * @throws Exception if singleton reset fails
+     */
     @Test
     public void testGetInstanceDefault() throws Exception {
         resetSingleton();
@@ -75,6 +93,11 @@ public class AccountMetadataServiceImplTest {
         Assert.assertSame(service, serviceAgain);
     }
 
+    /**
+     * Verifies successful retrieval of disclosure options through the service layer.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testGetBatchDisclosureOptions() throws Exception {
         Map<String, String> expectedResult = new HashMap<>();
@@ -91,6 +114,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).getBatchDisclosureOptions(connection, Arrays.asList("acc-111", "acc-222"));
     }
 
+    /**
+     * Verifies service propagation of DAO exceptions during disclosure option retrieval.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testGetBatchDisclosureOptionsDaoException() throws Exception {
         Mockito.when(metadataDAO.getBatchDisclosureOptions(connection, Collections.singletonList("acc-333")))
@@ -101,6 +129,11 @@ public class AccountMetadataServiceImplTest {
         service.getBatchDisclosureOptions(Collections.singletonList("acc-333"));
     }
 
+    /**
+     * Verifies successful add operation for disclosure options.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddBatchDisclosureOptions() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
@@ -114,6 +147,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).addBatchDisclosureOptions(connection, accountMap);
     }
 
+    /**
+     * Verifies service propagation of DAO exceptions during disclosure option add.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testAddBatchDisclosureOptionsDaoException() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
@@ -128,6 +166,11 @@ public class AccountMetadataServiceImplTest {
         service.addBatchDisclosureOptions(accountMap);
     }
 
+    /**
+     * Verifies successful update operation for disclosure options.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateBatchDisclosureOptions() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
@@ -141,6 +184,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).updateBatchDisclosureOptions(connection, accountMap);
     }
 
+    /**
+     * Verifies service propagation of DAO exceptions during disclosure option update.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testUpdateBatchDisclosureOptionsDaoException() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
@@ -155,6 +203,11 @@ public class AccountMetadataServiceImplTest {
         service.updateBatchDisclosureOptions(accountMap);
     }
 
+        /**
+         * Verifies successful retrieval of secondary account instructions through the service layer.
+         *
+         * @throws Exception if setup or invocation fails
+         */
         @Test
         public void testGetBatchSecondaryAccountInstructions() throws Exception {
         List<SecondaryAccountInstructionItem> queryItems = Arrays.asList(
@@ -172,6 +225,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).getBatchSecondaryAccountInstructions(connection, queryItems);
         }
 
+        /**
+         * Verifies service propagation of DAO exceptions during secondary instruction retrieval.
+         *
+         * @throws Exception if setup or invocation fails
+         */
         @Test(expectedExceptions = AccountMetadataException.class)
         public void testGetBatchSecondaryAccountInstructionsDaoException() throws Exception {
         List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
@@ -184,6 +242,11 @@ public class AccountMetadataServiceImplTest {
         service.getBatchSecondaryAccountInstructions(queryItems);
         }
 
+    /**
+     * Verifies successful add operation for secondary account instructions.
+     *
+     * @throws Exception if setup or invocation fails
+     */
         @Test
         public void testAddBatchSecondaryAccountInstructions() throws Exception {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
@@ -195,6 +258,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).addBatchSecondaryAccountInstructions(connection, items);
         }
 
+    /**
+     * Verifies service propagation of DAO exceptions during secondary instruction add.
+     *
+     * @throws Exception if setup or invocation fails
+     */
         @Test(expectedExceptions = AccountMetadataException.class)
         public void testAddBatchSecondaryAccountInstructionsDaoException() throws Exception {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
@@ -208,6 +276,11 @@ public class AccountMetadataServiceImplTest {
         service.addBatchSecondaryAccountInstructions(items);
         }
 
+    /**
+     * Verifies successful update operation for secondary account instructions.
+     *
+     * @throws Exception if setup or invocation fails
+     */
         @Test
         public void testUpdateBatchSecondaryAccountInstructions() throws Exception {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
@@ -219,6 +292,11 @@ public class AccountMetadataServiceImplTest {
         Mockito.verify(metadataDAO).updateBatchSecondaryAccountInstructions(connection, items);
         }
 
+    /**
+     * Verifies service propagation of DAO exceptions during secondary instruction update.
+     *
+     * @throws Exception if setup or invocation fails
+     */
         @Test(expectedExceptions = AccountMetadataException.class)
         public void testUpdateBatchSecondaryAccountInstructionsDaoException() throws Exception {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
@@ -232,6 +310,15 @@ public class AccountMetadataServiceImplTest {
         service.updateBatchSecondaryAccountInstructions(items);
         }
 
+        /**
+         * Builds a secondary instruction test item.
+         *
+         * @param accountId account id
+         * @param userId secondary user id
+         * @param otherAccountsAvailable whether other accounts are available
+         * @param status instruction status
+         * @return populated test item
+         */
         private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
             boolean otherAccountsAvailable,
             String status) {
@@ -243,6 +330,11 @@ public class AccountMetadataServiceImplTest {
         return item;
         }
 
+    /**
+     * Resets singleton state to isolate test execution.
+     *
+     * @throws Exception if reflection access fails
+     */
     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");
         instanceField.setAccessible(true);

@@ -39,12 +39,20 @@ import java.util.List;
 
 import javax.ws.rs.core.Response;
 
+/**
+ * Unit tests for {@link SecondaryAccountsManagementApiImpl}.
+ */
 public class SecondaryAccountsManagementApiImplTest {
 
     private AccountMetadataDAO metadataDAO;
     private ConnectionProvider connectionProvider;
     private Connection connection;
 
+        /**
+         * Initializes static service dependencies for API tests.
+         *
+         * @throws Exception if class loading or singleton reset fails
+         */
     @BeforeClass
     public void setUpClass() throws Exception {
         metadataDAO = Mockito.mock(AccountMetadataDAO.class);
@@ -58,12 +66,20 @@ public class SecondaryAccountsManagementApiImplTest {
                 SecondaryAccountsManagementApiImpl.class.getClassLoader());
     }
 
+        /**
+         * Resets mocks before each test.
+         *
+         * @throws Exception if mock setup fails
+         */
     @BeforeMethod
     public void setUp() throws Exception {
         Mockito.reset(metadataDAO, connectionProvider, connection);
         Mockito.when(connectionProvider.getConnection()).thenReturn(connection);
     }
 
+        /**
+         * Verifies bad request response when add payload is null.
+         */
     @Test
     public void testAddSecondaryAccountInstructionsBadRequestOnNull() {
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(null);
@@ -74,6 +90,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "No secondary account instruction items provided");
     }
 
+        /**
+         * Verifies create response when all secondary account instructions are new.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testAddSecondaryAccountInstructionsCreatedWhenAllNew() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -98,12 +119,19 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(captor.getValue().get(0).getSecondaryUserId(), "user-1");
     }
 
+        /**
+         * Verifies ok response when all requested secondary instruction records already exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testAddSecondaryAccountInstructionsOkWhenExisting() throws Exception {
-        SecondaryAccountInstructionItem existing = buildItem("acc-1", "user-1", true, "active");
+        SecondaryAccountInstructionItem existing = buildItem(
+                "acc-1", "user-1", true, "active");
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(existing);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem("acc-1", "user-1", true, "active"))))
+                        Collections.singletonList(buildItem(
+                                "acc-1", "user-1", true, "active"))))
                 .thenReturn(Collections.singletonList(existing));
 
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
@@ -116,10 +144,17 @@ public class SecondaryAccountsManagementApiImplTest {
                 .addBatchSecondaryAccountInstructions(Mockito.any(Connection.class), Mockito.anyList());
     }
 
+        /**
+         * Verifies partial add behavior when only some secondary instruction records exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testAddSecondaryAccountInstructionsOkWhenPartialExisting() throws Exception {
-        SecondaryAccountInstructionItem existing = buildItem("acc-10", "user-10", true, "active");
-        SecondaryAccountInstructionItem newItem = buildItem("acc-11", "user-11", false, "inactive");
+        SecondaryAccountInstructionItem existing = buildItem(
+                "acc-10", "user-10", true, "active");
+        SecondaryAccountInstructionItem newItem = buildItem(
+                "acc-11", "user-11", false, "inactive");
         List<SecondaryAccountInstructionItem> request = Arrays.asList(existing, newItem);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList()))
                 .thenReturn(Collections.singletonList(existing));
@@ -154,12 +189,18 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(addCaptor.getValue().get(0).getSecondaryUserId(), "user-11");
     }
 
+        /**
+         * Verifies internal server error response when add operation fails.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testAddSecondaryAccountInstructionsServiceError() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
                 buildItem("acc-12", "user-12", true, "active"));
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem("acc-12", "user-12", true, "active"))))
+                        Collections.singletonList(buildItem(
+                                "acc-12", "user-12", true, "active"))))
                 .thenThrow(new AccountMetadataException("fail"));
 
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
@@ -170,6 +211,9 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertTrue(body.getMessage().startsWith("Failed to add secondary account instructions:"));
     }
 
+        /**
+         * Verifies bad request response when update payload is null.
+         */
     @Test
     public void testUpdateSecondaryAccountInstructionsBadRequestOnNull() {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(null);
@@ -180,9 +224,15 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(body.getMessage(), "No secondary account instruction items provided");
     }
 
+        /**
+         * Verifies successful update for existing secondary instruction records.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testUpdateSecondaryAccountInstructionsSuccess() throws Exception {
-        SecondaryAccountInstructionItem existing = buildItem("acc-2", "user-2", false, "inactive");
+        SecondaryAccountInstructionItem existing = buildItem(
+                "acc-2", "user-2", false, "inactive");
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(existing);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList()))
                 .thenReturn(Collections.singletonList(existing));
@@ -196,6 +246,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Mockito.verify(metadataDAO).updateBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList());
     }
 
+        /**
+         * Verifies update response when none of the requested records exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testUpdateSecondaryAccountInstructionsOkWhenNoAccountsExist() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -214,10 +269,17 @@ public class SecondaryAccountsManagementApiImplTest {
                 .updateBatchSecondaryAccountInstructions(Mockito.any(Connection.class), Mockito.anyList());
     }
 
+        /**
+         * Verifies partial update behavior when only a subset of requested records exist.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testUpdateSecondaryAccountInstructionsOkWhenPartialExists() throws Exception {
-        SecondaryAccountInstructionItem existing = buildItem("acc-13", "user-13", true, "active");
-        SecondaryAccountInstructionItem missing = buildItem("acc-14", "user-14", false, "inactive");
+        SecondaryAccountInstructionItem existing = buildItem(
+                "acc-13", "user-13", true, "active");
+        SecondaryAccountInstructionItem missing = buildItem(
+                "acc-14", "user-14", false, "inactive");
         List<SecondaryAccountInstructionItem> request = Arrays.asList(existing, missing);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList()))
                 .thenReturn(Collections.singletonList(existing));
@@ -240,12 +302,18 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(updateCaptor.getValue().get(0).getSecondaryUserId(), "user-13");
     }
 
+        /**
+         * Verifies internal server error response when update operation fails.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testUpdateSecondaryAccountInstructionsServiceError() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
                 buildItem("acc-15", "user-15", true, "active"));
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem("acc-15", "user-15", true, "active"))))
+                        Collections.singletonList(buildItem(
+                                "acc-15", "user-15", true, "active"))))
                 .thenThrow(new AccountMetadataException("fail"));
 
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
@@ -256,9 +324,13 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertTrue(body.getMessage().startsWith("Failed to update secondary account instructions:"));
     }
 
+        /**
+         * Verifies bad request response when account and user ids are missing.
+         */
     @Test
     public void testGetSecondaryAccountInstructionsBadRequestOnEmpty() {
-                Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions("", "");
+                Response response = SecondaryAccountsManagementApiImpl
+                        .getSecondaryAccountInstructions("", "");
 
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
         ModelApiResponse body = (ModelApiResponse) response.getEntity();
@@ -266,9 +338,13 @@ public class SecondaryAccountsManagementApiImplTest {
                 Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
     }
 
+        /**
+         * Verifies bad request response when account and user ids are blank.
+         */
         @Test
         public void testGetSecondaryAccountInstructionsBadRequestOnBlank() {
-                Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions("   ", "   ");
+                Response response = SecondaryAccountsManagementApiImpl
+                        .getSecondaryAccountInstructions("   ", "   ");
 
                 Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
                 ModelApiResponse body = (ModelApiResponse) response.getEntity();
@@ -276,6 +352,9 @@ public class SecondaryAccountsManagementApiImplTest {
                 Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
         }
 
+        /**
+         * Verifies bad request response when user ids are missing.
+         */
         @Test
         public void testGetSecondaryAccountInstructionsBadRequestOnMissingUserId() {
                 Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions(
@@ -287,6 +366,11 @@ public class SecondaryAccountsManagementApiImplTest {
                 Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
         }
 
+        /**
+         * Verifies successful retrieval of secondary account instructions.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testGetSecondaryAccountInstructionsSuccess() throws Exception {
         List<SecondaryAccountInstructionItem> batchResult = Arrays.asList(
@@ -307,6 +391,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(body.get(0).getAccountId(), "acc-4");
     }
 
+        /**
+         * Verifies internal server error response when retrieval fails.
+         *
+         * @throws Exception if setup or invocation fails
+         */
     @Test
     public void testGetSecondaryAccountInstructionsServiceError() throws Exception {
                 Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(
@@ -322,6 +411,15 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertTrue(body.getMessage().startsWith("Failed to retrieve secondary account instructions:"));
     }
 
+        /**
+         * Builds a secondary instruction item.
+         *
+         * @param accountId account id
+         * @param userId secondary user id
+         * @param otherAccountsAvailable whether other accounts are available
+         * @param status instruction status
+         * @return populated test item
+         */
     private SecondaryAccountInstructionItem buildItem(String accountId, String userId, boolean otherAccountsAvailable,
             String status) {
         SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
@@ -332,6 +430,11 @@ public class SecondaryAccountsManagementApiImplTest {
         return item;
     }
 
+        /**
+         * Resets singleton state to isolate test execution.
+         *
+         * @throws Exception if reflection access fails
+         */
     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");
         instanceField.setAccessible(true);
