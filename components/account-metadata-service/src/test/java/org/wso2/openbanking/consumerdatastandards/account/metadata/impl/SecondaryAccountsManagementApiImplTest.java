@@ -25,7 +25,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ModelApiResponse;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
@@ -48,11 +48,11 @@ public class SecondaryAccountsManagementApiImplTest {
     private ConnectionProvider connectionProvider;
     private Connection connection;
 
-        /**
-         * Initializes static service dependencies for API tests.
-         *
-         * @throws Exception if class loading or singleton reset fails
-         */
+    /**
+     * Initializes static service dependencies for API tests.
+     *
+     * @throws Exception if class loading or singleton reset fails
+     */
     @BeforeClass
     public void setUpClass() throws Exception {
         metadataDAO = Mockito.mock(AccountMetadataDAO.class);
@@ -66,35 +66,35 @@ public class SecondaryAccountsManagementApiImplTest {
                 SecondaryAccountsManagementApiImpl.class.getClassLoader());
     }
 
-        /**
-         * Resets mocks before each test.
-         *
-         * @throws Exception if mock setup fails
-         */
+    /**
+     * Resets mocks before each test.
+     *
+     * @throws Exception if mock setup fails
+     */
     @BeforeMethod
     public void setUp() throws Exception {
         Mockito.reset(metadataDAO, connectionProvider, connection);
         Mockito.when(connectionProvider.getConnection()).thenReturn(connection);
     }
 
-        /**
-         * Verifies bad request response when add payload is null.
-         */
+    /**
+     * Verifies bad request response when add payload is null.
+     */
     @Test
     public void testAddSecondaryAccountInstructionsBadRequestOnNull() {
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(null);
 
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.getMessage(), "No secondary account instruction items provided");
+        Assert.assertEquals(body.getErrorDescription(), "No secondary account instruction items provided");
     }
 
-        /**
-         * Verifies create response when all secondary account instructions are new.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies create response when all secondary account instructions are new.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddSecondaryAccountInstructionsCreatedWhenAllNew() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -105,9 +105,12 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        @SuppressWarnings("unchecked")
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.getMessage(), "Secondary account instructions added successfully");
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountId(), "acc-1");
+        Assert.assertEquals(body.get(0).getSecondaryUserId(), "user-1");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<SecondaryAccountInstructionItem>> captor =
@@ -119,11 +122,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(captor.getValue().get(0).getSecondaryUserId(), "user-1");
     }
 
-        /**
-         * Verifies ok response when all requested secondary instruction records already exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies ok response when all requested secondary instruction records already exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddSecondaryAccountInstructionsOkWhenExisting() throws Exception {
         SecondaryAccountInstructionItem existing = buildItem(
@@ -137,18 +140,19 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        @SuppressWarnings("unchecked")
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().contains("Already exists for AccountId-UserId record(s): acc-1::user-1"));
+        Assert.assertEquals(body.size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
                 .addBatchSecondaryAccountInstructions(Mockito.any(Connection.class), Mockito.anyList());
     }
 
-        /**
-         * Verifies partial add behavior when only some secondary instruction records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies partial add behavior when only some secondary instruction records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddSecondaryAccountInstructionsOkWhenPartialExisting() throws Exception {
         SecondaryAccountInstructionItem existing = buildItem(
@@ -161,24 +165,13 @@ public class SecondaryAccountsManagementApiImplTest {
 
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
 
-        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().contains("Already exists for AccountId-UserId record(s): acc-10::user-10"));
+        Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<SecondaryAccountInstructionItem>> queryItemsCaptor =
-                (ArgumentCaptor<List<SecondaryAccountInstructionItem>>) (ArgumentCaptor<?>)
-                        ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).getBatchSecondaryAccountInstructions(Mockito.eq(connection),
-                queryItemsCaptor.capture());
-        List<SecondaryAccountInstructionItem> queriedItems = queryItemsCaptor.getValue();
-        Assert.assertEquals(queriedItems.size(), 2);
-        Assert.assertTrue(queriedItems.stream()
-                .anyMatch(item -> "acc-10".equals(item.getAccountId())
-                && "user-10".equals(item.getSecondaryUserId())));
-        Assert.assertTrue(queriedItems.stream()
-                .anyMatch(item -> "acc-11".equals(item.getAccountId())
-                && "user-11".equals(item.getSecondaryUserId())));
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountId(), "acc-11");
+        Assert.assertEquals(body.get(0).getSecondaryUserId(), "user-11");
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<SecondaryAccountInstructionItem>> addCaptor =
                 (ArgumentCaptor<List<SecondaryAccountInstructionItem>>) (ArgumentCaptor<?>)
@@ -189,11 +182,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(addCaptor.getValue().get(0).getSecondaryUserId(), "user-11");
     }
 
-        /**
-         * Verifies internal server error response when add operation fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies internal server error response when add operation fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testAddSecondaryAccountInstructionsServiceError() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -206,29 +199,29 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().startsWith("Failed to add secondary account instructions:"));
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
     }
 
-        /**
-         * Verifies bad request response when update payload is null.
-         */
+    /**
+     * Verifies bad request response when update payload is null.
+     */
     @Test
     public void testUpdateSecondaryAccountInstructionsBadRequestOnNull() {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(null);
 
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.getMessage(), "No secondary account instruction items provided");
+        Assert.assertEquals(body.getErrorDescription(), "No secondary account instruction items provided");
     }
 
-        /**
-         * Verifies successful update for existing secondary instruction records.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies successful update for existing secondary instruction records.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateSecondaryAccountInstructionsSuccess() throws Exception {
         SecondaryAccountInstructionItem existing = buildItem(
@@ -240,17 +233,19 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        @SuppressWarnings("unchecked")
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.getMessage(), "Secondary account instructions updated successfully");
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountId(), "acc-2");
         Mockito.verify(metadataDAO).updateBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList());
     }
 
-        /**
-         * Verifies update response when none of the requested records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies update response when none of the requested records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateSecondaryAccountInstructionsOkWhenNoAccountsExist() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -261,19 +256,19 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        @SuppressWarnings("unchecked")
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().contains("No secondary account instructions were updated"));
-        Assert.assertTrue(body.getMessage().contains("acc-3::user-3"));
+        Assert.assertEquals(body.size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
                 .updateBatchSecondaryAccountInstructions(Mockito.any(Connection.class), Mockito.anyList());
     }
 
-        /**
-         * Verifies partial update behavior when only a subset of requested records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies partial update behavior when only a subset of requested records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateSecondaryAccountInstructionsOkWhenPartialExists() throws Exception {
         SecondaryAccountInstructionItem existing = buildItem(
@@ -287,10 +282,12 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        @SuppressWarnings("unchecked")
+        List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().contains("existing records"));
-        Assert.assertTrue(body.getMessage().contains("acc-14::user-14"));
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountId(), "acc-13");
+        Assert.assertEquals(body.get(0).getSecondaryUserId(), "user-13");
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<SecondaryAccountInstructionItem>> updateCaptor =
                 (ArgumentCaptor<List<SecondaryAccountInstructionItem>>) (ArgumentCaptor<?>)
@@ -302,11 +299,11 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(updateCaptor.getValue().get(0).getSecondaryUserId(), "user-13");
     }
 
-        /**
-         * Verifies internal server error response when update operation fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies internal server error response when update operation fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testUpdateSecondaryAccountInstructionsServiceError() throws Exception {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
@@ -319,58 +316,58 @@ public class SecondaryAccountsManagementApiImplTest {
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
 
         Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().startsWith("Failed to update secondary account instructions:"));
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to update secondary account instructions:"));
     }
 
-        /**
-         * Verifies bad request response when account and user ids are missing.
-         */
+    /**
+     * Verifies bad request response when account and user ids are missing.
+     */
     @Test
     public void testGetSecondaryAccountInstructionsBadRequestOnEmpty() {
-                Response response = SecondaryAccountsManagementApiImpl
-                        .getSecondaryAccountInstructions("", "");
+        Response response = SecondaryAccountsManagementApiImpl
+                .getSecondaryAccountInstructions("", "");
 
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-                Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
+        Assert.assertEquals(body.getErrorDescription(), "At least one accountId and userId are required");
     }
 
-        /**
-         * Verifies bad request response when account and user ids are blank.
-         */
-        @Test
-        public void testGetSecondaryAccountInstructionsBadRequestOnBlank() {
-                Response response = SecondaryAccountsManagementApiImpl
-                        .getSecondaryAccountInstructions("   ", "   ");
+    /**
+     * Verifies bad request response when account and user ids are blank.
+     */
+    @Test
+    public void testGetSecondaryAccountInstructionsBadRequestOnBlank() {
+        Response response = SecondaryAccountsManagementApiImpl
+                .getSecondaryAccountInstructions("   ", "   ");
 
-                Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-                ModelApiResponse body = (ModelApiResponse) response.getEntity();
-                Assert.assertNotNull(body);
-                Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
-        }
+        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertEquals(body.getErrorDescription(), "At least one accountId and userId are required");
+    }
 
-        /**
-         * Verifies bad request response when user ids are missing.
-         */
-        @Test
-        public void testGetSecondaryAccountInstructionsBadRequestOnMissingUserId() {
-                Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions(
-                        "acc-1,acc-2", " ");
+    /**
+     * Verifies bad request response when user ids are missing.
+     */
+    @Test
+    public void testGetSecondaryAccountInstructionsBadRequestOnMissingUserId() {
+        Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions(
+                "acc-1,acc-2", " ");
 
-                Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-                ModelApiResponse body = (ModelApiResponse) response.getEntity();
-                Assert.assertNotNull(body);
-                Assert.assertEquals(body.getMessage(), "At least one accountId and userId are required");
-        }
+        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertEquals(body.getErrorDescription(), "At least one accountId and userId are required");
+    }
 
-        /**
-         * Verifies successful retrieval of secondary account instructions.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies successful retrieval of secondary account instructions.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testGetSecondaryAccountInstructionsSuccess() throws Exception {
         List<SecondaryAccountInstructionItem> batchResult = Arrays.asList(
@@ -391,35 +388,35 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(body.get(0).getAccountId(), "acc-4");
     }
 
-        /**
-         * Verifies internal server error response when retrieval fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
+    /**
+     * Verifies internal server error response when retrieval fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
     @Test
     public void testGetSecondaryAccountInstructionsServiceError() throws Exception {
-                Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(
-                        Mockito.eq(connection), Mockito.anyList()))
+        Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(
+                Mockito.eq(connection), Mockito.anyList()))
                 .thenThrow(new AccountMetadataException("fail"));
 
         Response response = SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions(
                 "acc-6", "user-6");
 
         Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        ModelApiResponse body = (ModelApiResponse) response.getEntity();
+        ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertTrue(body.getMessage().startsWith("Failed to retrieve secondary account instructions:"));
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to retrieve secondary account instructions:"));
     }
 
-        /**
-         * Builds a secondary instruction item.
-         *
-         * @param accountId account id
-         * @param userId secondary user id
-         * @param otherAccountsAvailable whether other accounts are available
-         * @param status instruction status
-         * @return populated test item
-         */
+    /**
+     * Builds a secondary instruction item.
+     *
+     * @param accountId account id
+     * @param userId secondary user id
+     * @param otherAccountsAvailable whether other accounts are available
+     * @param status instruction status
+     * @return populated test item
+     */
     private SecondaryAccountInstructionItem buildItem(String accountId, String userId, boolean otherAccountsAvailable,
             String status) {
         SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
@@ -430,11 +427,11 @@ public class SecondaryAccountsManagementApiImplTest {
         return item;
     }
 
-        /**
-         * Resets singleton state to isolate test execution.
-         *
-         * @throws Exception if reflection access fails
-         */
+    /**
+     * Resets singleton state to isolate test execution.
+     *
+     * @throws Exception if reflection access fails
+     */
     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");
         instanceField.setAccessible(true);

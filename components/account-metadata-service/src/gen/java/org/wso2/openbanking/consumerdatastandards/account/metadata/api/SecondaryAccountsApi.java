@@ -1,7 +1,7 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.api;
 
 import org.wso2.openbanking.consumerdatastandards.account.metadata.impl.SecondaryAccountsManagementApiImpl;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ModelApiResponse;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import javax.ws.rs.*;
@@ -14,26 +14,26 @@ import javax.validation.constraints.*;
 import javax.validation.Valid;
 
 /**
-* Represents a collection of functions to interact with the API endpoints.
-*/
+ * Represents a collection of functions to interact with the API endpoints.
+ */
 @Path("/secondary-accounts")
 @Api(description = "the secondary-accounts API")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-02-22T19:26:05.413431800+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-02-24T17:50:15.025111200+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
 public class SecondaryAccountsApi {
 
     @POST
     @Consumes({ "application/json" })
     @Produces({ "application/json" })
-    @ApiOperation(value = "Add secondary accounts instruction status for one or more accounts", notes = "Allows adding secondary accounts instruction and privilege status for multiple accounts.", response = ModelApiResponse.class, authorizations = {
-        @Authorization(value = "OAuth2", scopes = {
-             }),
-        
-        @Authorization(value = "BasicAuth")
-         }, tags={ "Secondary User Instruction" })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 201, message = "Secondary accounts instruction status added successfully", response = ModelApiResponse.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = ModelApiResponse.class),
-        @ApiResponse(code = 500, message = "Server Error", response = ModelApiResponse.class)
+    @ApiOperation(value = "Add secondary accounts instruction status for one or more accounts", notes = "Allows adding secondary accounts instruction and privilege status for multiple accounts.", response = SecondaryAccountInstructionItem.class, responseContainer = "List", authorizations = {
+            @Authorization(value = "OAuth2", scopes = {
+            }),
+
+            @Authorization(value = "BasicAuth")
+    }, tags={ "Secondary User Instruction" })
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Secondary accounts instruction status added successfully", response = SecondaryAccountInstructionItem.class, responseContainer = "List"),
+            @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
+            @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
     public Response addSecondaryAccountsInstructionStatusPost(@Valid @NotNull List<@Valid SecondaryAccountInstructionItem> secondaryAccountInstructionItem) {
         return SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(secondaryAccountInstructionItem);
@@ -41,16 +41,16 @@ public class SecondaryAccountsApi {
 
     @GET
     @Produces({ "application/json" })
-    @ApiOperation(value = "Get secondary accounts instruction status for one user and multiple accounts", notes = "Retrieve secondary accounts instruction and privilege status for a single user ID across multiple account IDs (comma-separated).", response = SecondaryAccountInstructionItem.class, responseContainer = "List", authorizations = {
-        @Authorization(value = "OAuth2", scopes = {
-             }),
-        
-        @Authorization(value = "BasicAuth")
-         }, tags={ "Secondary User Instruction" })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "Secondary accounts instruction status retrieved successfully", response = SecondaryAccountInstructionItem.class, responseContainer = "List"),
-        @ApiResponse(code = 400, message = "Bad Request", response = ModelApiResponse.class),
-        @ApiResponse(code = 500, message = "Server Error", response = ModelApiResponse.class)
+    @ApiOperation(value = "Get secondary accounts instruction status for multiple accounts", notes = "Retrieve secondary accounts instruction and privilege status for multiple account IDs (comma-separated).", response = SecondaryAccountInstructionItem.class, responseContainer = "List", authorizations = {
+            @Authorization(value = "OAuth2", scopes = {
+            }),
+
+            @Authorization(value = "BasicAuth")
+    }, tags={ "Secondary User Instruction" })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Secondary accounts instruction status retrieved successfully", response = SecondaryAccountInstructionItem.class, responseContainer = "List"),
+            @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
+            @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
     public Response getSecondaryAccountsInstructionStatusGet(@QueryParam("accountIds") @NotNull  @ApiParam("Comma-separated account IDs")  String accountIds,@QueryParam("userId") @NotNull  @ApiParam("User ID")  String userId) {
         return SecondaryAccountsManagementApiImpl.getSecondaryAccountInstructions(accountIds, userId);
@@ -59,16 +59,16 @@ public class SecondaryAccountsApi {
     @PUT
     @Consumes({ "application/json" })
     @Produces({ "application/json" })
-    @ApiOperation(value = "Update secondary accounts instruction status for one or more accounts", notes = "This API is used to update the CDS Secondary Accounts Instruction and Privilege Status.", response = ModelApiResponse.class, authorizations = {
-        @Authorization(value = "OAuth2", scopes = {
-             }),
-        
-        @Authorization(value = "BasicAuth")
-         }, tags={ "Secondary User Instruction" })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "Secondary accounts instruction status successfully updated", response = ModelApiResponse.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = ModelApiResponse.class),
-        @ApiResponse(code = 500, message = "Server Error", response = ModelApiResponse.class)
+    @ApiOperation(value = "Update secondary accounts instruction status for one or more accounts", notes = "This API is used to update the CDS Secondary Accounts Instruction and Privilege Status.", response = SecondaryAccountInstructionItem.class, responseContainer = "List", authorizations = {
+            @Authorization(value = "OAuth2", scopes = {
+            }),
+
+            @Authorization(value = "BasicAuth")
+    }, tags={ "Secondary User Instruction" })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Secondary accounts instruction status successfully updated", response = SecondaryAccountInstructionItem.class, responseContainer = "List"),
+            @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
+            @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
     public Response updateSecondaryAccountStatusPut(@Valid @NotNull List<@Valid SecondaryAccountInstructionItem> secondaryAccountInstructionItem) {
         return SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(secondaryAccountInstructionItem);

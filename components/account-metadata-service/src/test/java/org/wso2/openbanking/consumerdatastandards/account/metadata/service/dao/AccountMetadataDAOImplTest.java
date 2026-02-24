@@ -64,10 +64,10 @@ public class AccountMetadataDAOImplTest {
                     " WHERE ACCOUNT_ID = ?";
         }
 
-                /**
-                 * @param size number of account ids
-                 * @return select query for disclosure options by account id list
-                 */
+        /**
+         * @param size number of account ids
+         * @return select query for disclosure options by account id list
+         */
         @Override
         public String getBatchGetDisclosureOptionQuery(int size) {
             StringBuilder placeholders = new StringBuilder();
@@ -137,7 +137,7 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(resultSet.getString("DISCLOSURE_OPTION_STATUS"))
                 .thenReturn("no-sharing").thenReturn("pre-approval");
 
-        Map<String, String> result = dao.getBatchDisclosureOptions(connection, 
+        Map<String, String> result = dao.getBatchDisclosureOptions(connection,
                 Arrays.asList("acc-400", "acc-401"));
 
         Assert.assertEquals(result.size(), 2);
@@ -359,17 +359,88 @@ public class AccountMetadataDAOImplTest {
      *
      * @throws Exception if setup or invocation fails
      */
-        @Test(expectedExceptions = AccountMetadataException.class)
-        public void testGetBatchSecondaryAccountInstructionsSqlException() throws Exception {
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testGetBatchSecondaryAccountInstructionsSqlException() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString()))
+                .thenThrow(new SQLException("bad"));
+
+        List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
+                buildSecondaryItem("acc-903", "user-1", true, "active"));
+
+        dao.getBatchSecondaryAccountInstructions(connection, queryItems);
+    }
+
+    /**
+     * Verifies that batch retrieval with null input returns an empty map without database operations.
+     * Tests defensive null handling in the DAO early return logic.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testGetBatchDisclosureOptionsNullInput() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Map<String, String> result = dao.getBatchDisclosureOptions(connection, null);
+
+        Assert.assertTrue(result.isEmpty());
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies that batch insert with null input is skipped without database operations.
+     * Tests defensive null handling in the DAO early return logic.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBatchDisclosureOptionsNullInput() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        dao.addBatchDisclosureOptions(connection, null);
+
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies that batch update with null input is skipped without database operations.
+     * Tests defensive null handling in the DAO early return logic.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBatchDisclosureOptionsNullInput() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        dao.updateBatchDisclosureOptions(connection, null);
+
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies that SQL failures during disclosure option update are wrapped as service exceptions.
+     * Tests exception handling in the batch update path when database operations fail.
+     *
+     * @throws Exception if setup or invocation fails (expected exception is verified by TestNG)
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testUpdateBatchDisclosureOptionsSqlException() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
 
-        List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
-            buildSecondaryItem("acc-903", "user-1", true, "active"));
-        dao.getBatchSecondaryAccountInstructions(connection, queryItems);
-        }
+    
+        Map<String, String> accountMap = new HashMap<>();
+        accountMap.put("acc-901", "no-sharing");
+
+        dao.updateBatchDisclosureOptions(connection, accountMap);
+    }
 
         /**
          * Verifies successful batch insert of secondary account instructions.

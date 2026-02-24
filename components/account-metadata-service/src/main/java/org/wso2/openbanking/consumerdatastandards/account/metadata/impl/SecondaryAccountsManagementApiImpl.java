@@ -22,7 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ModelApiResponse;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataService;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
@@ -54,14 +54,14 @@ public class SecondaryAccountsManagementApiImpl {
      * Updates secondary account instructions for multiple account-user combinations.
      *
      * @param request list of secondary account instruction items to update
-     * @return response with update status
+     * @return response with list of updated items
      */
     public static Response updateSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> request) {
 
-        if (request == null || request.isEmpty()) {
+        if (request == null) {
             log.error("[Secondary Accounts] No secondary account instruction items provided to update");
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ModelApiResponse().message("No secondary account instruction items provided"))
+                    .entity(new ErrorResponse().errorDescription("No secondary account instruction items provided"))
                     .build();
         }
 
@@ -78,44 +78,21 @@ public class SecondaryAccountsManagementApiImpl {
                     .filter(item -> existingKeys.contains(buildCompositeKey(item)))
                     .collect(Collectors.toList());
 
-            List<String> nonExistingKeys = validItems.stream()
-                    .filter(item -> !existingKeys.contains(buildCompositeKey(item)))
-                    .map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
-                    .collect(Collectors.toList());
-
             if (!itemsToUpdate.isEmpty()) {
                 accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }
 
-            if (nonExistingKeys.isEmpty()) {
-                return Response.ok()
-                        .entity(new ModelApiResponse().message("Secondary account instructions updated successfully"))
-                        .build();
+            if (log.isDebugEnabled()) {
+                log.debug("[Secondary Accounts] Updated secondary account instructions for " +
+                        itemsToUpdate.size() + " item(s)");
             }
 
-            if (itemsToUpdate.isEmpty()) {
-                return Response.ok()
-                        .entity(new ModelApiResponse().message("No secondary account instructions were updated. " +
-                                "AccountId-UserId record(s) do not exist: " +
-                                String.join(", ", nonExistingKeys)))
-                        .build();
-            }
+            return Response.status(Response.Status.OK).entity(itemsToUpdate).build();
 
-            return Response.ok()
-                    .entity(new ModelApiResponse().message("Secondary account instructions updated successfully for " +
-                            "existing records. AccountId-UserId record(s) do not exist: " +
-                            String.join(", ", nonExistingKeys)))
-                    .build();
-
-        } catch (IllegalArgumentException e) {
-            log.error("[Secondary Accounts] Invalid request received", e);
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ModelApiResponse().message(e.getMessage()))
-                    .build();
         } catch (AccountMetadataException e) {
             log.error("[Secondary Accounts] Failed to update secondary account instructions", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(new ModelApiResponse().message(
+                    .entity(new ErrorResponse().errorDescription(
                             "Failed to update secondary account instructions: " + e.getMessage()))
                     .build();
         }
@@ -133,7 +110,7 @@ public class SecondaryAccountsManagementApiImpl {
         if (StringUtils.isBlank(accountIds) || StringUtils.isBlank(userId)) {
             log.error("[Secondary Accounts] accountIds or userId are missing in get request");
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ModelApiResponse().message(
+                    .entity(new ErrorResponse().errorDescription(
                             "At least one accountId and userId are required"))
                     .build();
         }
@@ -146,7 +123,7 @@ public class SecondaryAccountsManagementApiImpl {
         if (accountIdList.isEmpty()) {
             log.error("[Secondary Accounts] No valid accountIds found after parsing");
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ModelApiResponse().message(
+                    .entity(new ErrorResponse().errorDescription(
                             "At least one accountId and userId are required"))
                     .build();
         }
@@ -163,7 +140,7 @@ public class SecondaryAccountsManagementApiImpl {
         } catch (AccountMetadataException e) {
                 log.error("[Secondary Accounts] Error retrieving secondary account instructions", e);
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(new ModelApiResponse().message(
+                        .entity(new ErrorResponse().errorDescription(
                                 "Failed to retrieve secondary account instructions: " + e.getMessage()))
                         .build();
         }
@@ -187,14 +164,14 @@ public class SecondaryAccountsManagementApiImpl {
      * Adds secondary account instructions for multiple account-user combinations.
      *
      * @param request list of secondary account instruction items to add
-     * @return response with creation status
+     * @return response with list of added items
      */
     public static Response addSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> request) {
 
-        if (request == null || request.isEmpty()) {
+        if (request == null) {
             log.error("[Secondary Accounts] No secondary account instruction items provided to add");
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ModelApiResponse().message("No secondary account instruction items provided"))
+                    .entity(new ErrorResponse().errorDescription("No secondary account instruction items provided"))
                     .build();
         }
 
@@ -211,32 +188,25 @@ public class SecondaryAccountsManagementApiImpl {
                     .filter(item -> !existingKeys.contains(buildCompositeKey(item)))
                     .collect(Collectors.toList());
 
-            List<String> existingItemKeys = validItems.stream()
-                    .filter(item -> existingKeys.contains(buildCompositeKey(item)))
-                    .map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
-                    .collect(Collectors.toList());
-
             if (!itemsToAdd.isEmpty()) {
                 accountMetadataService.addBatchSecondaryAccountInstructions(itemsToAdd);
             }
 
-            if (!existingItemKeys.isEmpty()) {
-                return Response.ok()
-                        .entity(new ModelApiResponse().message(
-                                "Secondary account instructions added for new records. " +
-                                        "Already exists for AccountId-UserId record(s): " +
-                                        String.join(", ", existingItemKeys)))
-                        .build();
+            if (log.isDebugEnabled()) {
+                log.debug("[Secondary Accounts] Added secondary account instructions for " +
+                        itemsToAdd.size() + " item(s)");
             }
 
-            return Response.status(Response.Status.CREATED)
-                    .entity(new ModelApiResponse().message("Secondary account instructions added successfully"))
-                    .build();
+            // Return 201 Created if all were new, 200 OK if some already existed
+            Response.ResponseBuilder responseBuilder = itemsToAdd.isEmpty() ? 
+                    Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
+            
+            return responseBuilder.entity(itemsToAdd).build();
 
         } catch (AccountMetadataException e) {
             log.error("[Secondary Accounts] Failed to add secondary account instructions", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(new ModelApiResponse().message(
+                    .entity(new ErrorResponse().errorDescription(
                             "Failed to add secondary account instructions: " + e.getMessage()))
                     .build();
         }
