@@ -207,6 +207,15 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
+     * Checks if a secondary account has privilege status.
+     * @param accountJson The account JSON object containing secondary account privilege status
+     * @return true if the account has privilege (secondaryAccountPrivilegeStatus is true), false otherwise
+     */
+    private static boolean isSecondaryAccountPrivileged(JSONObject accountJson) {
+        return accountJson.optBoolean(CommonConstants.SECONDARY_ACCOUNT_PRIVILEGES_STATUS, false);
+    }
+
+    /**
      * Checks if a joint account is electable based on its election status.
      * @param accountJson The account JSON object containing joint account election status
      * @return true if the account is electable (not in NOT_ELECTED status), false otherwise
@@ -221,7 +230,59 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
-     * Handle joint account logic including electable accounts and blocked accounts.
+     * Extracts the linked member IDs from a joint account's JSON data.
+     * @param accountJson The account JSON object containing joint account info
+     * @return list of linked member IDs, or an empty list if none are found
+     */
+    private static List<String> extractLinkedMembers(JSONObject accountJson) {
+        List<String> linkedMembers = new ArrayList<>();
+        if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
+            JSONArray linkedMemberArray = accountJson.getJSONObject(
+                    CommonConstants.JOINT_ACCOUNT_INFO_TAG).optJSONArray(
+                    CommonConstants.AUTH_RESOURCE_TYPE_LINKED);
+            if (linkedMemberArray != null) {
+                for (int j = 0; j < linkedMemberArray.length(); j++) {
+                    linkedMembers.add(linkedMemberArray.getJSONObject(j)
+                            .optString(CommonConstants.MEMBER_ID_TAG));
+                }
+            }
+        }
+        return linkedMembers;
+    }
+
+    /**
+     * Extracts the account owner IDs from a secondary account's JSON data.
+     * @param accountJson The account JSON object containing secondary account info
+     * @return list of account owner IDs, or an empty list if none are found
+     */
+    private static List<String> extractSecondaryAccountOwners(JSONObject accountJson) {
+        List<String> accountOwners = new ArrayList<>();
+        if (accountJson.has(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)) {
+            JSONArray ownerArray = accountJson.getJSONObject(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
+                    .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG);
+            if (ownerArray != null) {
+                for (int j = 0; j < ownerArray.length(); j++) {
+                    accountOwners.add(ownerArray.getJSONObject(j)
+                            .optString(CommonConstants.MEMBER_ID_TAG));
+                }
+            }
+        }
+        return accountOwners;
+    }
+
+    /**
+     * Processes a single account by checking eligibility and enriching with type-specific properties.
+     * <p>
+     * Eligibility rules:
+     * <ul>
+     *   <li>Joint accounts must be electable (election status is not NOT_ELECTED)</li>
+     *   <li>Secondary accounts must have privilege status</li>
+     *   <li>Accounts that are both joint and secondary must satisfy both conditions</li>
+     *   <li>Normal accounts (neither joint nor secondary) are always eligible</li>
+     * </ul>
+     * If any eligibility check fails, the account is added to the blocked list.
+     * Otherwise, the account is enriched with linked members / secondary account owners
+     * as appropriate and added to the eligible account list.
      *
      * @param accountJson The account JSON object
      * @param accountId The account ID
@@ -229,43 +290,39 @@ public class ConsentAuthorizeUtil {
      * @param accountList The list of eligible accounts
      * @param blockedAccountsList The list of blocked accounts
      */
-    private static void handleJointAccount(JSONObject accountJson, String accountId,
+    private static void processAccount(JSONObject accountJson, String accountId,
             SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
             List<DisplayListItem> blockedAccountsList) {
 
-        if (isJointAccountElectable(accountJson)) {
-            // Handle electable joint accounts
-            List<String> linkedMembers = new ArrayList<>();
+        boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
+        boolean isSecondaryAccount = accountJson.optBoolean(
+                CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
 
-            // Adding joint accounts info as additional properties
-            if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
-                // Getting the linkedMember details from the Joint account info
-                JSONArray linkedMemberArray =
-                        accountJson.getJSONObject(
-                        CommonConstants.JOINT_ACCOUNT_INFO_TAG).optJSONArray(
-                        CommonConstants.AUTH_RESOURCE_TYPE_LINKED);
 
-                if (linkedMemberArray != null) {
-                    for (int j = 0; j < linkedMemberArray.length(); j++) {
-                        JSONObject memberObj = linkedMemberArray.getJSONObject(j);
-                        linkedMembers.add(memberObj.optString(CommonConstants.MEMBER_ID_TAG));
-                    }
-                }
-            }
-
-            account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, linkedMembers);
-            account.setDisplayName(getDisplayNameWithAccountNumber(
+        // Check eligibility for each account.
+        if (!(!isJointAccount || isJointAccountElectable(accountJson)) ||
+                !(!isSecondaryAccount || isSecondaryAccountPrivileged(accountJson))) {
+            // Block account if any eligibility check fails
+            DisplayListItem blockedItem = new DisplayListItem();
+            blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
                     accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
-            accountList.add(account);
-
-        } else {
-            // Adding blocked joint accounts to the display data
-            DisplayListItem blockedAccountItem = new DisplayListItem();
-            blockedAccountItem.setDisplayText(getDisplayNameWithAccountNumber(
-                    accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
-            blockedAccountsList.add(blockedAccountItem);
+            blockedAccountsList.add(blockedItem);
+            return;
         }
+
+        // Enrich with type-specific additional properties
+        if (isJointAccount) {
+            account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, extractLinkedMembers(accountJson));
+        }
+        if (isSecondaryAccount) {
+            account.setAdditionalProperty(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG,
+                    extractSecondaryAccountOwners(accountJson));
+        }
+
+        account.setDisplayName(getDisplayNameWithAccountNumber(
+                accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
+        accountList.add(account);
     }
 
     /**
@@ -310,16 +367,9 @@ public class ConsentAuthorizeUtil {
                     SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account =
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
-
                     String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
 
-                    if (accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false)) {
-                        handleJointAccount(accountJson, accountId, account, accountList, blockedAccountsList);
-                    } else {
-                        account.setDisplayName(getDisplayNameWithAccountNumber(
-                                        accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
-                        accountList.add(account);
-                    }
+                    processAccount(accountJson, accountId, account, accountList, blockedAccountsList);
                 }
 
                 List<AdditionalDisplayDataSection> resolvedDisplayData = setDisplayData(blockedAccountsList);

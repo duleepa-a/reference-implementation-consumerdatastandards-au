@@ -132,7 +132,7 @@ public class CommonConstants {
     public static final String AUTHORIZATION_RESOURCES = "authorizationResources";
     public static final String AUTH_TYPE = "authorizationType";
 
-    //Constants Related to Joint Accounts
+    // Constants Related to Joint Accounts
     public static final String DOMS_STATUS_PRE_APPROVAL = "pre-approval";
     public static final String DOMS_STATUS_NO_SHARING = "no-sharing";
     public static final String IS_JOINT_ACCOUNT_RESPONSE = "isJointAccount";
@@ -156,5 +156,13 @@ public class CommonConstants {
     public static final String DISCLOSURE_OPTIONS_ENDPOINT = "/disclosure-options";
     public static final String DISCLOSURE_OPTIONS_GET_ENDPOINT = "/disclosure-options/accounts-status";
     public static final String DISCLOSURE_OPTION_FIELD = "disclosureOption";
+
+    // Constants Related to Secondary user accounts
+
+    public static final String IS_SECONDARY_ACCOUNT_RESPONSE = "isSecondaryAccount";
+    public static final String SECONDARY_ACCOUNT_INFO_TAG = "secondaryAccountInfo";
+    public static final String SECONDARY_ACCOUNT_OWNER_TAG = "accountOwner";
+    public static final String SECONDARY_ACCOUNT_PRIVILEGES_STATUS = "secondaryAccountPrivilegeStatus";
+    public static final String SECONDARY_ACCOUNT_OWNERS_TAG = "secondaryAccountOwners";
 
 }
