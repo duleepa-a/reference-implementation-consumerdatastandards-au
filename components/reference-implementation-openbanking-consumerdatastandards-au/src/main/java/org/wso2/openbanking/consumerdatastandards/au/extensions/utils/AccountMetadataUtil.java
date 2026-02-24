@@ -46,6 +46,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Utility class to interact with the Account Metadata Webapp for DOMS status retrieval.
@@ -139,6 +140,41 @@ public class AccountMetadataUtil {
     }
 
     /**
+     * Add secondary account instructions for the consenting user.
+     * Calls POST /secondary-accounts with account IDs and the secondary user ID
+     * (the user initiating the consent, not the account owners).
+     *
+     * @param accountIds set of secondary account IDs selected during consent
+     * @param secondaryUserId the user ID of the consenting user (secondary user)
+     * @return true if secondary account instructions are added successfully, false otherwise
+     */
+    public static boolean addSecondaryAccountInstructions(Set<String> accountIds, String secondaryUserId) {
+
+        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(10000).build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            String requestUrl = buildSecondaryAccountsUrl();
+            HttpPost request = new HttpPost(requestUrl);
+
+            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
+            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+            addBasicAuthHeader(request);
+
+            String requestBody = buildSecondaryAccountInstructionsRequestBody(accountIds, secondaryUserId);
+            request.setEntity(new StringEntity(requestBody, StandardCharsets.UTF_8));
+
+            HttpResponse response = client.execute(request);
+            int statusCode = response.getStatusLine().getStatusCode();
+
+            return statusCode == HttpURLConnection.HTTP_CREATED || statusCode == HttpURLConnection.HTTP_OK;
+
+        } catch (IOException e) {
+            log.error("Failed to add secondary account instructions for user: " + secondaryUserId, e);
+            return false;
+        }
+    }
+
+    /**
      * Add Basic Authentication header to the HTTP request.
      *
      * @param request the HTTP request to add the auth header to
@@ -179,6 +215,42 @@ public class AccountMetadataUtil {
             accountData.addProperty(CommonConstants.ACCOUNT_ID, entry.getKey());
             accountData.addProperty(CommonConstants.DISCLOSURE_OPTION_FIELD, entry.getValue());
             dataArray.add(accountData);
+        }
+        return dataArray.toString();
+    }
+
+    /**
+     * Build the request URL for the secondary-accounts endpoint.
+     *
+     * @return the complete request URL
+     */
+    private static String buildSecondaryAccountsUrl() {
+        return ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_BASE_URL
+                + CommonConstants.SECONDARY_ACCOUNTS_ENDPOINT;
+    }
+
+    /**
+     * Build the request body for adding secondary account instructions.
+     * Constructs JSON array with account ID, secondary user ID, and instruction status.
+     * Format: [{"accountId": "...", "secondaryUserId": "...",
+     *           "otherAccountsAvailablitiy": true, "secondaryAccountInstructionStatus": "active"}...]
+     *
+     * @param accountIds set of account IDs
+     * @param secondaryUserId the secondary user ID (consenting user)
+     * @return JSON request body as string
+     */
+    private static String buildSecondaryAccountInstructionsRequestBody(Set<String> accountIds,
+                                                                       String secondaryUserId) {
+        JsonArray dataArray = new JsonArray();
+
+        for (String accountId : accountIds) {
+            JsonObject item = new JsonObject();
+            item.addProperty(CommonConstants.ACCOUNT_ID, accountId);
+            item.addProperty(CommonConstants.SECONDARY_USER_ID_FIELD, secondaryUserId);
+            item.addProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, true);
+            item.addProperty(CommonConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD,
+                    CommonConstants.SECONDARY_INSTRUCTION_STATUS_ACTIVE);
+            dataArray.add(item);
         }
         return dataArray.toString();
     }
