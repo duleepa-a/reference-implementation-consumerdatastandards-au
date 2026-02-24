@@ -127,11 +127,11 @@ public class CdsConsentAuthPersistUtil {
 
             // Add disclosure options for joint accounts
             if (!jointAccountDisclosureMap.isEmpty() &&
-                    AccountMetadataUtil.addDisclosureOption(jointAccountDisclosureMap) != 0) {
+                    !AccountMetadataUtil.addDisclosureOption(jointAccountDisclosureMap)) {
                 // Throwing an error if disclosureOptions didn't get added.
                 log.error("Error occurred while adding disclosure options in persist step.");
                 throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
-                            "Error While Updating the Joint account Info.");
+                        "Error While Updating the Joint account Info.");
             }
 
             //Convert expiration date time to validity time in seconds

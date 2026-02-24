@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Database queries for account metadata operations.
  */
-public interface AccountMetadataDBQueries {
+public interface AccountMetadataDbQueries {
 
     // DB Queries related to DOMS Feature.
     /**

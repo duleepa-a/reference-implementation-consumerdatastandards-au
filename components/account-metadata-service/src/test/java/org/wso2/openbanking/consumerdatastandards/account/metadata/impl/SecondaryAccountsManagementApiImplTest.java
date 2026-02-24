@@ -138,9 +138,11 @@ public class SecondaryAccountsManagementApiImplTest {
                 queryItemsCaptor.capture());
         List<SecondaryAccountInstructionItem> queriedItems = queryItemsCaptor.getValue();
         Assert.assertEquals(queriedItems.size(), 2);
-        Assert.assertTrue(queriedItems.stream().anyMatch(item -> "acc-10".equals(item.getAccountId())
+        Assert.assertTrue(queriedItems.stream()
+                .anyMatch(item -> "acc-10".equals(item.getAccountId())
                 && "user-10".equals(item.getSecondaryUserId())));
-        Assert.assertTrue(queriedItems.stream().anyMatch(item -> "acc-11".equals(item.getAccountId())
+        Assert.assertTrue(queriedItems.stream()
+                .anyMatch(item -> "acc-11".equals(item.getAccountId())
                 && "user-11".equals(item.getSecondaryUserId())));
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<SecondaryAccountInstructionItem>> addCaptor =

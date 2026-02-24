@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * MySQL implementation of account metadata database queries.
  */
-public class AccountMetadataDBQueriesMySQLImpl implements AccountMetadataDBQueries {
+public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueries {
 
     /**
      * {@inheritDoc}
@@ -97,6 +97,4 @@ public class AccountMetadataDBQueriesMySQLImpl implements AccountMetadataDBQueri
         return "UPDATE fs_account_secondary_user SET SECONDARY_ACCOUNT_INSTRUCTION_STATUS = ?, " +
                 "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
-
-
 }
