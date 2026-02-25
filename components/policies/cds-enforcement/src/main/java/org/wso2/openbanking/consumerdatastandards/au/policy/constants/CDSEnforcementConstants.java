@@ -80,4 +80,12 @@ public class CDSEnforcementConstants {
     public static final String DISCLOSURE_OPTION_TAG = "disclosureOption";
     public static final String DOMS_STATUS_NO_SHARING = "no-sharing";
 
+    // Account-metadata webapp API paths
+    public static final String DISCLOSURE_OPTIONS_PATH = "/disclosure-options";
+    public static final String SECONDARY_ACCOUNTS_PATH = "/secondary-accounts";
+
+    // Constants related to Secondary Accounts
+    public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG = "secondaryAccountInstructionStatus";
+    public static final String SECONDARY_ACCOUNT_STATUS_INACTIVE = "inactive";
+
 }

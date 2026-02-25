@@ -39,6 +39,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Unit tests for {@link CDSEnforcementMediator}.
+ */
 public class CDSEnforcementMediatorTest {
 
     private Axis2MessageContext synapseMessageContext;
@@ -58,16 +61,24 @@ public class CDSEnforcementMediatorTest {
     @Test
     public void testMediateFiltersBlockedAccountsAndUpdatesHeader() throws Exception {
         TestableCDSEnforcementMediator mediator = new TestableCDSEnforcementMediator();
-        HttpServer server = startBlockedAccountsServer("["
+
+        String disclosureResponse = "["
             + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"no-sharing\"},"
             + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"pre-approval\"}"
-            + "]");
+            + "]";
+        String secondaryResponse = "["
+            + "{\"accountId\":\"acc-4\",\"secondaryAccountInstructionStatus\":\"inactive\"},"
+            + "{\"accountId\":\"acc-1\",\"secondaryAccountInstructionStatus\":\"active\"}"
+            + "]";
+
+        HttpServer server = startDualServer(disclosureResponse, secondaryResponse);
         try {
-            String serverUrl = "http://localhost:" + server.getAddress().getPort() + "/blocked";
-            mediator.setDomsGetApi(serverUrl);
-            mediator.setDomsBasicAuthCredentials("dGVzdDp0ZXN0");
+            String baseUrl = "http://localhost:" + server.getAddress().getPort();
+            mediator.setWebappBaseURL(baseUrl);
+            mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
             JSONObject payload = new JSONObject();
+            payload.put("userId", "user-1");
             JSONArray authorizationResources = new JSONArray();
             authorizationResources.put(new JSONObject()
                 .put("authorizationType", "linkedMember")
@@ -81,6 +92,7 @@ public class CDSEnforcementMediatorTest {
             accounts.put(new JSONObject().put("account_id", "acc-1"));
             accounts.put(new JSONObject().put("account_id", "acc-2"));
             accounts.put(new JSONObject().put("account_id", "acc-3").put("authorizationId", "linked-1"));
+            accounts.put(new JSONObject().put("account_id", "acc-4"));
             payload.put("consentMappingResources", accounts);
 
             headers.put(CDSEnforcementConstants.INFO_HEADER_TAG, payload.toString());
@@ -137,19 +149,25 @@ public class CDSEnforcementMediatorTest {
         }
     }
 
-    private static HttpServer startBlockedAccountsServer(String responseBody) throws IOException {
+    private static HttpServer startDualServer(String disclosureResponse, String secondaryResponse)
+            throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/blocked", new BlockedAccountsHandler(responseBody));
+        server.createContext("/disclosure-options",
+                new SimpleJsonHandler(disclosureResponse, CDSEnforcementConstants.ACCOUNT_IDS_TAG));
+        server.createContext("/secondary-accounts",
+                new SimpleJsonHandler(secondaryResponse, CDSEnforcementConstants.ACCOUNT_IDS_TAG));
         server.setExecutor(null);
         server.start();
         return server;
     }
 
-    private static class BlockedAccountsHandler implements HttpHandler {
+    private static class SimpleJsonHandler implements HttpHandler {
         private final String responseBody;
+        private final String requiredQueryParam;
 
-        private BlockedAccountsHandler(String responseBody) {
+        private SimpleJsonHandler(String responseBody, String requiredQueryParam) {
             this.responseBody = responseBody;
+            this.requiredQueryParam = requiredQueryParam;
         }
 
         @Override
@@ -157,7 +175,7 @@ public class CDSEnforcementMediatorTest {
             Assert.assertEquals(exchange.getRequestMethod(), "GET");
             String query = exchange.getRequestURI().getRawQuery();
             Assert.assertNotNull(query);
-            Assert.assertTrue(query.contains(CDSEnforcementConstants.ACCOUNT_IDS_TAG + "="));
+            Assert.assertTrue(query.contains(requiredQueryParam + "="));
 
             try (InputStream requestBody = exchange.getRequestBody()) {
                 while (requestBody.read() != -1) {

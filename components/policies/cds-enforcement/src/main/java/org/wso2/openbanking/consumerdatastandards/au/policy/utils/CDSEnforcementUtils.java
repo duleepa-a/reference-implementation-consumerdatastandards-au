@@ -109,6 +109,32 @@ public class CDSEnforcementUtils {
     }
 
     /**
+     * Fetch all blocked account IDs by checking both the disclosure options
+     * and secondary accounts services.
+     *
+     * @param accountIds set of account IDs to check
+     * @param baseUrl base URL of the account metadata webapp
+     * @param userId user ID for the secondary accounts query
+     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
+     * @return combined set of blocked account IDs from both services
+     */
+    public static Set<String> fetchAllBlockedAccounts(
+            Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64) {
+
+        String disclosureOptionsApi = baseUrl + CDSEnforcementConstants.DISCLOSURE_OPTIONS_PATH;
+        String secondaryAccountsApi = baseUrl + CDSEnforcementConstants.SECONDARY_ACCOUNTS_PATH;
+
+        Set<String> blockedAccounts = fetchBlockedAccountsFromService(accountIds, disclosureOptionsApi,
+                basicAuthBase64);
+        Set<String> blockedSecondaryAccounts = fetchBlockedSecondaryAccountsFromService(
+                accountIds, secondaryAccountsApi, userId, basicAuthBase64);
+
+        blockedAccounts.addAll(blockedSecondaryAccounts);
+
+        return blockedAccounts;
+    }
+
+    /**
      * Call disclosure options GET endpoint and return blocked account IDs.
      *
      * @param accountIds set of account IDs to check
@@ -116,7 +142,7 @@ public class CDSEnforcementUtils {
      * @param basicAuthBase64 Base64-encoded Basic Auth credentials
      * @return set of blocked account IDs
      */
-    public static Set<String> fetchBlockedAccountsFromService(
+    static Set<String> fetchBlockedAccountsFromService(
             Set<String> accountIds, String blockedAccountsApi, String basicAuthBase64) {
 
         Set<String> blockedAccounts = new HashSet<>();
@@ -126,20 +152,15 @@ public class CDSEnforcementUtils {
         }
 
         try {
-            String accountIdsParam = URLEncoder.encode(
-                    String.join(",", accountIds), StandardCharsets.UTF_8);
+            String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String requestUrl = blockedAccountsApi + "?" + CDSEnforcementConstants.ACCOUNT_IDS_TAG + "="
-                + accountIdsParam;
+                    + accountIdsParam;
 
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofMillis(3000))
-                    .build();
+            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
 
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(requestUrl))
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
                     .timeout(Duration.ofMillis(3000))
-                    .header(CDSEnforcementConstants.ACCEPT_TAG, CDSEnforcementConstants.JSON_CONTENT_TYPE)
-                    .GET();
+                    .header(CDSEnforcementConstants.ACCEPT_TAG, CDSEnforcementConstants.JSON_CONTENT_TYPE).GET();
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {
                 requestBuilder.header(CDSEnforcementConstants.AUTH_HEADER,
@@ -150,7 +171,6 @@ public class CDSEnforcementUtils {
 
             HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
 
             if (response.statusCode() == 200) {
                 JSONArray disclosureOptions = new JSONArray(response.body());
@@ -182,4 +202,78 @@ public class CDSEnforcementUtils {
         return blockedAccounts;
     }
 
+    /**
+     * Call secondary accounts GET endpoint and return blocked account IDs.
+     * An account is considered blocked if its secondaryAccountInstructionStatus is "inactive".
+     *
+     * @param accountIds set of account IDs to check
+     * @param secondaryAccountsApi secondary accounts API endpoint
+     * @param userId user ID for the secondary accounts query
+     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
+     * @return set of blocked account IDs
+     */
+    static Set<String> fetchBlockedSecondaryAccountsFromService(
+            Set<String> accountIds, String secondaryAccountsApi, String userId, String basicAuthBase64) {
+
+        Set<String> blockedAccounts = new HashSet<>();
+
+        if (accountIds == null || accountIds.isEmpty()) {
+            return blockedAccounts;
+        }
+
+        if (StringUtils.isBlank(userId)) {
+            log.warn("[SecondaryAccounts] userId is blank, skipping secondary accounts check");
+            return blockedAccounts;
+        }
+
+        try {
+            String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
+            String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+            String requestUrl = secondaryAccountsApi + "?" + CDSEnforcementConstants.ACCOUNT_IDS_TAG + "="
+                + accountIdsParam + "&" + CDSEnforcementConstants.USER_ID_TAG + "=" + userIdParam;
+
+            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
+
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
+                    .timeout(Duration.ofMillis(3000))
+                    .header(CDSEnforcementConstants.ACCEPT_TAG, CDSEnforcementConstants.JSON_CONTENT_TYPE).GET();
+
+            if (StringUtils.isNotBlank(basicAuthBase64)) {
+                requestBuilder.header(CDSEnforcementConstants.AUTH_HEADER, CDSEnforcementConstants.BASIC_TAG +
+                        basicAuthBase64);
+            } else {
+                log.warn("[SecondaryAccounts] Basic Auth property not set, request may fail");
+            }
+
+            HttpRequest request = requestBuilder.build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JSONArray secondaryAccounts = new JSONArray(response.body());
+
+                for (int i = 0; i < secondaryAccounts.length(); i++) {
+                    JSONObject accountInstruction = secondaryAccounts.optJSONObject(i);
+                    if (accountInstruction == null) {
+                        continue;
+                    }
+                    String instructionStatus = accountInstruction.optString(
+                            CDSEnforcementConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG, null);
+
+                    if (CDSEnforcementConstants.SECONDARY_ACCOUNT_STATUS_INACTIVE.equalsIgnoreCase(instructionStatus)) {
+                        String accountId = accountInstruction.optString(
+                                CDSEnforcementConstants.CDS_ACCOUNT_ID_TAG, null);
+                        if (StringUtils.isNotBlank(accountId)) {
+                            blockedAccounts.add(accountId);
+                        }
+                    }
+                }
+            } else {
+                log.warn("Secondary accounts service returned HTTP " + response.statusCode());
+            }
+
+        } catch (IOException | InterruptedException e) {
+            log.error("[SecondaryAccounts] Error calling secondary accounts service", e);
+        }
+        return blockedAccounts;
+    }
 }

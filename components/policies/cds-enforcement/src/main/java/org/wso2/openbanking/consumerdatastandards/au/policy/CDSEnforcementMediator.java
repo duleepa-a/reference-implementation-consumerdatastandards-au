@@ -42,15 +42,15 @@ public class CDSEnforcementMediator extends AbstractMediator {
 
     private static final Log log = LogFactory.getLog(CDSEnforcementMediator.class);
 
-    private String domsGetApi;
-    private String domsBasicAuthCredentials;
+    private String webappBaseURL;
+    private String basicAuthCredentials;
 
-    public void setDomsGetApi(String domsGetApi) {
-        this.domsGetApi = domsGetApi;
+    public void setWebappBaseURL(String webappBaseURL) {
+        this.webappBaseURL = webappBaseURL;
     }
 
-    public void setDomsBasicAuthCredentials(String domsBasicAuthCredentials) {
-        this.domsBasicAuthCredentials = domsBasicAuthCredentials;
+    public void setBasicAuthCredentials(String basicAuthCredentials) {
+        this.basicAuthCredentials = basicAuthCredentials;
     }
 
     @Override
@@ -63,8 +63,8 @@ public class CDSEnforcementMediator extends AbstractMediator {
                     ((Axis2MessageContext) messageContext).getAxis2MessageContext();
 
             // Use the instance fields set by Synapse
-            String blockedAccountsApi = this.domsGetApi;
-            String basicAuthBase64 = this.domsBasicAuthCredentials;
+            String baseUrl = this.webappBaseURL;
+            String basicAuthBase64 = this.basicAuthCredentials;
 
             Map<String, String> headers = (Map<String, String>)
                     axis2Ctx.getProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
@@ -122,12 +122,13 @@ public class CDSEnforcementMediator extends AbstractMediator {
                 accountIds.add(mappingResource.optString(CDSEnforcementConstants.ACCELERATOR_ACCOUNT_ID_TAG));
             }
 
-            Set<String> blockedAccounts = CDSEnforcementUtils.fetchBlockedAccountsFromService(
-                    accountIds, blockedAccountsApi, basicAuthBase64);
+            String userId = payload.optString(CDSEnforcementConstants.USER_ID_TAG, null);
+            Set<String> blockedAccounts = CDSEnforcementUtils.fetchAllBlockedAccounts(accountIds, baseUrl, userId,
+                    basicAuthBase64);
 
             JSONArray filteredConsentMappings = new JSONArray();
-            for (int i = 0; i < consentMappingResources.length(); i++) {
 
+            for (int i = 0; i < consentMappingResources.length(); i++) {
                 JSONObject mappingResource = consentMappingResources.getJSONObject(i);
 
                 // Removing consentMappingResources of linked-members
@@ -157,8 +158,7 @@ public class CDSEnforcementMediator extends AbstractMediator {
         } catch (ParseException | JOSEException e) {
             String errorDescription = "Error during DOMS enforcement mediation";
             log.error(errorDescription, e);
-            setErrorResponseProperties(messageContext,
-                    errorDescription);
+            setErrorResponseProperties(messageContext, errorDescription);
         }
 
         return true;

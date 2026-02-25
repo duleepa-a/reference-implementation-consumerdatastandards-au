@@ -37,6 +37,9 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Unit tests for {@link CDSEnforcementUtils}.
+ */
 public class CDSEnforcementUtilsTest {
 
     @Test(expectedExceptions = ParseException.class)
@@ -164,6 +167,136 @@ public class CDSEnforcementUtilsTest {
         }
     }
 
+    @Test
+    public void testFetchBlockedSecondaryAccountsSuccess() throws Exception {
+        HttpServer server = startSecondaryAccountsServer(
+            "["
+                + "{\"accountId\":\"acc-1\",\"secondaryAccountInstructionStatus\":\"inactive\"},"
+                + "{\"accountId\":\"acc-2\",\"secondaryAccountInstructionStatus\":\"active\"},"
+                + "{\"accountId\":\"acc-3\",\"secondaryAccountInstructionStatus\":\"inactive\"}"
+                + "]");
+        try {
+            String serverUrl = "http://localhost:" + server.getAddress().getPort() + "/secondary-accounts";
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+            accounts.add("acc-3");
+
+            Set<String> blocked = CDSEnforcementUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, serverUrl, "user-1", "");
+
+            Assert.assertEquals(blocked.size(), 2);
+            Assert.assertTrue(blocked.contains("acc-1"));
+            Assert.assertTrue(blocked.contains("acc-3"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsNon200() throws Exception {
+        HttpServer server = startSecondaryAccountsServerWithStatus("[]", 500);
+        try {
+            String serverUrl = "http://localhost:" + server.getAddress().getPort() + "/secondary-accounts";
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+
+            Set<String> blocked = CDSEnforcementUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, serverUrl, "user-1", "");
+
+            Assert.assertTrue(blocked.isEmpty());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsIoError() {
+        Set<String> accounts = new HashSet<>();
+        accounts.add("acc-1");
+
+        Set<String> blocked = CDSEnforcementUtils.fetchBlockedSecondaryAccountsFromService(
+                accounts, "http://localhost:1/secondary-accounts", "user-1", "");
+
+        Assert.assertTrue(blocked.isEmpty());
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsBlankUserId() {
+        Set<String> accounts = new HashSet<>();
+        accounts.add("acc-1");
+
+        Set<String> blocked = CDSEnforcementUtils.fetchBlockedSecondaryAccountsFromService(
+                accounts, "http://localhost:1/secondary-accounts", "", "");
+
+        Assert.assertTrue(blocked.isEmpty());
+    }
+
+    @Test
+    public void testFetchAllBlockedAccountsCombinesBothServices() throws Exception {
+        String disclosureResponse = "["
+                + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"no-sharing\"},"
+                + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"pre-approval\"}"
+                + "]";
+        String secondaryResponse = "["
+                + "{\"accountId\":\"acc-3\",\"secondaryAccountInstructionStatus\":\"inactive\"},"
+                + "{\"accountId\":\"acc-2\",\"secondaryAccountInstructionStatus\":\"active\"}"
+                + "]";
+
+        HttpServer server = startDualServer(disclosureResponse, secondaryResponse);
+        try {
+            String baseUrl = "http://localhost:" + server.getAddress().getPort();
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+            accounts.add("acc-3");
+
+            Set<String> blocked = CDSEnforcementUtils.fetchAllBlockedAccounts(
+                    accounts, baseUrl, "user-1", "");
+
+            Assert.assertEquals(blocked.size(), 2);
+            Assert.assertTrue(blocked.contains("acc-1"));
+            Assert.assertTrue(blocked.contains("acc-3"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testFetchAllBlockedAccountsEmptyAccountIds() {
+        Set<String> blocked = CDSEnforcementUtils.fetchAllBlockedAccounts(
+                new HashSet<>(), "http://localhost:1", "user-1", "");
+        Assert.assertTrue(blocked.isEmpty());
+    }
+
+    @Test
+    public void testFetchAllBlockedAccountsBlankUserId() throws Exception {
+        String disclosureResponse = "["
+                + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"no-sharing\"}"
+                + "]";
+        // Secondary accounts should be skipped when userId is blank, so this response won't matter
+        String secondaryResponse = "["
+                + "{\"accountId\":\"acc-2\",\"secondaryAccountInstructionStatus\":\"inactive\"}"
+                + "]";
+
+        HttpServer server = startDualServer(disclosureResponse, secondaryResponse);
+        try {
+            String baseUrl = "http://localhost:" + server.getAddress().getPort();
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+
+            Set<String> blocked = CDSEnforcementUtils.fetchAllBlockedAccounts(
+                    accounts, baseUrl, "", "");
+
+            // Only disclosure options blocked account should be returned
+            Assert.assertEquals(blocked.size(), 1);
+            Assert.assertTrue(blocked.contains("acc-1"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static HttpServer startAuthVerifyingServer(String expectedAuthHeader) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/blocked", new AuthVerifyingHandler(expectedAuthHeader));
@@ -252,6 +385,60 @@ public class CDSEnforcementUtilsTest {
                 byte[] responseBytes = response.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream responseStream = exchange.getResponseBody()) {
+                responseStream.write(responseBytes);
+            }
+        }
+    }
+
+    private static HttpServer startSecondaryAccountsServer(String responseBody) throws IOException {
+        return startSecondaryAccountsServerWithStatus(responseBody, 200);
+    }
+
+    private static HttpServer startSecondaryAccountsServerWithStatus(String responseBody, int statusCode)
+            throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/secondary-accounts", new SecondaryAccountsHandler(responseBody, statusCode));
+        server.setExecutor(null);
+        server.start();
+        return server;
+    }
+
+    private static HttpServer startDualServer(String disclosureResponse, String secondaryResponse)
+            throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/disclosure-options", new BlockedAccountsHandler(disclosureResponse, 200));
+        server.createContext("/secondary-accounts", new SecondaryAccountsHandler(secondaryResponse, 200));
+        server.setExecutor(null);
+        server.start();
+        return server;
+    }
+
+    private static class SecondaryAccountsHandler implements HttpHandler {
+        private final String responseBody;
+        private final int statusCode;
+
+        private SecondaryAccountsHandler(String responseBody, int statusCode) {
+            this.responseBody = responseBody;
+            this.statusCode = statusCode;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Assert.assertEquals(exchange.getRequestMethod(), "GET");
+            String query = exchange.getRequestURI().getRawQuery();
+            Assert.assertNotNull(query);
+            Assert.assertTrue(query.contains(CDSEnforcementConstants.ACCOUNT_IDS_TAG + "="));
+            Assert.assertTrue(query.contains(CDSEnforcementConstants.USER_ID_TAG + "="));
+
+            try (InputStream requestBody = exchange.getRequestBody()) {
+                while (requestBody.read() != -1) {
+                    // Consume request body to avoid client-side issues.
+                }
+            }
+            byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(statusCode, responseBytes.length);
             try (OutputStream responseStream = exchange.getResponseBody()) {
                 responseStream.write(responseBytes);
             }
