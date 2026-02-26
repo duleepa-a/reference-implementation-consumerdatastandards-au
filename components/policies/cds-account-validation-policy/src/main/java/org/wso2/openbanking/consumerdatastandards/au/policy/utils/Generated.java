@@ -16,13 +16,13 @@
  * under the License.
  */
 
-package org.wso2.openbanking.consumerdatastandards.account.metadata.configurations;
+package org.wso2.openbanking.consumerdatastandards.au.policy.utils;
 
 /**
- * This class holds configurable properties for the CDS Open Banking implementation.
+ * An annotation to make methods skip code coverage. Use only with a valid reason to skip
+ * code coverage.
  */
-public class ConfigurableProperties {
-
-    public static final String ACCOUNT_METADATA_DATASOURCE_JNDI_NAME = "jdbc/ACCOUNT_METADATA_DB";
-
+@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+public @interface Generated {
+    String message();
 }
