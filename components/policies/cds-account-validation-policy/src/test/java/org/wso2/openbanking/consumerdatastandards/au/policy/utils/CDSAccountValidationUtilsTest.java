@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Unit tests for {@link CDSAccountValidationUtils}.
@@ -134,6 +135,73 @@ public class CDSAccountValidationUtilsTest {
         }
     }
 
+    @Test
+    public void testFetchBlockedSecondaryAccountsFromServiceSuccess() throws Exception {
+        String expectedAuth = "Basic " + Base64.getEncoder()
+                .encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
+        HttpServer server = startSecondaryAccountsServer(expectedAuth, "user-123", null);
+        try {
+            String serverUrl = "http://localhost:" + server.getAddress().getPort() + "/secondary-accounts";
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+            accounts.add("acc-3");
+
+            String basicAuth = Base64.getEncoder().encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
+            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, serverUrl, "user-123", basicAuth);
+
+            Assert.assertEquals(blocked.size(), 2);
+            Assert.assertTrue(blocked.contains("acc-1"));
+            Assert.assertTrue(blocked.contains("acc-3"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsSkipsWhenUserIdBlank() throws Exception {
+        AtomicInteger callCounter = new AtomicInteger(0);
+        HttpServer server = startSecondaryAccountsServer(null, null, callCounter);
+        try {
+            String serverUrl = "http://localhost:" + server.getAddress().getPort() + "/secondary-accounts";
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+
+            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, serverUrl, "", "");
+
+            Assert.assertTrue(blocked.isEmpty());
+            Assert.assertEquals(callCounter.get(), 0);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testFetchAllBlockedAccountsCombinesJointAndSecondary() throws Exception {
+        String expectedAuth = "Basic " + Base64.getEncoder()
+                .encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
+        HttpServer server = startCombinedMetadataServer(expectedAuth, "user-123");
+        try {
+            String baseUrl = "http://localhost:" + server.getAddress().getPort();
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+            accounts.add("acc-3");
+
+            String basicAuth = Base64.getEncoder().encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
+            Set<String> blocked = CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    accounts, baseUrl, "user-123", basicAuth);
+
+            Assert.assertEquals(blocked.size(), 2);
+            Assert.assertTrue(blocked.contains("acc-1"));
+            Assert.assertTrue(blocked.contains("acc-3"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static HttpServer startAuthVerifyingServer(String expectedAuthHeader) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/blocked", new AuthVerifyingHandler(expectedAuthHeader));
@@ -154,6 +222,29 @@ public class CDSAccountValidationUtilsTest {
         server.start();
         return server;
     }
+
+        private static HttpServer startSecondaryAccountsServer(String expectedAuthHeader, String expectedUserId,
+                                   AtomicInteger callCounter) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/secondary-accounts",
+            new SecondaryAccountsHandler(expectedAuthHeader, expectedUserId, callCounter));
+        server.setExecutor(null);
+        server.start();
+        return server;
+        }
+
+        private static HttpServer startCombinedMetadataServer(String expectedAuthHeader, String expectedUserId)
+            throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/disclosure-options", new BlockedAccountsHandler(
+            "[{\"accountId\":\"acc-1\",\"disclosureOption\":\"no-sharing\"},"
+                + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"pre-approval\"}]", 200));
+        server.createContext("/secondary-accounts",
+            new SecondaryAccountsHandler(expectedAuthHeader, expectedUserId, null));
+        server.setExecutor(null);
+        server.start();
+        return server;
+        }
 
     private static class BlockedAccountsHandler implements HttpHandler {
         private final String responseBody;
@@ -219,6 +310,62 @@ public class CDSAccountValidationUtilsTest {
                                     expectedAuthHeader != null ? "acc-1" : "acc-2")
                         .put(CDSAccountValidationConstants.DISCLOSURE_OPTION_TAG,
                             CDSAccountValidationConstants.DOMS_STATUS_NO_SHARING));
+            byte[] responseBytes = response.toString().getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream responseStream = exchange.getResponseBody()) {
+                responseStream.write(responseBytes);
+            }
+        }
+    }
+
+    private static class SecondaryAccountsHandler implements HttpHandler {
+        private final String expectedAuthHeader;
+        private final String expectedUserId;
+        private final AtomicInteger callCounter;
+
+        private SecondaryAccountsHandler(String expectedAuthHeader, String expectedUserId, AtomicInteger callCounter) {
+            this.expectedAuthHeader = expectedAuthHeader;
+            this.expectedUserId = expectedUserId;
+            this.callCounter = callCounter;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (callCounter != null) {
+                callCounter.incrementAndGet();
+            }
+
+            Assert.assertEquals(exchange.getRequestMethod(), "GET");
+            String query = exchange.getRequestURI().getRawQuery();
+            Assert.assertNotNull(query);
+            Assert.assertTrue(query.contains(CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="));
+
+            if (expectedUserId != null) {
+                Assert.assertTrue(query.contains(CDSAccountValidationConstants.USER_ID_TAG + "="));
+                Assert.assertTrue(query.contains(expectedUserId));
+            }
+
+            String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+            if (expectedAuthHeader != null) {
+                Assert.assertEquals(authHeader, expectedAuthHeader, "Authorization header mismatch");
+            } else {
+                Assert.assertNull(authHeader, "Authorization header should not be present");
+            }
+
+            JSONArray response = new JSONArray()
+                    .put(new JSONObject()
+                            .put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, "acc-1")
+                            .put(CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG,
+                                    CDSAccountValidationConstants.SECONDARY_ACCOUNT_STATUS_INACTIVE))
+                    .put(new JSONObject()
+                            .put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, "acc-2")
+                            .put(CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG, "active"))
+                    .put(new JSONObject()
+                            .put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, "acc-3")
+                            .put(CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG,
+                                    CDSAccountValidationConstants.SECONDARY_ACCOUNT_STATUS_INACTIVE));
+
             byte[] responseBytes = response.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, responseBytes.length);

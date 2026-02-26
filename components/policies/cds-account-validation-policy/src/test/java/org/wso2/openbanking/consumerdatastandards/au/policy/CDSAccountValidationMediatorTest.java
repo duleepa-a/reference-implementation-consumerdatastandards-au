@@ -108,6 +108,44 @@ public class CDSAccountValidationMediatorTest {
         Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), originalHeader);
     }
 
+        @Test(expectedExceptions = ExceptionInInitializerError.class)
+        public void testMediateGetsUserIdFromAccountsAuthorizationResource() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        HttpServer server = startMetadataServerForMediator("psu@gold.com");
+        try {
+            String serverBaseUrl = "http://localhost:" + server.getAddress().getPort();
+            mediator.setWebappBaseURL(serverBaseUrl);
+            mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+            JSONObject payload = new JSONObject();
+            JSONArray authorizationResources = new JSONArray();
+            authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                    CDSAccountValidationConstants.ACCOUNTS_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-accounts-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "psu@gold.com"));
+            authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                    CDSAccountValidationConstants.LINKED_MEMBER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "amy@gold.com@carbon.super"));
+            payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+            JSONArray accounts = new JSONArray();
+            accounts.put(new JSONObject().put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-accounts-1"));
+            accounts.put(new JSONObject().put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-2")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
+            payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+
+            headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+            mediator.mediate(synapseMessageContext);
+        } finally {
+            server.stop(0);
+        }
+        }
+
     @Test(expectedExceptions = org.json.JSONException.class)
     public void testMediateHandlesDecodeError() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -120,6 +158,15 @@ public class CDSAccountValidationMediatorTest {
     private static HttpServer startDisclosureOptionsServer(String responseBody) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/disclosure-options", new BlockedAccountsHandler(responseBody));
+        server.setExecutor(null);
+        server.start();
+        return server;
+    }
+
+    private static HttpServer startMetadataServerForMediator(String expectedUserId) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/disclosure-options", new BlockedAccountsHandler("[]"));
+        server.createContext("/secondary-accounts", new SecondaryAccountsHandler(expectedUserId));
         server.setExecutor(null);
         server.start();
         return server;
@@ -145,6 +192,31 @@ public class CDSAccountValidationMediatorTest {
                 }
             }
             byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream responseStream = exchange.getResponseBody()) {
+                responseStream.write(responseBytes);
+            }
+        }
+    }
+
+    private static class SecondaryAccountsHandler implements HttpHandler {
+        private final String expectedUserId;
+
+        private SecondaryAccountsHandler(String expectedUserId) {
+            this.expectedUserId = expectedUserId;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Assert.assertEquals(exchange.getRequestMethod(), "GET");
+            String query = exchange.getRequestURI().getRawQuery();
+            Assert.assertNotNull(query);
+            Assert.assertTrue(query.contains(CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="));
+            Assert.assertTrue(query.contains(CDSAccountValidationConstants.USER_ID_TAG + "="));
+            Assert.assertTrue(query.contains(expectedUserId));
+
+            byte[] responseBytes = "[]".getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, responseBytes.length);
             try (OutputStream responseStream = exchange.getResponseBody()) {

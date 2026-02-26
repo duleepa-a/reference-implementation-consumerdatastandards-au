@@ -88,9 +88,15 @@ public class CDSAccountValidationUtils {
             Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64) {
 
         String disclosureOptionsApi = baseUrl + CDSAccountValidationConstants.DISCLOSURE_OPTIONS_PATH;
+        String secondaryAccountsApi = baseUrl + CDSAccountValidationConstants.SECONDARY_ACCOUNTS_PATH;
 
         Set<String> blockedAccounts = fetchBlockedJointAccountsFromService(accountIds, disclosureOptionsApi,
                 basicAuthBase64);
+
+        Set<String> blockedSecondaryAccounts = fetchBlockedSecondaryAccountsFromService(accountIds,
+                secondaryAccountsApi, userId, basicAuthBase64);
+
+        blockedAccounts.addAll(blockedSecondaryAccounts);
 
         return blockedAccounts;
     }
@@ -161,6 +167,83 @@ public class CDSAccountValidationUtils {
             log.error("[DOMS] Error calling disclosure options service", e);
         }
 
+        return blockedAccounts;
+    }
+
+    /**
+     * Call secondary accounts GET endpoint and return blocked account IDs.
+     * An account is considered blocked if its secondaryAccountInstructionStatus is "inactive".
+     *
+     * @param accountIds set of account IDs to check
+     * @param secondaryAccountsApi secondary accounts API endpoint
+     * @param userId user ID for the secondary accounts query
+     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
+     * @return set of blocked account IDs
+     */
+    static Set<String> fetchBlockedSecondaryAccountsFromService(
+            Set<String> accountIds, String secondaryAccountsApi, String userId, String basicAuthBase64) {
+
+        Set<String> blockedAccounts = new HashSet<>();
+
+        if (accountIds == null || accountIds.isEmpty()) {
+            return blockedAccounts;
+        }
+
+        if (StringUtils.isBlank(userId)) {
+            log.warn("[SecondaryAccounts] userId is blank, skipping secondary accounts check");
+            return blockedAccounts;
+        }
+
+        try {
+            String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
+            String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+            String requestUrl = secondaryAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
+                    + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
+
+            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
+
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
+                    .timeout(Duration.ofMillis(3000))
+                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
+                            CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
+
+            if (StringUtils.isNotBlank(basicAuthBase64)) {
+                requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+                        CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
+            } else {
+                log.warn("[SecondaryAccounts] Basic Auth property not set, request may fail");
+            }
+
+            HttpRequest request = requestBuilder.build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JSONArray secondaryAccounts = new JSONArray(response.body());
+
+                for (int i = 0; i < secondaryAccounts.length(); i++) {
+                    JSONObject accountInstruction = secondaryAccounts.optJSONObject(i);
+                    if (accountInstruction == null) {
+                        continue;
+                    }
+                    String instructionStatus = accountInstruction.optString(
+                            CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG, null);
+
+                    if (CDSAccountValidationConstants.SECONDARY_ACCOUNT_STATUS_INACTIVE
+                            .equalsIgnoreCase(instructionStatus)) {
+                        String accountId = accountInstruction.optString(
+                                CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, null);
+                        if (StringUtils.isNotBlank(accountId)) {
+                            blockedAccounts.add(accountId);
+                        }
+                    }
+                }
+            } else {
+                log.warn("Secondary accounts service returned HTTP " + response.statusCode());
+            }
+
+        } catch (IOException | InterruptedException e) {
+            log.error("[SecondaryAccounts] Error calling secondary accounts service", e);
+        }
         return blockedAccounts;
     }
 }

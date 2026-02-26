@@ -52,11 +52,18 @@ public class CDSAccountValidationConstants {
 
     // Constants related to DOMS
     public static final String ACCOUNT_IDS_TAG = "accountIds";
+    public static final String ACCOUNTS_AUTH_TYPE_TAG = "ACCOUNTS";
     public static final String LINKED_MEMBER_TAG = "linkedMember";
     public static final String DISCLOSURE_OPTION_TAG = "disclosureOption";
     public static final String DOMS_STATUS_NO_SHARING = "no-sharing";
 
     // Account-metadata webapp API paths
     public static final String DISCLOSURE_OPTIONS_PATH = "/disclosure-options";
+    public static final String SECONDARY_ACCOUNTS_PATH = "/secondary-accounts";
+
+    // Constants related to Secondary Accounts
+    public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG = "secondaryAccountInstructionStatus";
+    public static final String SECONDARY_ACCOUNT_STATUS_INACTIVE = "inactive";
+    public static final String SECONDARY_ACCOUNT_OWNER_TAG = "secondary_account_owner";
 
 }
