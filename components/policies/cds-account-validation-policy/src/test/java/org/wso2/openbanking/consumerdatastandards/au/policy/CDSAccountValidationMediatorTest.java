@@ -108,7 +108,7 @@ public class CDSAccountValidationMediatorTest {
             @Test
             public void testMediateFiltersSecondaryOwnerResourcesAndUpdatesHeader() throws Exception {
             CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-            mediator.setWebappBaseURL("http://localhost");
+            mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
             mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
             JSONObject payload = new JSONObject();
@@ -138,7 +138,7 @@ public class CDSAccountValidationMediatorTest {
                      Mockito.mockStatic(CDSAccountValidationUtils.class)) {
 
                 mockedUtils.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    Mockito.anySet(), Mockito.eq("http://localhost"), Mockito.eq("user-1"),
+                    Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
                     Mockito.eq("dGVzdDp0ZXN0"))).thenReturn(blocked);
                 mockedUtils.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenReturn("signed-jwt");
@@ -173,10 +173,10 @@ public class CDSAccountValidationMediatorTest {
         mediator.mediate(synapseMessageContext);
     }
 
-        @Test
-        public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
+    @Test
+    public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-        mediator.setWebappBaseURL("http://localhost");
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
         JSONObject payload = new JSONObject();
@@ -210,5 +210,5 @@ public class CDSAccountValidationMediatorTest {
                 "Error during CDS mediation policy");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC, "500");
         }
-        }
+    }
 }

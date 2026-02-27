@@ -43,6 +43,8 @@ public class CDSAccountValidationUtilsTest {
 
         private static final String ACCOUNT_METADATA_WEBAPP_BASE_URL = "http://account-metadata-webapp-base-url";
         private static final String DOMS_ENDPOINT = ACCOUNT_METADATA_WEBAPP_BASE_URL + "/disclosure-options";
+        private static final String SECONDARY_ACCOUNTS_ENDPOINT = ACCOUNT_METADATA_WEBAPP_BASE_URL
+                + "/secondary-accounts";
 
     @Test
     public void testFetchBlockedAccountsFromServiceSuccess() throws Exception {
@@ -234,7 +236,7 @@ public class CDSAccountValidationUtilsTest {
             accounts.add("acc-2");
 
             Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+                    accounts, SECONDARY_ACCOUNTS_ENDPOINT, "user-1", "");
 
             Assert.assertEquals(blocked.size(), 1);
             Assert.assertTrue(blocked.contains("acc-1"));
@@ -251,7 +253,7 @@ public class CDSAccountValidationUtilsTest {
         accounts.add("acc-1");
 
         Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                accounts, "http://localhost/secondary-accounts", "", "");
+                accounts, SECONDARY_ACCOUNTS_ENDPOINT, "", "");
 
         Assert.assertTrue(blocked.isEmpty());
     }
@@ -276,7 +278,7 @@ public class CDSAccountValidationUtilsTest {
             accounts.add("acc-1");
 
             Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+                    accounts, SECONDARY_ACCOUNTS_ENDPOINT, "user-1", "");
 
             Assert.assertTrue(blocked.isEmpty());
         }
@@ -299,7 +301,7 @@ public class CDSAccountValidationUtilsTest {
             accounts.add("acc-1");
 
             Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+                    accounts, SECONDARY_ACCOUNTS_ENDPOINT, "user-1", "");
 
             Assert.assertTrue(blocked.isEmpty());
         }
@@ -316,10 +318,10 @@ public class CDSAccountValidationUtilsTest {
                      Mockito.mockStatic(CDSAccountValidationUtils.class, Mockito.CALLS_REAL_METHODS)) {
 
             mockedUtils.when(() -> CDSAccountValidationUtils.fetchBlockedJointAccountsFromService(
-                    Mockito.anySet(), Mockito.eq("http://localhost/disclosure-options"), Mockito.eq("auth")))
+                    Mockito.anySet(), Mockito.eq(DOMS_ENDPOINT), Mockito.eq("auth")))
                     .thenReturn(jointBlocked);
             mockedUtils.when(() -> CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                    Mockito.anySet(), Mockito.eq("http://localhost/secondary-accounts"), Mockito.eq("user-1"),
+                    Mockito.anySet(), Mockito.eq(SECONDARY_ACCOUNTS_ENDPOINT), Mockito.eq("user-1"),
                     Mockito.eq("auth"))).thenReturn(secondaryBlocked);
 
             Set<String> inputAccounts = new HashSet<>();
@@ -327,7 +329,7 @@ public class CDSAccountValidationUtilsTest {
             inputAccounts.add("acc-2");
 
             Set<String> blocked = CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    inputAccounts, "http://localhost", "user-1", "auth");
+                    inputAccounts, ACCOUNT_METADATA_WEBAPP_BASE_URL, "user-1", "auth");
 
             Assert.assertEquals(blocked.size(), 2);
             Assert.assertTrue(blocked.contains("acc-1"));
