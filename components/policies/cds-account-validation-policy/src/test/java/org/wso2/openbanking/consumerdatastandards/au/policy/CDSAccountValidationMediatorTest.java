@@ -44,6 +44,8 @@ import java.util.Set;
  */
 public class CDSAccountValidationMediatorTest {
 
+    private static final String ACCOUNT_METADATA_WEBAPP_BASE_URL = "http://account-metadata-webapp-base-url";
+
     private Axis2MessageContext synapseMessageContext;
     private MessageContext axis2MessageContext;
     private Map<String, String> headers;
@@ -78,7 +80,7 @@ public class CDSAccountValidationMediatorTest {
         try (MockedStatic<HttpClient> mockedHttpClient = Mockito.mockStatic(HttpClient.class)) {
             mockedHttpClient.when(HttpClient::newBuilder).thenReturn(clientBuilder);
 
-            mediator.setWebappBaseURL("http://localhost");
+            mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
             mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
             JSONObject payload = new JSONObject();
