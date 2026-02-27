@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.ParseException;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
@@ -198,6 +199,136 @@ public class CDSAccountValidationUtilsTest {
             ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
             Mockito.verify(client).send(requestCaptor.capture(), Mockito.<HttpResponse.BodyHandler<String>>any());
             Assert.assertFalse(requestCaptor.getValue().headers().firstValue("Authorization").isPresent());
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsFromServiceSuccess() throws Exception {
+        HttpClient client = Mockito.mock(HttpClient.class);
+        HttpClient.Builder clientBuilder = Mockito.mock(HttpClient.Builder.class);
+        HttpResponse<String> response = Mockito.mock(HttpResponse.class);
+
+        Mockito.when(clientBuilder.connectTimeout(Mockito.any())).thenReturn(clientBuilder);
+        Mockito.when(clientBuilder.build()).thenReturn(client);
+        Mockito.when(response.statusCode()).thenReturn(200);
+        Mockito.when(response.body()).thenReturn(new JSONArray()
+                .put(new JSONObject()
+                        .put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, "acc-1")
+                        .put(CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG,
+                                CDSAccountValidationConstants.SECONDARY_ACCOUNT_STATUS_INACTIVE))
+                .put(new JSONObject()
+                        .put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, "acc-2")
+                        .put(CDSAccountValidationConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG, "active"))
+                .toString());
+        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
+                .thenReturn(response);
+
+        try (MockedStatic<HttpClient> mockedHttpClient = Mockito.mockStatic(HttpClient.class)) {
+            mockedHttpClient.when(HttpClient::newBuilder).thenReturn(clientBuilder);
+
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+            accounts.add("acc-2");
+
+            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+
+            Assert.assertEquals(blocked.size(), 1);
+            Assert.assertTrue(blocked.contains("acc-1"));
+
+            ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+            Mockito.verify(client).send(requestCaptor.capture(), Mockito.<HttpResponse.BodyHandler<String>>any());
+            Assert.assertTrue(requestCaptor.getValue().uri().toString().contains("userId=user-1"));
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsFromServiceSkipsWhenUserIdBlank() {
+        Set<String> accounts = new HashSet<>();
+        accounts.add("acc-1");
+
+        Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                accounts, "http://localhost/secondary-accounts", "", "");
+
+        Assert.assertTrue(blocked.isEmpty());
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsFromServiceNon200() throws Exception {
+        HttpClient client = Mockito.mock(HttpClient.class);
+        HttpClient.Builder clientBuilder = Mockito.mock(HttpClient.Builder.class);
+        HttpResponse<String> response = Mockito.mock(HttpResponse.class);
+
+        Mockito.when(clientBuilder.connectTimeout(Mockito.any())).thenReturn(clientBuilder);
+        Mockito.when(clientBuilder.build()).thenReturn(client);
+        Mockito.when(response.statusCode()).thenReturn(503);
+        Mockito.when(response.body()).thenReturn("[]");
+        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
+                .thenReturn(response);
+
+        try (MockedStatic<HttpClient> mockedHttpClient = Mockito.mockStatic(HttpClient.class)) {
+            mockedHttpClient.when(HttpClient::newBuilder).thenReturn(clientBuilder);
+
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+
+            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+
+            Assert.assertTrue(blocked.isEmpty());
+        }
+    }
+
+    @Test
+    public void testFetchBlockedSecondaryAccountsFromServiceIoError() throws Exception {
+        HttpClient client = Mockito.mock(HttpClient.class);
+        HttpClient.Builder clientBuilder = Mockito.mock(HttpClient.Builder.class);
+
+        Mockito.when(clientBuilder.connectTimeout(Mockito.any())).thenReturn(clientBuilder);
+        Mockito.when(clientBuilder.build()).thenReturn(client);
+        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
+                .thenThrow(new IOException("Connection failed"));
+
+        try (MockedStatic<HttpClient> mockedHttpClient = Mockito.mockStatic(HttpClient.class)) {
+            mockedHttpClient.when(HttpClient::newBuilder).thenReturn(clientBuilder);
+
+            Set<String> accounts = new HashSet<>();
+            accounts.add("acc-1");
+
+            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    accounts, "http://localhost/secondary-accounts", "user-1", "");
+
+            Assert.assertTrue(blocked.isEmpty());
+        }
+    }
+
+    @Test
+    public void testFetchAllBlockedAccountsCombinesBothServices() throws ParseException {
+        Set<String> jointBlocked = new HashSet<>();
+        jointBlocked.add("acc-1");
+        Set<String> secondaryBlocked = new HashSet<>();
+        secondaryBlocked.add("acc-2");
+
+        try (MockedStatic<CDSAccountValidationUtils> mockedUtils =
+                     Mockito.mockStatic(CDSAccountValidationUtils.class, Mockito.CALLS_REAL_METHODS)) {
+
+            mockedUtils.when(() -> CDSAccountValidationUtils.fetchBlockedJointAccountsFromService(
+                    Mockito.anySet(), Mockito.eq("http://localhost/disclosure-options"), Mockito.eq("auth")))
+                    .thenReturn(jointBlocked);
+            mockedUtils.when(() -> CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                    Mockito.anySet(), Mockito.eq("http://localhost/secondary-accounts"), Mockito.eq("user-1"),
+                    Mockito.eq("auth"))).thenReturn(secondaryBlocked);
+
+            Set<String> inputAccounts = new HashSet<>();
+            inputAccounts.add("acc-1");
+            inputAccounts.add("acc-2");
+
+            Set<String> blocked = CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    inputAccounts, "http://localhost", "user-1", "auth");
+
+            Assert.assertEquals(blocked.size(), 2);
+            Assert.assertTrue(blocked.contains("acc-1"));
+            Assert.assertTrue(blocked.contains("acc-2"));
         }
     }
 }
