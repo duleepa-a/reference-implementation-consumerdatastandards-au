@@ -18,6 +18,20 @@
 
 package org.wso2.openbanking.consumerdatastandards.au.extensions.utils;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,20 +49,6 @@ import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.Succes
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsentDataPermissionsInner;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner;
-
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Utility class for consent authorization related operations.
@@ -240,7 +240,7 @@ public class ConsentAuthorizeUtil {
         if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
             JSONArray linkedMemberArray = accountJson.getJSONObject(
                     CommonConstants.JOINT_ACCOUNT_INFO_TAG).optJSONArray(
-                    CommonConstants.AUTH_RESOURCE_TYPE_LINKED);
+                    CommonConstants.LINKED_MEMBER_TAG_IN_SHARABLE_ENDPOINT);
             if (linkedMemberArray != null) {
                 for (int j = 0; j < linkedMemberArray.length(); j++) {
                     linkedMembers.add(linkedMemberArray.getJSONObject(j)
