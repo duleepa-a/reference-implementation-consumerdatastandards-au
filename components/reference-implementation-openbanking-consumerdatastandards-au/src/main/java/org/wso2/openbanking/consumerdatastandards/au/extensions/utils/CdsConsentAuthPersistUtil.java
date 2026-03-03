@@ -113,16 +113,19 @@ public class CdsConsentAuthPersistUtil {
             List<Resource> authResource = validateAndGetResources(authorizedDataInners);
 
             ArrayList<Authorization> authorizationResource = new ArrayList<>();
-            authorizationResource.add(validateAndBuildAuthorizations(authResource, consentType, authStatus,
-                    consumerInputData.getString("userId")));
-
             Map<String, Set<String>> linkedMemberAccountMap = new HashMap<>();
             Map<String, Set<String>> secondaryOwnerAccountMap = new HashMap<>();
             Map<String, String> jointAccountDisclosureMap = new HashMap<>();
             processAccountsData(authorizedDataInners, linkedMemberAccountMap,
                     secondaryOwnerAccountMap, jointAccountDisclosureMap);
 
-            // Create Authorizations for Linked Members (joint accounts)
+            // Create Authorizations for primary member
+            String primaryAuthType = linkedMemberAccountMap.isEmpty() && secondaryOwnerAccountMap.isEmpty() ?
+                    CommonConstants.DEFAULT_AUTH_TYPE : CommonConstants.AUTH_RESOURCE_TYPE_PRIMARY;
+            authorizationResource.add(validateAndBuildAuthorizations(authResource, primaryAuthType, authStatus,
+                    consumerInputData.getString("userId")));
+
+            // Create Authorizations for Linked Members
             for (Map.Entry<String, Set<String>> entry : linkedMemberAccountMap.entrySet()) {
                 authorizationResource.add(buildMemberAuthorization(entry,
                         CommonConstants.AUTH_RESOURCE_TYPE_LINKED));

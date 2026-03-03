@@ -236,6 +236,7 @@ public class ConsentAuthorizeUtil {
      */
     private static List<String> extractLinkedMembers(JSONObject accountJson) {
         List<String> linkedMembers = new ArrayList<>();
+        
         if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
             JSONArray linkedMemberArray = accountJson.getJSONObject(
                     CommonConstants.JOINT_ACCOUNT_INFO_TAG).optJSONArray(
@@ -298,7 +299,6 @@ public class ConsentAuthorizeUtil {
         boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
         boolean isSecondaryAccount = accountJson.optBoolean(
                 CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
-
 
         // Check eligibility for each account.
         if (!(!isJointAccount || isJointAccountElectable(accountJson)) ||
