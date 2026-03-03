@@ -114,7 +114,7 @@ public class CDSAccountValidationMediatorTest {
             JSONObject payload = new JSONObject();
             JSONArray authorizationResources = new JSONArray();
             authorizationResources.put(new JSONObject()
-                .put("authorizationType", CDSAccountValidationConstants.SECONDARY_ACCOUNT_OWNER_TAG)
+                .put("authorizationType", CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG)
                 .put("authorizationId", "secondary-auth-1"));
             authorizationResources.put(new JSONObject()
                 .put("authorizationType", CDSAccountValidationConstants.ACCOUNTS_AUTH_TYPE_TAG)

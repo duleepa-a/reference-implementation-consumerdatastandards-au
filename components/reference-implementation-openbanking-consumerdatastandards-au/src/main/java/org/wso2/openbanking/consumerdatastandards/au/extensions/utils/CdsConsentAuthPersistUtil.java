@@ -132,9 +132,12 @@ public class CdsConsentAuthPersistUtil {
             }
 
             // Create Authorizations for Secondary Account Owners
+            String secondaryOwnerAuthType = secondaryOwnerAccountMap.size() > 1
+                    ? CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER
+                    : CommonConstants.AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER;
             for (Map.Entry<String, Set<String>> entry : secondaryOwnerAccountMap.entrySet()) {
                 authorizationResource.add(buildMemberAuthorization(entry,
-                        CommonConstants.AUTH_RESOURCE_TYPE_SECONDARY_ACCOUNT_OWNER));
+                        secondaryOwnerAuthType));
             }
 
             // Add disclosure options for joint accounts

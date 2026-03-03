@@ -43,12 +43,14 @@ public class CDSAccountValidationConstants {
     public static final String AUTH_ID_TAG = "authorizationId";
     public static final String ACCELERATOR_ACCOUNT_ID_TAG = "account_id";
     public static final String CDS_ACCOUNT_ID_TAG = "accountId";
+    public static final String PRIMARY_AUTH_TYPE_TAG = "primary_member";
 
     // Error constants
     public static final String ERROR_CODE = "ERROR_CODE";
     public static final String ERROR_TITLE = "ERROR_TITLE";
     public static final String ERROR_DESCRIPTION = "ERROR_DESCRIPTION";
     public static final String CUSTOM_HTTP_SC = "CUSTOM_HTTP_SC";
+
 
     // Constants related to DOMS
     public static final String ACCOUNT_IDS_TAG = "accountIds";
@@ -63,6 +65,7 @@ public class CDSAccountValidationConstants {
     // Constants related to Secondary Accounts
     public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG = "secondaryAccountInstructionStatus";
     public static final String SECONDARY_ACCOUNT_STATUS_INACTIVE = "inactive";
-    public static final String SECONDARY_ACCOUNT_OWNER_TAG = "secondary_account_owner";
+    public static final String SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG = "secondary_individual_account_owner";
+    public static final String SECONDARY_JOINT_ACCOUNT_OWNER_TAG = "secondary_joint_account_owner";
 
 }

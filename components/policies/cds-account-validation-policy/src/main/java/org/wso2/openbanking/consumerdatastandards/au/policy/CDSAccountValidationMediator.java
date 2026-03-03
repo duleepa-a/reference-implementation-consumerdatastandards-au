@@ -105,19 +105,19 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                     }
 
                     // Removing Auth resources of secondary account owners
-                    if (CDSAccountValidationConstants.SECONDARY_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType)) {
+                    if (isSecondaryAccountOwnerAuthType(authType)) {
 
                         if (!StringUtils.isEmpty(authId)) {
                             secondaryAccOwnerAuthIds.add(authId);
                         }
                         if (log.isDebugEnabled()) {
-                            log.debug("Removing secondary account owner authorization resource. authorizationId= "
+                            log.debug("Removing secondary account owner authorization resource. authorizationId = "
                                     + authId);
                         }
                         continue;
                     }
 
-                    if (CDSAccountValidationConstants.ACCOUNTS_AUTH_TYPE_TAG.equalsIgnoreCase(authType)) {
+                    if (CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG.equalsIgnoreCase(authType)) {
                         userId = authResource.optString(CDSAccountValidationConstants.USER_ID_TAG);
                     }
 
@@ -202,5 +202,16 @@ public class CDSAccountValidationMediator extends AbstractMediator {
         messageContext.setProperty(CDSAccountValidationConstants.ERROR_TITLE, "CDS DOMS Policy Error");
         messageContext.setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION, errorDescription);
         messageContext.setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC, "500");
+    }
+
+    /**
+     * Checks whether the given authorization type belongs to a secondary account owner.
+     *
+     * @param authType authorization type value
+     * @return {@code true} if the auth type is secondary individual or secondary joint account owner
+     */
+    private static boolean isSecondaryAccountOwnerAuthType(String authType) {
+        return CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType)
+                || CDSAccountValidationConstants.SECONDARY_JOINT_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType);
     }
 }
