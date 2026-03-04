@@ -46,9 +46,10 @@ public class EnrichConsentSearchApiImpl {
 
         SuccessResponseForConsentSearch response = new SuccessResponseForConsentSearch();
 
-        // Adding DOMS status to the search result.
+        // Adding DOMS status and secondary account info to the search result.
         SuccessResponseForConsentSearchData searchData =
-                CdsConsentSearchEnrichUtil.enrichDOMSStatus(requestBody.getData().getSearchResult());
+                CdsConsentSearchEnrichUtil.enrichSearchResult(requestBody.getData().getSearchResult(),
+                        requestBody.getData().getEnrichmentParams());
 
         response.setResponseId(requestBody.getRequestId());
         response.setStatus(SuccessResponseForConsentSearch.StatusEnum.SUCCESS);

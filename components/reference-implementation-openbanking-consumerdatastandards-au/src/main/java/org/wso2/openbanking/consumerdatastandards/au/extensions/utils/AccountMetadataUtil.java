@@ -24,6 +24,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
@@ -103,6 +104,56 @@ public class AccountMetadataUtil {
             log.error("Failed to retrieve DOMS statuses for batch accounts", e);
         }
         return null;
+    }
+
+    /**
+     * Retrieve secondary account instruction statuses for multiple accounts and a secondary user.
+     * Calls GET /secondary-accounts with comma-separated account IDs and userId as query parameters.
+     *
+     * @param accountIds list of account IDs
+     * @param secondaryUserId secondary user ID
+     * @return map of accountId to instruction status, or empty map when retrieval fails
+     */
+    public static Map<String, String> getSecondaryAccountInstructionStatusesForAccounts(List<String> accountIds,
+                                                                                         String secondaryUserId) {
+
+        Map<String, String> instructionStatusMap = new HashMap<>();
+
+        if (accountIds == null || accountIds.isEmpty() || StringUtils.isBlank(secondaryUserId)) {
+            return instructionStatusMap;
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(10000).build();
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            String baseUrl = buildSecondaryAccountsUrl();
+            String accountIdParam = String.join(",", accountIds);
+
+            URIBuilder uriBuilder = new URIBuilder(baseUrl);
+            uriBuilder.addParameter(CommonConstants.ACCOUNT_IDS, accountIdParam);
+            uriBuilder.addParameter(CommonConstants.USER_ID_QUERY_PARAM, secondaryUserId);
+
+            HttpGet request = new HttpGet(uriBuilder.build());
+            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
+            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+            addBasicAuthHeader(request);
+
+            HttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
+                log.error("Failed to retrieve secondary account instruction statuses, HTTP Status: " +
+                        response.getStatusLine().getStatusCode());
+                return instructionStatusMap;
+            }
+
+            InputStream in = response.getEntity().getContent();
+            String responseBody = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
+            return extractSecondaryInstructionStatusesFromBatchResponse(responseBody);
+
+        } catch (IOException | URISyntaxException e) {
+            log.error("Failed to retrieve secondary account instruction statuses", e);
+        }
+
+        return instructionStatusMap;
     }
 
     /**
@@ -288,6 +339,43 @@ public class AccountMetadataUtil {
 
         } catch (JsonSyntaxException e) {
             log.error("Failed to parse batch response JSON", e);
+            return statusMap;
+        }
+    }
+
+    /**
+     * Extract secondary account instruction statuses from batch API response body.
+     *
+     * @param responseBody the JSON response body as a string
+     * @return map of accountId to secondary account instruction status
+     */
+    private static Map<String, String> extractSecondaryInstructionStatusesFromBatchResponse(String responseBody) {
+        Map<String, String> statusMap = new HashMap<>();
+
+        try {
+            Gson gson = new Gson();
+            JsonElement responseElement = gson.fromJson(responseBody, JsonElement.class);
+
+            if (responseElement != null && responseElement.isJsonArray()) {
+                JsonArray responseArray = responseElement.getAsJsonArray();
+                for (JsonElement itemElement : responseArray) {
+                    if (itemElement != null && itemElement.isJsonObject()) {
+                        JsonObject item = itemElement.getAsJsonObject();
+                        JsonElement accountIdElement = item.get(CommonConstants.ACCOUNT_ID);
+                        JsonElement instructionStatusElement =
+                                item.get(CommonConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD);
+                        if (accountIdElement != null && !accountIdElement.isJsonNull()
+                                && instructionStatusElement != null && !instructionStatusElement.isJsonNull()) {
+                            statusMap.put(accountIdElement.getAsString(), instructionStatusElement.getAsString());
+                        }
+                    }
+                }
+            }
+
+            return statusMap;
+
+        } catch (JsonSyntaxException e) {
+            log.error("Failed to parse secondary account instruction batch response JSON", e);
             return statusMap;
         }
     }
