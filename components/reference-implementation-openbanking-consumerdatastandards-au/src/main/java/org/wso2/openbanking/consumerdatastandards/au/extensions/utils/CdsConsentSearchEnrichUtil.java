@@ -77,19 +77,13 @@ public class CdsConsentSearchEnrichUtil {
             return searchData;
         }
 
-        JSONArray searchResultArray;
-        try {
-            searchResultArray = new JSONArray(enrichedObj);
-        } catch (JSONException e) {
-            log.warn("Failed to convert enrichedSearchResult to JSONArray, skipping DOMS enrichment", e);
-            return searchData;
-        }
+        List<?> searchResultArray = (List<?>) enrichedObj;
 
         // Collect all joint account IDs from all consents
         Set<String> allJointAccountIds = new HashSet<>();
 
-        for (int i = 0; i < searchResultArray.length(); i++) {
-            JSONObject consent = searchResultArray.optJSONObject(i);
+        for (Object consentObj : searchResultArray) {
+            JSONObject consent = toJSONObject(consentObj);
             if (consent == null) {
                 continue;
             }
@@ -107,36 +101,38 @@ public class CdsConsentSearchEnrichUtil {
         }
 
         // Enrich the consent mappings with DOMS status
-        for (int i = 0; i < searchResultArray.length(); i++) {
-            JSONObject consent = searchResultArray.optJSONObject(i);
+        List<Object> enrichedSearchResults = new ArrayList<>();
+        for (Object consentObj : searchResultArray) {
+            JSONObject consent = toJSONObject(consentObj);
             if (consent == null) {
+                enrichedSearchResults.add(consentObj);
                 continue;
             }
 
             JSONArray mappingList = consent.optJSONArray(CommonConstants.CONSENT_MAPPING_RESOURCES);
-            if (mappingList == null) {
-                continue;
-            }
+            if (mappingList != null) {
+                for (int j = 0; j < mappingList.length(); j++) {
+                    JSONObject mappingItem = mappingList.optJSONObject(j);
+                    if (mappingItem == null) {
+                        continue;
+                    }
 
-            for (int j = 0; j < mappingList.length(); j++) {
-                JSONObject mappingItem = mappingList.optJSONObject(j);
-                if (mappingItem == null) {
-                    continue;
-                }
+                    String accountId = mappingItem.optString(CommonConstants.ACCOUNT_ID, null);
 
-                String accountId = mappingItem.optString(CommonConstants.ACCOUNT_ID, null);
+                    // Only add DOMS status if mapping belongs to a joint account
+                    if (StringUtils.isNotBlank(accountId) && allJointAccountIds.contains(accountId)) {
 
-                // Only add DOMS status if mapping belongs to a joint account
-                if (allJointAccountIds.contains(accountId)) {
+                        mappingItem.put(CommonConstants.DOMS_STATUS_SEARCH_ENRICH_PROPERTY_NAME,
+                                domsStatusMap.get(accountId));
 
-                    mappingItem.put(CommonConstants.DOMS_STATUS_SEARCH_ENRICH_PROPERTY_NAME,
-                            domsStatusMap.get(accountId));
-
+                    }
                 }
             }
+
+            enrichedSearchResults.add(consent.toMap());
         }
 
-        searchData.setEnrichedSearchResult(searchResultArray.toList());
+        searchData.setEnrichedSearchResult(enrichedSearchResults);
         return searchData;
     }
 
@@ -422,14 +418,18 @@ public class CdsConsentSearchEnrichUtil {
     }
 
     /**
-     * Safely convert a list payload to JSONArray.
+     * Convert a consent object into a {@link JSONObject}.
+     *
+     * @param consentObj consent object as either JSONObject or Map
+     * @return converted JSONObject, or null when the input type is unsupported
      */
-    private static JSONArray convertListToJSONArray(List<?> enrichedList) {
-
-        JSONArray searchResultArray = new JSONArray();
-        for (Object item : enrichedList) {
-            searchResultArray.put(item);
+    private static JSONObject toJSONObject(Object consentObj) {
+        if (consentObj instanceof JSONObject) {
+            return (JSONObject) consentObj;
         }
-        return searchResultArray;
+        if (consentObj instanceof Map) {
+            return new JSONObject((Map<?, ?>) consentObj);
+        }
+        return null;
     }
 }
