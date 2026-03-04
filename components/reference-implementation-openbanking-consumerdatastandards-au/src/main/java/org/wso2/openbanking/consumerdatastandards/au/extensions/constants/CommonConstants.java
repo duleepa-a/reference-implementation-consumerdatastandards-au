@@ -163,19 +163,19 @@ public class CommonConstants {
 
     public static final String IS_SECONDARY_ACCOUNT_RESPONSE = "isSecondaryAccount";
     public static final String SECONDARY_ACCOUNT_INFO_TAG = "secondaryAccountInfo";
-    public static final String SECONDARY_ACCOUNT_OWNER_TAG = "accountOwner";
+    public static final String SECONDARY_ACCOUNT_OWNER_TAG = "secondaryAccountOwner";
     public static final String SECONDARY_ACCOUNT_PRIVILEGES_STATUS = "secondaryAccountPrivilegeStatus";
     public static final String SECONDARY_ACCOUNT_OWNERS_TAG = "secondaryAccountOwners";
-        public static final String SECONDARY_INFO_TAG = "secondaryInfo";
-        public static final String SECONDARY_ACCOUNT_INFO_ACCOUNT_USER = "accountUser";
-        public static final String SECONDARY_ACCOUNT_INFO_SECONDARY_ACCOUNTS = "secondaryAccounts";
-        public static final String SECONDARY_ACCOUNT_INFO_ACTIVE_ACCOUNTS = "activeAccounts";
-        public static final String SECONDARY_ACCOUNT_INFO_INACTIVE_ACCOUNTS = "inactiveAccounts";
+    public static final String SECONDARY_INFO_TAG = "secondaryInfo";
+    public static final String SECONDARY_ACCOUNT_INFO_ACCOUNT_USER = "secondaryAccountUser";
+    public static final String SECONDARY_ACCOUNT_INFO_SECONDARY_ACCOUNTS = "secondaryAccounts";
+    public static final String SECONDARY_ACCOUNT_INFO_ACTIVE_ACCOUNTS = "activeAccounts";
+    public static final String SECONDARY_ACCOUNT_INFO_INACTIVE_ACCOUNTS = "inactiveAccounts";
     public static final String AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER = "secondary_individual_account_owner";
     public static final String AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER = "secondary_joint_account_owner";
     public static final String SECONDARY_ACCOUNTS_ENDPOINT = "/secondary-accounts";
     public static final String SECONDARY_INSTRUCTION_STATUS_ACTIVE = "active";
-        public static final String USER_ID_QUERY_PARAM = "userId";
+    public static final String USER_ID_QUERY_PARAM = "userId";
     public static final String SECONDARY_USER_ID_FIELD = "secondaryUserId";
     public static final String OTHER_ACCOUNTS_AVAILABILITY_FIELD = "otherAccountsAvailablitiy";
     public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD = "secondaryAccountInstructionStatus";

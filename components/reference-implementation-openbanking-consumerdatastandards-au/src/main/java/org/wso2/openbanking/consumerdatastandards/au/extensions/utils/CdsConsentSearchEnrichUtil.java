@@ -152,23 +152,21 @@ public class CdsConsentSearchEnrichUtil {
             return searchData;
         }
 
-        JSONArray searchResultArray;
-        try {
-            searchResultArray = new JSONArray(enrichedObj);
-        } catch (JSONException e) {
-            log.warn("Failed to convert enrichedSearchResult to JSONArray, skipping DOMS enrichment", e);
-            return searchData;
-        }
+        List<?> searchResultArray = (List<?>) enrichedObj;
 
-        for (int i = 0; i < searchResultArray.length(); i++) {
-            JSONObject consent = searchResultArray.optJSONObject(i);
+        List<Object> enrichedSearchResults = new ArrayList<>();
+        for (Object consentObj : searchResultArray) {
+            JSONObject consent = toJSONObject(consentObj);
             if (consent == null) {
+                enrichedSearchResults.add(consentObj);
                 continue;
             }
+
             enrichConsentWithSecondaryInfo(consent);
+            enrichedSearchResults.add(consent.toMap());
         }
 
-        searchData.setEnrichedSearchResult(searchResultArray.toList());
+        searchData.setEnrichedSearchResult(enrichedSearchResults);
         return searchData;
     }
 
