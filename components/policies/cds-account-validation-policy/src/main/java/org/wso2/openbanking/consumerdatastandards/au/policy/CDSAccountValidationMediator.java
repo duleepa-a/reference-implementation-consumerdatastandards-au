@@ -139,7 +139,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 JSONObject mappingResource = consentMappingResources.getJSONObject(i);
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
-                // exclude linked-member accounts in DOMS call
+                // exclude linked-member accounts in account validation call.
                 if (linkedMemberAuthIds.contains(authId) || secondaryAccOwnerAuthIds.contains(authId)) {
                     continue;
                 }

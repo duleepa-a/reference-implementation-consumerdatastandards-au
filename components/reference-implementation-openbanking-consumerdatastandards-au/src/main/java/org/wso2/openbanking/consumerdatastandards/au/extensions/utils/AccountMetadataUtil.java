@@ -31,6 +31,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -197,9 +198,11 @@ public class AccountMetadataUtil {
      *
      * @param accountIds set of secondary account IDs selected during consent
      * @param secondaryUserId the user ID of the consenting user (secondary user)
+     * @param otherAccountsAvailability map of accountId to other-accounts-availability
      * @return true if secondary account instructions are added successfully, false otherwise
      */
-    public static boolean addSecondaryAccountInstructions(Set<String> accountIds, String secondaryUserId) {
+    public static boolean addSecondaryAccountInstructions(Set<String> accountIds, String secondaryUserId,
+                                               Boolean otherAccountsAvailability) {
 
         RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(10000).build();
 
@@ -211,7 +214,8 @@ public class AccountMetadataUtil {
             request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
             addBasicAuthHeader(request);
 
-            String requestBody = buildSecondaryAccountInstructionsRequestBody(accountIds, secondaryUserId);
+                String requestBody = buildSecondaryAccountInstructionsRequestBody(accountIds, secondaryUserId,
+                    otherAccountsAvailability);
             request.setEntity(new StringEntity(requestBody, StandardCharsets.UTF_8));
 
             HttpResponse response = client.execute(request);
@@ -230,7 +234,7 @@ public class AccountMetadataUtil {
      *
      * @param request the HTTP request to add the auth header to
      */
-    private static void addBasicAuthHeader(org.apache.http.client.methods.HttpRequestBase request) {
+    private static void addBasicAuthHeader(HttpRequestBase request) {
 
         String credentials = ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_USERNAME + ":" +
                 ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_PASSWORD;
@@ -288,17 +292,19 @@ public class AccountMetadataUtil {
      *
      * @param accountIds set of account IDs
      * @param secondaryUserId the secondary user ID (consenting user)
+     * @param otherAccountsAvailability map of accountId to other-accounts-availability
      * @return JSON request body as string
      */
     private static String buildSecondaryAccountInstructionsRequestBody(Set<String> accountIds,
-                                                                       String secondaryUserId) {
+                                           String secondaryUserId, Boolean otherAccountsAvailability) {
+                                            
         JsonArray dataArray = new JsonArray();
 
         for (String accountId : accountIds) {
             JsonObject item = new JsonObject();
             item.addProperty(CommonConstants.ACCOUNT_ID, accountId);
             item.addProperty(CommonConstants.SECONDARY_USER_ID_FIELD, secondaryUserId);
-            item.addProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, true);
+            item.addProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, otherAccountsAvailability);
             item.addProperty(CommonConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD,
                     CommonConstants.SECONDARY_INSTRUCTION_STATUS_ACTIVE);
             dataArray.add(item);

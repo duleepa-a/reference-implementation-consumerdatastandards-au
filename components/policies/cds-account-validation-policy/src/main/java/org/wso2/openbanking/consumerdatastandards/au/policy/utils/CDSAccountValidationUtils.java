@@ -203,8 +203,7 @@ public class CDSAccountValidationUtils {
             HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(3000))
-                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
+                    .timeout(Duration.ofMillis(3000)).header(CDSAccountValidationConstants.ACCEPT_TAG,
                             CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {

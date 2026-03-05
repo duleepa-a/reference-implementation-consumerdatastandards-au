@@ -186,7 +186,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                     instructionItem.setSecondaryUserId(rs.getString("USER_ID"));
                     instructionItem.setSecondaryAccountInstructionStatus(
                             rs.getString("SECONDARY_ACCOUNT_INSTRUCTION_STATUS"));
-                    instructionItem.setOtherAccountsAvailablitiy(rs.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"));
+                    instructionItem.setOtherAccountsAvailability(
+                            rs.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"));
                     resultItems.add(instructionItem);
                 }
             }
@@ -222,7 +223,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                 stmt.setString(1, item.getAccountId());
                 stmt.setString(2, item.getSecondaryUserId());
                 stmt.setString(3, item.getSecondaryAccountInstructionStatus());
-                stmt.setObject(4, item.getOtherAccountsAvailablitiy(), Types.BOOLEAN);
+                stmt.setObject(4, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(5, currentTimestamp);
                 stmt.addBatch();
             }
@@ -256,7 +257,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
             for (SecondaryAccountInstructionItem item : instructionItems) {
                 stmt.setString(1, item.getSecondaryAccountInstructionStatus());
-                stmt.setObject(2, item.getOtherAccountsAvailablitiy(), Types.BOOLEAN);
+                stmt.setObject(2, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(3, currentTimestamp);
                 stmt.setString(4, item.getAccountId());
                 stmt.setString(5, item.getSecondaryUserId());

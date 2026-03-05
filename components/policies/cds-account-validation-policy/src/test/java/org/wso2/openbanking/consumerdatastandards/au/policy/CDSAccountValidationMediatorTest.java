@@ -117,7 +117,7 @@ public class CDSAccountValidationMediatorTest {
                 .put("authorizationType", CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG)
                 .put("authorizationId", "secondary-auth-1"));
             authorizationResources.put(new JSONObject()
-                .put("authorizationType", CDSAccountValidationConstants.ACCOUNTS_AUTH_TYPE_TAG)
+                .put("authorizationType", CDSAccountValidationConstants.AUTH_TYPE_TAG)
                 .put("authorizationId", "accounts-auth-1")
                 .put("userId", "user-1"));
             payload.put("authorizationResources", authorizationResources);
@@ -182,7 +182,7 @@ public class CDSAccountValidationMediatorTest {
         JSONObject payload = new JSONObject();
         JSONArray authorizationResources = new JSONArray();
         authorizationResources.put(new JSONObject()
-            .put("authorizationType", CDSAccountValidationConstants.ACCOUNTS_AUTH_TYPE_TAG)
+            .put("authorizationType", CDSAccountValidationConstants.AUTH_TYPE_TAG)
             .put("authorizationId", "accounts-auth-1")
             .put("userId", "user-1"));
         payload.put("authorizationResources", authorizationResources);

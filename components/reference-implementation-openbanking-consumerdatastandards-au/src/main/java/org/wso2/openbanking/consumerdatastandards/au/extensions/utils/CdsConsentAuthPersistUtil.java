@@ -116,7 +116,7 @@ public class CdsConsentAuthPersistUtil {
             Map<String, Set<String>> linkedMemberAccountMap = new HashMap<>();
             Map<String, Set<String>> secondaryOwnerAccountMap = new HashMap<>();
             Map<String, String> jointAccountDisclosureMap = new HashMap<>();
-            processAccountsData(authorizedDataInners, linkedMemberAccountMap,
+            boolean otherAccountsAvailability = processAccountsData(authorizedDataInners, linkedMemberAccountMap,
                     secondaryOwnerAccountMap, jointAccountDisclosureMap);
 
             // Create Authorizations for primary member
@@ -127,8 +127,7 @@ public class CdsConsentAuthPersistUtil {
 
             // Create Authorizations for Linked Members
             for (Map.Entry<String, Set<String>> entry : linkedMemberAccountMap.entrySet()) {
-                authorizationResource.add(buildMemberAuthorization(entry,
-                        CommonConstants.AUTH_RESOURCE_TYPE_LINKED));
+                authorizationResource.add(buildMemberAuthorization(entry, CommonConstants.AUTH_RESOURCE_TYPE_LINKED));
             }
 
             // Create Authorizations for Secondary Account Owners
@@ -136,8 +135,7 @@ public class CdsConsentAuthPersistUtil {
                     ? CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER
                     : CommonConstants.AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER;
             for (Map.Entry<String, Set<String>> entry : secondaryOwnerAccountMap.entrySet()) {
-                authorizationResource.add(buildMemberAuthorization(entry,
-                        secondaryOwnerAuthType));
+                authorizationResource.add(buildMemberAuthorization(entry, secondaryOwnerAuthType));
             }
 
             // Add disclosure options for joint accounts
@@ -152,12 +150,12 @@ public class CdsConsentAuthPersistUtil {
             // Add secondary account instructions for the consenting user
             if (!secondaryOwnerAccountMap.isEmpty()) {
                 // Collect all secondary account IDs from the map values
-                Set<String> secondaryAccountIds = secondaryOwnerAccountMap.values().stream()
-                        .flatMap(Set::stream)
+                Set<String> secondaryAccountIds = secondaryOwnerAccountMap.values().stream().flatMap(Set::stream)
                         .collect(Collectors.toSet());
 
                 String userId = consumerInputData.getString("userId");
-                if (!AccountMetadataUtil.addSecondaryAccountInstructions(secondaryAccountIds, userId)) {
+                if (!AccountMetadataUtil.addSecondaryAccountInstructions(secondaryAccountIds, userId,
+                        otherAccountsAvailability)) {
                     // Throwing an error if secondary user instruction data didn't get added.
                     log.error("Error occurred while adding secondary account instructions in persist step.");
                     throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
@@ -205,12 +203,14 @@ public class CdsConsentAuthPersistUtil {
      * @param linkedMemberAccountMap Map to be populated with linked member userId to account IDs
      * @param secondaryOwnerAccountMap Map to be populated with secondary owner userId to account IDs
      * @param jointAccountDisclosureMap Map to be populated with joint account disclosure information
+     * @return other-accounts-availability value shared across secondary accounts
      */
-    private static void processAccountsData(
-            List<AuthorizedResourcesAuthorizedDataInner> authorizedDataInners,
-            Map<String, Set<String>> linkedMemberAccountMap,
-            Map<String, Set<String>> secondaryOwnerAccountMap,
-            Map<String, String> jointAccountDisclosureMap) {
+    private static boolean processAccountsData(List<AuthorizedResourcesAuthorizedDataInner> authorizedDataInners,
+                                               Map<String, Set<String>> linkedMemberAccountMap,
+                                               Map<String, Set<String>> secondaryOwnerAccountMap,
+                                               Map<String, String> jointAccountDisclosureMap) {
+        boolean otherAccountsAvailability = false;
+        boolean secondaryAvailabilityResolved = false;
 
         for (AuthorizedResourcesAuthorizedDataInner authorizedDataInner : authorizedDataInners) {
             for (Account account : authorizedDataInner.getAccounts()) {
@@ -227,13 +227,11 @@ public class CdsConsentAuthPersistUtil {
                 }
 
                 String accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(
-                        ConfigurableProperties.SHARABLE_ENDPOINT,
-                        displayName.split("<br>")[0]
+                        ConfigurableProperties.SHARABLE_ENDPOINT, displayName.split("<br>")[0]
                 );
 
                 if (StringUtils.isEmpty(accountId)) {
-                    log.warn("Could not resolve accountId for displayName: "
-                            + displayName.split("<br>")[0]);
+                    log.warn("Could not resolve accountId for displayName: " + displayName.split("<br>")[0]);
                     continue;
                 }
 
@@ -253,25 +251,39 @@ public class CdsConsentAuthPersistUtil {
                     @SuppressWarnings("unchecked")
                     List<String> linkedMembers = (List<String>) linkedMembersObj;
                     for (String linkedMember : linkedMembers) {
-                        linkedMemberAccountMap
-                                .computeIfAbsent(linkedMember, k -> new HashSet<>())
-                                .add(accountId);
+                        linkedMemberAccountMap.computeIfAbsent(linkedMember, k -> new HashSet<>()).add(accountId);
                     }
                 }
 
                 // Process secondary account owners
                 Object secondaryOwnersObj = innerProps.get(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG);
                 if (secondaryOwnersObj instanceof List) {
+                    boolean otherAccountsAvailabilityProp = true;
+                    Object otherAccountsAvailabilityObj =
+                            innerProps.get(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD);
+                    if (otherAccountsAvailabilityObj instanceof Boolean) {
+                        otherAccountsAvailabilityProp = (Boolean) otherAccountsAvailabilityObj;
+                    } else if (otherAccountsAvailabilityObj instanceof String) {
+                        otherAccountsAvailabilityProp = Boolean.parseBoolean((String) otherAccountsAvailabilityObj);
+                    }
+                    if (!secondaryAvailabilityResolved) {
+                        otherAccountsAvailability = otherAccountsAvailabilityProp;
+                        secondaryAvailabilityResolved = true;
+                    } else if (otherAccountsAvailability != otherAccountsAvailabilityProp) {
+                        log.warn("Inconsistent otherAccountsAvailablitiy values found across secondary accounts; " +
+                                "using the first resolved value for all accounts");
+                    }
+
                     @SuppressWarnings("unchecked")
                     List<String> secondaryOwners = (List<String>) secondaryOwnersObj;
                     for (String owner : secondaryOwners) {
-                        secondaryOwnerAccountMap
-                                .computeIfAbsent(owner, k -> new HashSet<>())
-                                .add(accountId);
+                        secondaryOwnerAccountMap.computeIfAbsent(owner, k -> new HashSet<>()).add(accountId);
                     }
                 }
             }
         }
+
+        return otherAccountsAvailability;
     }
 
     /**
@@ -312,8 +324,8 @@ public class CdsConsentAuthPersistUtil {
      */
     private static List<Resource> validateAndGetResources(
             List<AuthorizedResourcesAuthorizedDataInner> authorizedDataInners) {
-        List<Resource> resources = new ArrayList<>();
 
+        List<Resource> resources = new ArrayList<>();
         String accountsURL = ConfigurableProperties.SHARABLE_ENDPOINT;
         String accountId;
 
@@ -332,8 +344,8 @@ public class CdsConsentAuthPersistUtil {
                 }
 
                 //Get Account_Id from Display Name
-                accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(
-                        accountsURL, displayName.split("<br>")[0]);
+                accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(accountsURL,
+                        displayName.split("<br>")[0]);
 
                 // Set properties from the individual 'account' and the outer 'authorizedDataInner'
                 resource.setAccountId(accountId);

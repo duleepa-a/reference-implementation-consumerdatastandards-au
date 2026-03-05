@@ -422,7 +422,7 @@ public class SecondaryAccountsManagementApiImplTest {
         SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
         item.setAccountId(accountId);
         item.setSecondaryUserId(userId);
-        item.setOtherAccountsAvailablitiy(otherAccountsAvailable);
+        item.setOtherAccountsAvailability(otherAccountsAvailable);
         item.setSecondaryAccountInstructionStatus(status);
         return item;
     }

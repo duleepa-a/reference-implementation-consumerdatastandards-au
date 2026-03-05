@@ -21,6 +21,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
@@ -70,8 +71,7 @@ public class SecondaryAccountsManagementApiImpl {
 
             List<SecondaryAccountInstructionItem> existingItems =
                     accountMetadataService.getBatchSecondaryAccountInstructions(validItems);
-            Set<String> existingKeys = existingItems.stream()
-                    .map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
+            Set<String> existingKeys = existingItems.stream().map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
                     .collect(Collectors.toSet());
 
             List<SecondaryAccountInstructionItem> itemsToUpdate = validItems.stream()
@@ -79,6 +79,14 @@ public class SecondaryAccountsManagementApiImpl {
                     .collect(Collectors.toList());
 
             if (!itemsToUpdate.isEmpty()) {
+                List<SecondaryAccountInstructionItem> itemsRequiringConsentExpiry = itemsToUpdate.stream()
+                        .filter(SecondaryAccountsManagementApiImpl::isConsentExpiryRequired)
+                        .collect(Collectors.toList());
+
+                if (!itemsRequiringConsentExpiry.isEmpty()) {
+                    // TODO: Call Accelerator once with itemsRequiringConsentExpiry when implementation
+                    //  is available.
+                }
                 accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }
 
@@ -115,8 +123,7 @@ public class SecondaryAccountsManagementApiImpl {
                     .build();
         }
 
-        List<String> accountIdList = Arrays.stream(accountIds.split(","))
-                .map(StringUtils::trimToEmpty)
+        List<String> accountIdList = Arrays.stream(accountIds.split(",")).map(StringUtils::trimToEmpty)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toList());
 
@@ -146,8 +153,15 @@ public class SecondaryAccountsManagementApiImpl {
         }
     }
 
+    /**
+     * Builds query items for batch retrieval using a single user ID and a list of account IDs.
+     *
+     * @param userId user ID to attach to each query item
+     * @param accountIdList list of account IDs to query
+     * @return list of query items with normalized user ID
+     */
     private static List<SecondaryAccountInstructionItem> getSecondaryAccountInstructionItems(
-            String userId, List<String> accountIdList) {
+        String userId, List<String> accountIdList) {
 
         String normalizedUserId = StringUtils.trimToEmpty(userId);
         List<SecondaryAccountInstructionItem> queryItems = new ArrayList<>();
@@ -162,7 +176,6 @@ public class SecondaryAccountsManagementApiImpl {
 
     /**
      * Adds secondary account instructions for multiple account-user combinations.
-     *
      * @param request list of secondary account instruction items to add
      * @return response with list of added items
      */
@@ -212,8 +225,16 @@ public class SecondaryAccountsManagementApiImpl {
         }
     }
 
+    /**
+     * Validates mandatory fields, validates instruction status, normalizes values,
+     * and deduplicates request items by accountId and secondaryUserId.
+     *
+     * @param request request items to validate and normalize
+     * @return validated, normalized, and deduplicated items
+     * @throws AccountMetadataException if request contains invalid items
+     */
     private static List<SecondaryAccountInstructionItem> validateAndNormalizeRequest(
-            List<SecondaryAccountInstructionItem> request) throws AccountMetadataException {
+        List<SecondaryAccountInstructionItem> request) throws AccountMetadataException {
 
         Map<String, SecondaryAccountInstructionItem> deduplicatedItems = new HashMap<>();
 
@@ -223,7 +244,7 @@ public class SecondaryAccountsManagementApiImpl {
             }
             String accountId = StringUtils.trimToEmpty(item.getAccountId());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserId());
-            Boolean otherAccountsAvailability = item.getOtherAccountsAvailablitiy();
+            Boolean otherAccountsAvailability = item.getOtherAccountsAvailability();
             String instructionStatus = item.getSecondaryAccountInstructionStatus();
 
             if (StringUtils.isBlank(accountId) || StringUtils.isBlank(secondaryUserId)) {
@@ -231,25 +252,54 @@ public class SecondaryAccountsManagementApiImpl {
             }
             if (otherAccountsAvailability == null) {
                 throw new AccountMetadataException(
-                        "otherAccountsAvailablitiy is required for accountId " + accountId +
-                                " and secondaryUserId " + secondaryUserId);
-            }
-            if (instructionStatus == null) {
-                throw new AccountMetadataException(
-                        "secondaryAccountInstructionStatus is required for accountId " + accountId +
+                        "otherAccountsAvailability is required for accountId " + accountId +
                                 " and secondaryUserId " + secondaryUserId);
             }
 
-            item.setAccountId(accountId);
-            item.setSecondaryUserId(secondaryUserId);
+            if (isValidInstructionStatus(instructionStatus)) {
+                item.setAccountId(accountId);
+                item.setSecondaryUserId(secondaryUserId);
 
-            deduplicatedItems.put(buildCompositeKey(item), item);
+                deduplicatedItems.put(buildCompositeKey(item), item);
+            } else {
+                throw new AccountMetadataException("Invalid secondary user instruction status for account: "
+                        + item.getAccountId() + " - " + instructionStatus);
+            }
         }
 
         return new ArrayList<>(deduplicatedItems.values());
     }
 
+    /**
+     * Builds the composite key used for deduplication and existence checks.
+     *
+     * @param item secondary account instruction item
+     * @return composite key in accountId::secondaryUserId format
+     */
     private static String buildCompositeKey(SecondaryAccountInstructionItem item) {
         return item.getAccountId() + "::" + item.getSecondaryUserId();
+    }
+
+    /**
+     * Validates if the Secondary User Instruction status is a valid status.
+     * Valid values are: active, inactive
+     *
+     * @param status the status to validate
+     * @return true if the status is valid, false otherwise
+     */
+    private static boolean isValidInstructionStatus(String status) {
+        return status != null && (status.equalsIgnoreCase(CommonConstants.SUI_ACTIVE_STATUS) ||
+                status.equalsIgnoreCase(CommonConstants.SUI_INACTIVE_STATUS));
+    }
+
+    /**
+     * Checks whether a secondary account instruction update should trigger consent expiry.
+     *
+     * @param item secondary account instruction item
+     * @return true when status is inactive and otherAccountsAvailability is false
+     */
+    private static boolean isConsentExpiryRequired(SecondaryAccountInstructionItem item) {
+        return item != null && Boolean.FALSE.equals(item.getOtherAccountsAvailability())
+                && item.getSecondaryAccountInstructionStatus().equalsIgnoreCase(CommonConstants.SUI_INACTIVE_STATUS);
     }
 }

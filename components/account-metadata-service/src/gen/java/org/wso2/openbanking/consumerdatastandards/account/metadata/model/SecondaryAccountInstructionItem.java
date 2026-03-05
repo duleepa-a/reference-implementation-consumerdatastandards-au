@@ -3,11 +3,9 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.model;
 import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.*;
 
-import io.swagger.annotations.*;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 @JsonTypeName("SecondaryAccountInstructionItem")
@@ -15,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 public class SecondaryAccountInstructionItem   {
   private String accountId;
   private String secondaryUserId;
-  private Boolean otherAccountsAvailablitiy;
+  private Boolean otherAccountsAvailability;
   private String secondaryAccountInstructionStatus;
 
   public SecondaryAccountInstructionItem() {
@@ -25,12 +23,12 @@ public class SecondaryAccountInstructionItem   {
   public SecondaryAccountInstructionItem(
           @JsonProperty(required = true, value = "accountId") String accountId,
           @JsonProperty(required = true, value = "secondaryUserId") String secondaryUserId,
-          @JsonProperty(required = true, value = "otherAccountsAvailablitiy") Boolean otherAccountsAvailablitiy,
+          @JsonProperty(required = true, value = "otherAccountsAvailability") Boolean otherAccountsAvailability,
           @JsonProperty(required = true, value = "secondaryAccountInstructionStatus") String secondaryAccountInstructionStatus
   ) {
     this.accountId = accountId;
     this.secondaryUserId = secondaryUserId;
-    this.otherAccountsAvailablitiy = otherAccountsAvailablitiy;
+    this.otherAccountsAvailability = otherAccountsAvailability;
     this.secondaryAccountInstructionStatus = secondaryAccountInstructionStatus;
   }
 
@@ -77,21 +75,21 @@ public class SecondaryAccountInstructionItem   {
   /**
    * Indicates whether the secondary user has other accounts available in the bank
    **/
-  public SecondaryAccountInstructionItem otherAccountsAvailablitiy(Boolean otherAccountsAvailablitiy) {
-    this.otherAccountsAvailablitiy = otherAccountsAvailablitiy;
+  public SecondaryAccountInstructionItem otherAccountsAvailability(Boolean otherAccountsAvailability) {
+    this.otherAccountsAvailability = otherAccountsAvailability;
     return this;
   }
 
 
   @ApiModelProperty(example = "true", required = true, value = "Indicates whether the secondary user has other accounts available in the bank")
-  @JsonProperty(required = true, value = "otherAccountsAvailablitiy")
-  @NotNull public Boolean getOtherAccountsAvailablitiy() {
-    return otherAccountsAvailablitiy;
+  @JsonProperty(required = true, value = "otherAccountsAvailability")
+  @NotNull public Boolean getOtherAccountsAvailability() {
+    return otherAccountsAvailability;
   }
 
-  @JsonProperty(required = true, value = "otherAccountsAvailablitiy")
-  public void setOtherAccountsAvailablitiy(Boolean otherAccountsAvailablitiy) {
-    this.otherAccountsAvailablitiy = otherAccountsAvailablitiy;
+  @JsonProperty(required = true, value = "otherAccountsAvailability")
+  public void setOtherAccountsAvailability(Boolean otherAccountsAvailability) {
+    this.otherAccountsAvailability = otherAccountsAvailability;
   }
 
   /**
@@ -126,13 +124,13 @@ public class SecondaryAccountInstructionItem   {
     SecondaryAccountInstructionItem secondaryAccountInstructionItem = (SecondaryAccountInstructionItem) o;
     return Objects.equals(this.accountId, secondaryAccountInstructionItem.accountId) &&
             Objects.equals(this.secondaryUserId, secondaryAccountInstructionItem.secondaryUserId) &&
-            Objects.equals(this.otherAccountsAvailablitiy, secondaryAccountInstructionItem.otherAccountsAvailablitiy) &&
+            Objects.equals(this.otherAccountsAvailability, secondaryAccountInstructionItem.otherAccountsAvailability) &&
             Objects.equals(this.secondaryAccountInstructionStatus, secondaryAccountInstructionItem.secondaryAccountInstructionStatus);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(accountId, secondaryUserId, otherAccountsAvailablitiy, secondaryAccountInstructionStatus);
+    return Objects.hash(accountId, secondaryUserId, otherAccountsAvailability, secondaryAccountInstructionStatus);
   }
 
   @Override
@@ -142,7 +140,7 @@ public class SecondaryAccountInstructionItem   {
 
     sb.append("    accountId: ").append(toIndentedString(accountId)).append("\n");
     sb.append("    secondaryUserId: ").append(toIndentedString(secondaryUserId)).append("\n");
-    sb.append("    otherAccountsAvailablitiy: ").append(toIndentedString(otherAccountsAvailablitiy)).append("\n");
+    sb.append("    otherAccountsAvailability: ").append(toIndentedString(otherAccountsAvailability)).append("\n");
     sb.append("    secondaryAccountInstructionStatus: ").append(toIndentedString(secondaryAccountInstructionStatus)).append("\n");
     sb.append("}");
     return sb.toString();

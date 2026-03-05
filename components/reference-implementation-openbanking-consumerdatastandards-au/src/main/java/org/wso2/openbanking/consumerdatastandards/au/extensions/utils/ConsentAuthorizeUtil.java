@@ -222,11 +222,7 @@ public class ConsentAuthorizeUtil {
      */
     private static boolean isJointAccountElectable(JSONObject accountJson) {
         return !CommonConstants.JOINT_ACCOUNT_ELECTION_STATUS_NOT_ELECTED
-                .equalsIgnoreCase(
-                        accountJson.optString(
-                        CommonConstants.JOINT_ACCOUNT_CONSENT_ELECTION_STATUS,
-                        "")
-                );
+                .equalsIgnoreCase(accountJson.optString(CommonConstants.JOINT_ACCOUNT_CONSENT_ELECTION_STATUS, ""));
     }
 
     /**
@@ -235,16 +231,16 @@ public class ConsentAuthorizeUtil {
      * @return list of linked member IDs, or an empty list if none are found
      */
     private static List<String> extractLinkedMembers(JSONObject accountJson) {
+
         List<String> linkedMembers = new ArrayList<>();
-        
+
         if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
             JSONArray linkedMemberArray = accountJson.getJSONObject(
                     CommonConstants.JOINT_ACCOUNT_INFO_TAG).optJSONArray(
-                    CommonConstants.LINKED_MEMBER_TAG_IN_SHARABLE_ENDPOINT);
+                            CommonConstants.LINKED_MEMBER_TAG_IN_SHARABLE_ENDPOINT);
             if (linkedMemberArray != null) {
                 for (int j = 0; j < linkedMemberArray.length(); j++) {
-                    linkedMembers.add(linkedMemberArray.getJSONObject(j)
-                            .optString(CommonConstants.MEMBER_ID_TAG));
+                    linkedMembers.add(linkedMemberArray.getJSONObject(j).optString(CommonConstants.MEMBER_ID_TAG));
                 }
             }
         }
@@ -263,8 +259,7 @@ public class ConsentAuthorizeUtil {
                     .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG);
             if (ownerArray != null) {
                 for (int j = 0; j < ownerArray.length(); j++) {
-                    accountOwners.add(ownerArray.getJSONObject(j)
-                            .optString(CommonConstants.MEMBER_ID_TAG));
+                    accountOwners.add(ownerArray.getJSONObject(j).optString(CommonConstants.MEMBER_ID_TAG));
                 }
             }
         }
@@ -273,32 +268,30 @@ public class ConsentAuthorizeUtil {
 
     /**
      * Processes a single account by checking eligibility and enriching with type-specific properties.
-     * <p>
      * Eligibility rules:
-     * <ul>
-     *   <li>Joint accounts must be electable (election status is not NOT_ELECTED)</li>
-     *   <li>Secondary accounts must have privilege status</li>
-     *   <li>Accounts that are both joint and secondary must satisfy both conditions</li>
-     *   <li>Normal accounts (neither joint nor secondary) are always eligible</li>
-     * </ul>
+     *   Joint accounts must be electable (election status is not NOT_ELECTED)
+     *   Secondary accounts must have privilege status
+     *   Accounts that are both joint and secondary must satisfy both conditions
+     *   Normal accounts (neither joint nor secondary) are always eligible
      * If any eligibility check fails, the account is added to the blocked list.
      * Otherwise, the account is enriched with linked members / secondary account owners
-     * as appropriate and added to the eligible account list.
-     *
+     * as appropriate and added to the eligible account list. For secondary accounts,
+     * other-accounts availability is also included based on whether the secondary user has more than one account.
      * @param accountJson The account JSON object
      * @param accountId The account ID
      * @param account The account object to be populated
      * @param accountList The list of eligible accounts
      * @param blockedAccountsList The list of blocked accounts
-     */
+     * @param hasMultipleAccounts hasMultipleAccounts Whether the authenticated user has multiple accounts
+     * */
     private static void processAccount(JSONObject accountJson, String accountId,
             SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
-            List<DisplayListItem> blockedAccountsList) {
+            List<DisplayListItem> blockedAccountsList,
+            boolean hasMultipleAccounts) {
 
         boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
-        boolean isSecondaryAccount = accountJson.optBoolean(
-                CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
+        boolean isSecondaryAccount = accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
 
         // Check eligibility for each account.
         if (!(!isJointAccount || isJointAccountElectable(accountJson)) ||
@@ -318,6 +311,7 @@ public class ConsentAuthorizeUtil {
         if (isSecondaryAccount) {
             account.setAdditionalProperty(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG,
                     extractSecondaryAccountOwners(accountJson));
+            account.setAdditionalProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, hasMultipleAccounts);
         }
 
         account.setDisplayName(getDisplayNameWithAccountNumber(
@@ -352,6 +346,7 @@ public class ConsentAuthorizeUtil {
 
                 JSONObject jsonAccountData = new JSONObject(accountData);
                 JSONArray accountsJSON = (JSONArray) jsonAccountData.get(CommonConstants.DATA);
+                boolean hasMultipleAccounts = accountsJSON.length() > 1;
 
                 //TODO: Consent amendment flow. Mark pre-selected accounts
 
@@ -369,7 +364,8 @@ public class ConsentAuthorizeUtil {
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
                     String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
 
-                    processAccount(accountJson, accountId, account, accountList, blockedAccountsList);
+                    processAccount(accountJson, accountId, account, accountList, blockedAccountsList,
+                            hasMultipleAccounts);
                 }
 
                 List<AdditionalDisplayDataSection> resolvedDisplayData = setDisplayData(blockedAccountsList);
@@ -575,10 +571,7 @@ public class ConsentAuthorizeUtil {
         basicConsentData.put(CommonConstants.EXPIRATION_DATE_TITLE, Collections.singletonList(expirationDate));
         basicConsentData.put(CommonConstants.PERMISSION_TITLE, permissionsList);
         basicConsentData.put(CommonConstants.SHARING_DURATION_DISPLAY_VALUE,
-                Collections.singletonList(
-                        buildSharingDurationMessage(
-                                Long.parseLong(sharingDurationValue))
-                ));
+                Collections.singletonList(buildSharingDurationMessage(Long.parseLong(sharingDurationValue))));
 
         return basicConsentData;
     }
@@ -597,8 +590,7 @@ public class ConsentAuthorizeUtil {
         long hours = seconds / 3600;
 
         // Construct message with correct pluralization
-        return "Your data will be shared on-going basis for "
-                + hours + " hour" + (hours == 1 ? "" : "s") + ".";
+        return "Your data will be shared on-going basis for " + hours + " hour" + (hours == 1 ? "" : "s") + ".";
     }
 
     /**

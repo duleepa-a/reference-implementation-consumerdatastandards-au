@@ -325,7 +325,7 @@ public class AccountMetadataDAOImplTest {
         Assert.assertEquals(result.size(), 2);
         Assert.assertEquals(result.get(0).getAccountId(), "acc-900");
         Assert.assertEquals(result.get(0).getSecondaryUserId(), "user-1");
-        Assert.assertTrue(result.get(0).getOtherAccountsAvailablitiy());
+        Assert.assertTrue(result.get(0).getOtherAccountsAvailability());
         Assert.assertEquals(result.get(0).getSecondaryAccountInstructionStatus(), "ACTIVE");
         }
 
@@ -539,7 +539,7 @@ public class AccountMetadataDAOImplTest {
             SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
             item.setAccountId(accountId);
             item.setSecondaryUserId(userId);
-            item.setOtherAccountsAvailablitiy(otherAccountsAvailable);
+            item.setOtherAccountsAvailability(otherAccountsAvailable);
             item.setSecondaryAccountInstructionStatus(status);
             return item;
         }
