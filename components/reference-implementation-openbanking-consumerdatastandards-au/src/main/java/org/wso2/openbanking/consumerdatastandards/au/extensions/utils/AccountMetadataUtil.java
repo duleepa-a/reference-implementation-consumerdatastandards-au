@@ -294,9 +294,6 @@ public class AccountMetadataUtil {
     /**
      * Build the request body for adding secondary account instructions.
      * Constructs JSON array with account ID, secondary user ID, and instruction status.
-     * Format: [{"accountId": "...", "secondaryUserId": "...",
-     *           "otherAccountsAvailablitiy": true, "secondaryAccountInstructionStatus": "active"}...]
-     *
      * @param accountIds set of account IDs
      * @param secondaryUserId the secondary user ID (consenting user)
      * @param otherAccountsAvailability map of accountId to other-accounts-availability
@@ -322,7 +319,6 @@ public class AccountMetadataUtil {
     /**
      * Extract DOMS statuses from batch API response body.
      * Returns a Map of account IDs to their DOMS statuses.
-     *
      * @param responseBody the JSON response body as a string
      * @return Map of accountID to DOMS Status, or empty map if parsing fails
      */
@@ -358,7 +354,6 @@ public class AccountMetadataUtil {
 
     /**
      * Extract secondary account instruction statuses from batch API response body.
-     *
      * @param responseBody the JSON response body as a string
      * @return map of accountId to secondary account instruction status
      */
