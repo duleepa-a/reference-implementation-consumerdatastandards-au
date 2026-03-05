@@ -122,13 +122,14 @@ public class CDSAccountValidationUtils {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String requestUrl = blockedAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam;
-
-            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS))
+                    .build();
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(3000))
-                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
-                            CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
+                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS))
+                    .header(CDSAccountValidationConstants.ACCEPT_TAG, CDSAccountValidationConstants.JSON_CONTENT_TYPE)
+                    .GET();
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {
                 requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
@@ -200,10 +201,10 @@ public class CDSAccountValidationUtils {
             String requestUrl = secondaryAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
 
-            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(3000)).build();
+            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(CDSAccountValidationConstants.CONNECT_TIMEOUT)).build();
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(3000)).header(CDSAccountValidationConstants.ACCEPT_TAG,
+                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.REQUEST_TIMEOUT)).header(CDSAccountValidationConstants.ACCEPT_TAG,
                             CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {

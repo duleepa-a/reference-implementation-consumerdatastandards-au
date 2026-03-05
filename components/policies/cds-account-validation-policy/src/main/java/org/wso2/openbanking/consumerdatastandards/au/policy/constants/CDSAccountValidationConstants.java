@@ -68,4 +68,8 @@ public class CDSAccountValidationConstants {
     public static final String SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG = "secondary_individual_account_owner";
     public static final String SECONDARY_JOINT_ACCOUNT_OWNER_TAG = "secondary_joint_account_owner";
 
+    // Timeouts
+    public static final int HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS = 3000;
+    public static final int HTTP_REQUEST_TIMEOUT_MILLIS = 3000;
+
 }
