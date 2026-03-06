@@ -84,8 +84,7 @@ public class SecondaryAccountsManagementApiImpl {
                         .collect(Collectors.toList());
 
                 if (!itemsRequiringConsentExpiry.isEmpty()) {
-                    // TODO: Call Accelerator once with itemsRequiringConsentExpiry when implementation
-                    //  is available.
+                    // TODO: Call Accelerator once with itemsRequiringConsentExpiry when implementation is available.
                 }
                 accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }
