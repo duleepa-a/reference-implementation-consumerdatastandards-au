@@ -34,7 +34,6 @@ import org.wso2.openbanking.consumerdatastandards.au.policy.utils.CDSAccountVali
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -118,7 +117,7 @@ public class CDSAccountValidationMediatorTest {
                 .put("authorizationType", CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG)
                 .put("authorizationId", "secondary-auth-1"));
             authorizationResources.put(new JSONObject()
-                .put("authorizationType", CDSAccountValidationConstants.AUTH_TYPE_TAG)
+                .put("authorizationType", CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
                 .put("authorizationId", "accounts-auth-1")
                 .put("userId", "user-1"));
             payload.put("authorizationResources", authorizationResources);
@@ -181,15 +180,15 @@ public class CDSAccountValidationMediatorTest {
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
         JSONObject payload = new JSONObject();
-        payload.put(CDSAccountValidationConstants.USER_ID_TAG, "user-1");
 
         JSONArray authorizationResources = new JSONArray();
         authorizationResources.put(new JSONObject()
             .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.LINKED_MEMBER_TAG)
             .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
         authorizationResources.put(new JSONObject()
-            .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, "user")
-            .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2"));
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
         payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
 
         JSONArray accounts = new JSONArray();

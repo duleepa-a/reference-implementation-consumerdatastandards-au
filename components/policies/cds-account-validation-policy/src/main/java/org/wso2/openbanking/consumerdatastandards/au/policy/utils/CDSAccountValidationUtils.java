@@ -201,10 +201,12 @@ public class CDSAccountValidationUtils {
             String requestUrl = secondaryAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
 
-            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(CDSAccountValidationConstants.CONNECT_TIMEOUT)).build();
+            HttpClient client = HttpClient.newBuilder().connectTimeout(
+                    Duration.ofMillis(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)).build();
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.REQUEST_TIMEOUT)).header(CDSAccountValidationConstants.ACCEPT_TAG,
+                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS))
+                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
                             CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {
