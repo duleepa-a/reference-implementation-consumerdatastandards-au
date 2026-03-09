@@ -304,9 +304,12 @@ public class ConsentAuthorizeUtil {
             return;
         }
 
+        List<String> linkedMembers = Collections.emptyList();
+
         // Enrich with type-specific additional properties
         if (isJointAccount) {
-            account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, extractLinkedMembers(accountJson));
+            linkedMembers = extractLinkedMembers(accountJson);
+            account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, linkedMembers);
         }
         if (isSecondaryAccount) {
             account.setAdditionalProperty(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG,
@@ -314,9 +317,28 @@ public class ConsentAuthorizeUtil {
             account.setAdditionalProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, hasMultipleAccounts);
         }
 
+        if(isJointAccount && !isSecondaryAccount) {
+            account.setTitle(CommonConstants.JOINT_ACCOUNT_TOOLTIP_TITLE);
+            account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
+        }
+
         account.setDisplayName(getDisplayNameWithAccountNumber(
                 accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
         accountList.add(account);
+    }
+
+    /**
+     * Builds tooltip description text for selectable joint accounts.
+     *
+     * @param linkedMembersCount number of linked members for the account
+     * @return formatted tooltip description
+     */
+    private static String buildJointAccountTooltipDescription(int linkedMembersCount) {
+        return linkedMembersCount
+                + " other account holder(s) can share this joint account data at any time,"
+                + " without each other&rsquo;s permission. <br/><br/>"
+                + " You can change sharing preferences for this account by going to"
+                + " &lsquo;Settings &gt;Data sharing &gt; Account permissions&rsquo;";
     }
 
     /**
