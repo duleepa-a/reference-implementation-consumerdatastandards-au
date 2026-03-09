@@ -317,7 +317,7 @@ public class ConsentAuthorizeUtil {
             account.setAdditionalProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, hasMultipleAccounts);
         }
 
-        if(isJointAccount && !isSecondaryAccount) {
+        if (isJointAccount && !isSecondaryAccount) {
             account.setTitle(CommonConstants.JOINT_ACCOUNT_TOOLTIP_TITLE);
             account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
         }
