@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.util.List;
@@ -96,5 +97,49 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
     public String getBatchUpdateSecondaryAccountInstructionQuery() {
         return "UPDATE fs_account_secondary_user SET SECONDARY_ACCOUNT_INSTRUCTION_STATUS = ?, " +
                 "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items) {
+        StringBuilder query = new StringBuilder(
+                "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
+                        "WHERE (ACCOUNT_ID, USER_ID) IN (");
+        for (int i = 0; i < items.size(); i++) {
+            query.append("(?,?)");
+            if (i < items.size() - 1) {
+                query.append(",");
+            }
+        }
+        query.append(")");
+        return query.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchAddBusinessStakeholderPermissionQuery() {
+        return "INSERT INTO fs_account_bnr_permission (ACCOUNT_ID, USER_ID, PERMISSION, LAST_UPDATED_TIMESTAMP) " +
+                "VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchUpdateBusinessStakeholderPermissionQuery() {
+        return "UPDATE fs_account_bnr_permission SET PERMISSION = ?, LAST_UPDATED_TIMESTAMP = ? " +
+                "WHERE ACCOUNT_ID = ? AND USER_ID = ?";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchDeleteBusinessStakeholderPermissionQuery() {
+        return "DELETE FROM fs_account_bnr_permission WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
 }

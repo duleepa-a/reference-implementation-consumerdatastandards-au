@@ -21,6 +21,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAOImpl;
@@ -210,6 +211,79 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
         } catch (SQLException e) {
             log.error("Error batch updating secondary account instructions", e);
             throw new AccountMetadataException("Failed to batch update secondary account instructions", e);
+        }
+    }
+
+    /**
+     * Batch retrieve business stakeholder permissions for multiple account-user pairs.
+     *
+     * @param items list of account-user permission records with accountId and userId
+     * @return list of existing business stakeholder permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+        public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
+            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            return metadataDAO.getBatchBusinessStakeholderPermissions(conn, items);
+        } catch (SQLException e) {
+            log.error("Error batch retrieving business stakeholder permissions", e);
+            throw new AccountMetadataException("Failed to batch retrieve business stakeholder permissions", e);
+        }
+    }
+
+    /**
+     * Batch add business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public void addBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            metadataDAO.addBatchBusinessStakeholderPermissions(conn, permissionItems);
+        } catch (SQLException e) {
+            log.error("Error batch adding business stakeholder permissions", e);
+            throw new AccountMetadataException("Failed to batch add business stakeholder permissions", e);
+        }
+    }
+
+    /**
+     * Batch update business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public void updateBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            metadataDAO.updateBatchBusinessStakeholderPermissions(conn, permissionItems);
+        } catch (SQLException e) {
+            log.error("Error batch updating business stakeholder permissions", e);
+            throw new AccountMetadataException("Failed to batch update business stakeholder permissions", e);
+        }
+    }
+
+    /**
+     * Batch delete business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public void deleteBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            metadataDAO.deleteBatchBusinessStakeholderPermissions(conn, permissionItems);
+        } catch (SQLException e) {
+            log.error("Error batch deleting business stakeholder permissions", e);
+            throw new AccountMetadataException("Failed to batch delete business stakeholder permissions", e);
         }
     }
 }

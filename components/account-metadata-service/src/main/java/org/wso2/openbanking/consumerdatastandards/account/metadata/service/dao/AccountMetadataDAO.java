@@ -19,6 +19,7 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.sql.Connection;
@@ -92,5 +93,47 @@ public interface AccountMetadataDAO {
     void updateBatchSecondaryAccountInstructions(Connection conn,
                                                  List<SecondaryAccountInstructionItem> instructionItems)
             throws AccountMetadataException;
+
+    /**
+     * Batch retrieve business stakeholder permissions for multiple account-user pairs.
+     *
+     * @param conn the database connection
+     * @param items list of account-user permission records with accountId and userId
+     * @return list of existing business stakeholder permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(Connection conn,
+            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException;
+
+    /**
+     * Batch add business stakeholder permission records.
+     *
+     * @param conn the database connection
+     * @param permissionItems list of account-user permission records to add
+     * @throws AccountMetadataException if an error occurs
+     */
+    void addBatchBusinessStakeholderPermissions(Connection conn,
+            List<BusinessStakeholderPermissionItem> permissionItems)
+            throws AccountMetadataException;
+
+    /**
+     * Batch update business stakeholder permission records.
+     *
+     * @param conn the database connection
+     * @param permissionItems list of account-user permission records to update
+     * @throws AccountMetadataException if an error occurs
+     */
+    void updateBatchBusinessStakeholderPermissions(Connection conn,
+            List<BusinessStakeholderPermissionItem> permissionItems) throws AccountMetadataException;
+
+    /**
+     * Batch delete business stakeholder permission records.
+     *
+     * @param conn the database connection
+     * @param permissionItems list of account-user permission records to delete
+     * @throws AccountMetadataException if an error occurs
+     */
+    void deleteBatchBusinessStakeholderPermissions(Connection conn,
+            List<BusinessStakeholderPermissionItem> permissionItems) throws AccountMetadataException;
 
 }

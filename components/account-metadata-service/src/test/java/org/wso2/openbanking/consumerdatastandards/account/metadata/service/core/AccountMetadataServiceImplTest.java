@@ -23,6 +23,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connection.provider.ConnectionProvider;
@@ -311,6 +312,194 @@ public class AccountMetadataServiceImplTest {
         }
 
         /**
+         * Verifies successful retrieval of business stakeholder permissions through the service layer.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testGetBatchBusinessStakeholderPermissions() throws Exception {
+        List<BusinessStakeholderPermissionItem> queryItems = Arrays.asList(
+            buildBusinessItem("acc-130", "user-1", "AUTHORIZE"),
+            buildBusinessItem("acc-131", "user-2", "VIEW"));
+        List<BusinessStakeholderPermissionItem> expected = new ArrayList<>(queryItems);
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(connection, queryItems))
+            .thenReturn(expected);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        List<BusinessStakeholderPermissionItem> result =
+            service.getBatchBusinessStakeholderPermissions(queryItems);
+
+        Assert.assertEquals(result, expected);
+        Mockito.verify(metadataDAO).getBatchBusinessStakeholderPermissions(connection, queryItems);
+        }
+
+        /**
+         * Verifies successful add operation for business stakeholder permissions.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testAddBatchBusinessStakeholderPermissions() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-132", "user-1", "AUTHORIZE"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.addBatchBusinessStakeholderPermissions(items);
+
+        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(connection, items);
+        }
+
+        /**
+         * Verifies successful update operation for business stakeholder permissions.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testUpdateBatchBusinessStakeholderPermissions() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-133", "user-2", "VIEW"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.updateBatchBusinessStakeholderPermissions(items);
+
+        Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(connection, items);
+        }
+
+        /**
+         * Verifies successful delete operation for business stakeholder permissions.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testDeleteBatchBusinessStakeholderPermissions() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-134", "user-3", null));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+
+        service.deleteBatchBusinessStakeholderPermissions(items);
+
+        Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(connection, items);
+        }
+
+        /**
+         * Verifies SQLException handling for disclosure option retrieval.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchDisclosureOptionsSqlExceptionFromConnectionProvider() throws Exception {
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.getBatchDisclosureOptions(Collections.singletonList("acc-140"));
+        }
+
+        /**
+         * Verifies SQLException handling for disclosure option add.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testAddBatchDisclosureOptionsSqlExceptionFromConnectionProvider() throws Exception {
+        Map<String, String> accountMap = new HashMap<>();
+        accountMap.put("acc-141", "no-sharing");
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.addBatchDisclosureOptions(accountMap);
+        }
+
+        /**
+         * Verifies SQLException handling for disclosure option update.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testUpdateBatchDisclosureOptionsSqlExceptionFromConnectionProvider() throws Exception {
+        Map<String, String> accountMap = new HashMap<>();
+        accountMap.put("acc-142", "pre-approval");
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.updateBatchDisclosureOptions(accountMap);
+        }
+
+        /**
+         * Verifies SQLException handling for secondary instruction retrieval.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchSecondaryAccountInstructionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
+            buildSecondaryItem("acc-143", "user-1", true, "active"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.getBatchSecondaryAccountInstructions(queryItems);
+        }
+
+        /**
+         * Verifies SQLException handling for secondary instruction add.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testAddBatchSecondaryAccountInstructionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+            buildSecondaryItem("acc-144", "user-2", false, "inactive"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.addBatchSecondaryAccountInstructions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for secondary instruction update.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testUpdateBatchSecondaryAccountInstructionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<SecondaryAccountInstructionItem> items = Collections.singletonList(
+            buildSecondaryItem("acc-145", "user-3", true, "active"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.updateBatchSecondaryAccountInstructions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for business stakeholder retrieval.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchBusinessStakeholderPermissionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-146", "user-1", "AUTHORIZE"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.getBatchBusinessStakeholderPermissions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for business stakeholder add.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testAddBatchBusinessStakeholderPermissionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-147", "user-2", "VIEW"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.addBatchBusinessStakeholderPermissions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for business stakeholder update.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testUpdateBatchBusinessStakeholderPermissionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-148", "user-3", "AUTHORIZE"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.updateBatchBusinessStakeholderPermissions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for business stakeholder delete.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testDeleteBatchBusinessStakeholderPermissionsSqlExceptionFromConnectionProvider() throws Exception {
+        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
+            buildBusinessItem("acc-149", "user-4", null));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.deleteBatchBusinessStakeholderPermissions(items);
+        }
+
+        /**
          * Builds a secondary instruction test item.
          *
          * @param accountId account id
@@ -329,6 +518,29 @@ public class AccountMetadataServiceImplTest {
         item.setSecondaryAccountInstructionStatus(status);
         return item;
         }
+
+    /**
+     * Builds a business stakeholder permission test item.
+     */
+    private BusinessStakeholderPermissionItem buildBusinessItem(String accountId, String userId, String permission) {
+        BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
+        item.setAccountId(accountId);
+        item.setUserId(userId);
+        item.setPermission(permission);
+        return item;
+    }
+
+    /**
+     * Creates a connection provider that always fails with SQLException.
+     */
+    private ConnectionProvider getFailingConnectionProvider() {
+        return new ConnectionProvider() {
+            @Override
+            public Connection getConnection() throws SQLException {
+                throw new SQLException("connection fail");
+            }
+        };
+    }
 
     /**
      * Resets singleton state to isolate test execution.
