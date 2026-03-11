@@ -79,9 +79,8 @@ public class CDSAccountValidationMediator extends AbstractMediator {
             JSONObject payload = new JSONObject(accountHeaderJwt);
             String userId = null;
 
-            //collect joint account owner and secondary account owner authorization Ids
-            Set<String> linkedMemberAuthIds = new HashSet<>();
-            Set<String> secondaryAccOwnerAuthIds = new HashSet<>();
+            // Collect authorization IDs that should be removed from validation and mapping.
+            Set<String> excludedAuthIds = new HashSet<>();
 
             JSONArray authorizationResources = payload.optJSONArray(CDSAccountValidationConstants.AUTH_RESOURCES_TAG);
             if (authorizationResources != null) {
@@ -92,27 +91,10 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                     String authType = authResource.optString(CDSAccountValidationConstants.AUTH_TYPE_TAG);
                     String authId = authResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
-                    // Removing Auth resources of linked members
-                    if (CDSAccountValidationConstants.LINKED_MEMBER_TAG.equalsIgnoreCase(authType)) {
+                    // Remove linked-member and secondary-owner auth resources.
+                    if (isExcludedAuthType(authType)) {
                         if (!StringUtils.isEmpty(authId)) {
-                            linkedMemberAuthIds.add(authId);
-                        }
-                        if (log.isDebugEnabled()) {
-                            log.debug("Removing linkedMember authorization resource. authorizationId= "
-                                    + authId);
-                        }
-                        continue;
-                    }
-
-                    // Removing Auth resources of secondary account owners
-                    if (isSecondaryAccountOwnerAuthType(authType)) {
-
-                        if (!StringUtils.isEmpty(authId)) {
-                            secondaryAccOwnerAuthIds.add(authId);
-                        }
-                        if (log.isDebugEnabled()) {
-                            log.debug("Removing secondary account owner authorization resource. authorizationId = "
-                                    + authId);
+                            excludedAuthIds.add(authId);
                         }
                         continue;
                     }
@@ -140,7 +122,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
                 // exclude linked-member accounts in account validation call.
-                if (linkedMemberAuthIds.contains(authId) || secondaryAccOwnerAuthIds.contains(authId)) {
+                if (excludedAuthIds.contains(authId)) {
                     continue;
                 }
                 accountIds.add(mappingResource.optString(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG));
@@ -156,7 +138,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
                 // Removing consentMappingResources of joint account owners and secondary account owners
-                if (linkedMemberAuthIds.contains(authId) || secondaryAccOwnerAuthIds.contains(authId)) {
+                if (excludedAuthIds.contains(authId)) {
                     continue;
                 }
 
@@ -213,5 +195,16 @@ public class CDSAccountValidationMediator extends AbstractMediator {
     private static boolean isSecondaryAccountOwnerAuthType(String authType) {
         return CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType)
                 || CDSAccountValidationConstants.SECONDARY_JOINT_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType);
+    }
+
+    /**
+     * Checks whether the given authorization type should be excluded from account validation and mappings.
+     *
+     * @param authType authorization type value
+     * @return {@code true} if auth type belongs to linked member or secondary account owner
+     */
+    private static boolean isExcludedAuthType(String authType) {
+        return CDSAccountValidationConstants.LINKED_MEMBER_TAG.equalsIgnoreCase(authType)
+                || isSecondaryAccountOwnerAuthType(authType);
     }
 }
