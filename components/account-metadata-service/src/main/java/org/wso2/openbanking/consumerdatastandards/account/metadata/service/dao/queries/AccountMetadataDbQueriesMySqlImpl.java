@@ -121,6 +121,23 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
+    public String getBatchGetBusinessStakeholderPermissionByAccountQuery(int accountCount) {
+        StringBuilder query = new StringBuilder(
+                "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission WHERE ACCOUNT_ID IN (");
+        for (int i = 0; i < accountCount; i++) {
+            query.append("?");
+            if (i < accountCount - 1) {
+                query.append(",");
+            }
+        }
+        query.append(")");
+        return query.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getBatchAddBusinessStakeholderPermissionQuery() {
         return "INSERT INTO fs_account_bnr_permission (ACCOUNT_ID, USER_ID, PERMISSION, LAST_UPDATED_TIMESTAMP) " +
                 "VALUES (?, ?, ?, ?)";

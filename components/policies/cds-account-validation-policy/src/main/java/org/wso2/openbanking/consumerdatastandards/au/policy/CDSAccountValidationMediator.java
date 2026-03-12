@@ -198,6 +198,17 @@ public class CDSAccountValidationMediator extends AbstractMediator {
     }
 
     /**
+     * Checks whether the given authorization type belongs to a business account stakeholder.
+     *
+     * @param authType authorization type value
+     * @return {@code true} if the auth type is nominated representative or business account owner
+     */
+    private static boolean isBusinessAccountAuthType(String authType) {
+        return CDSAccountValidationConstants.NOMINATED_REPRESENTATIVE_TAG.equalsIgnoreCase(authType)
+                || CDSAccountValidationConstants.BUSINESS_ACCOUNT_OWNER_TAG.equalsIgnoreCase(authType);
+    }
+
+    /**
      * Checks whether the given authorization type should be excluded from account validation and mappings.
      *
      * @param authType authorization type value
@@ -205,6 +216,6 @@ public class CDSAccountValidationMediator extends AbstractMediator {
      */
     private static boolean isExcludedAuthType(String authType) {
         return CDSAccountValidationConstants.LINKED_MEMBER_TAG.equalsIgnoreCase(authType)
-                || isSecondaryAccountOwnerAuthType(authType);
+                || isSecondaryAccountOwnerAuthType(authType) || isBusinessAccountAuthType(authType);
     }
 }

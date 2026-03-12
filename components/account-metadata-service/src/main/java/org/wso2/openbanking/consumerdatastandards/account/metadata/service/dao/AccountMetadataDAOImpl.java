@@ -322,6 +322,48 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      * {@inheritDoc}
      */
     @Override
+    public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissionsByAccountIds(Connection conn,
+            List<String> accountIds) throws AccountMetadataException {
+
+        if (accountIds == null || accountIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String sql = dbQueries.getBatchGetBusinessStakeholderPermissionByAccountQuery(accountIds.size());
+        List<BusinessStakeholderPermissionItem> resultItems = new ArrayList<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < accountIds.size(); i++) {
+                stmt.setString(i + 1, accountIds.get(i));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
+                    permissionItem.setAccountId(rs.getString("ACCOUNT_ID"));
+                    permissionItem.setUserId(rs.getString("USER_ID"));
+                    permissionItem.setPermission(rs.getString("PERMISSION"));
+                    resultItems.add(permissionItem);
+                }
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved business stakeholder permissions for " + resultItems.size() + " records by " +
+                        "account IDs.");
+            }
+            return resultItems;
+
+        } catch (SQLException e) {
+            log.error("Error retrieving batch business stakeholder permissions by account IDs", e);
+            throw new AccountMetadataException("Failed to retrieve batch business stakeholder permissions by " +
+                    "account IDs", e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void addBatchBusinessStakeholderPermissions(Connection conn,
             List<BusinessStakeholderPermissionItem> permissionItems) throws AccountMetadataException {
 

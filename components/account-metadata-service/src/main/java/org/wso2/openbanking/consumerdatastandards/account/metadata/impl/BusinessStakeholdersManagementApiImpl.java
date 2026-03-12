@@ -21,6 +21,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderDeleteItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
@@ -209,8 +210,32 @@ public class BusinessStakeholdersManagementApiImpl {
             Set<String> existingKeys = existingItems.stream().map(BusinessStakeholdersManagementApiImpl::buildKey)
                     .collect(Collectors.toSet());
 
-            List<BusinessStakeholderPermissionItem> itemsToDelete = validItems.stream()
+                List<BusinessStakeholderPermissionItem> itemsToRevoke = validItems.stream()
                     .filter(item -> existingKeys.contains(buildKey(item)))
+                    .map(item -> new BusinessStakeholderPermissionItem(
+                            item.getAccountId(), item.getUserId(), CommonConstants.BNR_PERMISSION_REVOKE))
+                    .collect(Collectors.toList());
+
+                if (!itemsToRevoke.isEmpty()) {
+                accountMetadataService.updateBatchBusinessStakeholderPermissions(itemsToRevoke);
+                }
+
+                List<String> affectedAccountIds = getDistinctAccountIds(itemsToRevoke);
+                if (affectedAccountIds.isEmpty()) {
+                return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
+                }
+
+                List<BusinessStakeholderPermissionItem> accountPermissions =
+                    accountMetadataService.getBatchBusinessStakeholderPermissionsByAccountIds(affectedAccountIds);
+
+                Set<String> accountsWithAuthorizePermission = accountPermissions.stream()
+                    .filter(BusinessStakeholdersManagementApiImpl::isAuthorizePermission)
+                    .map(BusinessStakeholderPermissionItem::getAccountId)
+                    .collect(Collectors.toSet());
+
+                List<BusinessStakeholderPermissionItem> itemsToDelete = accountPermissions.stream()
+                    .filter(item ->
+                            !accountsWithAuthorizePermission.contains(item.getAccountId()))
                     .collect(Collectors.toList());
 
             if (!itemsToDelete.isEmpty()) {
@@ -228,6 +253,11 @@ public class BusinessStakeholdersManagementApiImpl {
                             "Failed to delete business stakeholder records: " + e.getMessage()))
                     .build();
         }
+    }
+
+    private static boolean isAuthorizePermission(BusinessStakeholderPermissionItem permissionItem) {
+        return CommonConstants.BNR_PERMISSION_AUTHORIZE
+                .equalsIgnoreCase(StringUtils.trimToEmpty(permissionItem.getPermission()));
     }
 
     /**
@@ -254,8 +284,8 @@ public class BusinessStakeholdersManagementApiImpl {
                 for (String owner : accountOwners) {
                     String ownerId = StringUtils.trimToEmpty(owner);
                     if (StringUtils.isNotBlank(ownerId)) {
-                        BusinessStakeholderPermissionItem permissionItem =
-                                new BusinessStakeholderPermissionItem(accountId, ownerId, "VIEW");
+                        BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem(
+                                accountId, ownerId, CommonConstants.BNR_PERMISSION_VIEW);
                         deduplicatedItems.put(buildKey(permissionItem), permissionItem);
                     }
                 }
@@ -311,6 +341,21 @@ public class BusinessStakeholdersManagementApiImpl {
             String accountId = StringUtils.trimToEmpty(requestItem.getAccountID());
             if (StringUtils.isBlank(accountId)) {
                 throw new IllegalArgumentException("accountID is required");
+            }
+
+            List<String> accountOwners = requestItem.getAccountOwners();
+            if (accountOwners != null) {
+                for (String owner : accountOwners) {
+                    String ownerId = StringUtils.trimToEmpty(owner);
+                    if (StringUtils.isBlank(ownerId)) {
+                        throw new IllegalArgumentException(
+                                "Account owner name is required for accountID " + accountId);
+                    }
+
+                    BusinessStakeholderPermissionItem permissionItem =
+                            new BusinessStakeholderPermissionItem(accountId, ownerId, null);
+                    deduplicatedItems.put(buildKey(permissionItem), permissionItem);
+                }
             }
 
             List<String> nominatedRepresentatives = requestItem.getNominatedRepresentatives();

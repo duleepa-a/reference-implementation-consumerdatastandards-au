@@ -234,6 +234,26 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
     }
 
     /**
+     * Batch retrieve business stakeholder permissions for multiple account IDs.
+     *
+     * @param accountIds list of account IDs
+     * @return list of existing business stakeholder permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissionsByAccountIds(
+            List<String> accountIds) throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            return metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(conn, accountIds);
+        } catch (SQLException e) {
+            log.error("Error batch retrieving business stakeholder permissions by account IDs", e);
+            throw new AccountMetadataException("Failed to batch retrieve business stakeholder permissions by " +
+                    "account IDs", e);
+        }
+    }
+
+    /**
      * Batch add business stakeholder permission records.
      *
      * @param permissionItems list of account-user permission records

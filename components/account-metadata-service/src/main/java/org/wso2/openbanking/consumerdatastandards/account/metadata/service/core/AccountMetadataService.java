@@ -95,6 +95,16 @@ public interface AccountMetadataService {
             List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException;
 
         /**
+         * Batch retrieve business stakeholder permissions for multiple account IDs.
+         *
+         * @param accountIds list of account IDs
+         * @return list of existing business stakeholder permission records
+         * @throws AccountMetadataException if an error occurs
+         */
+        List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissionsByAccountIds(
+            List<String> accountIds) throws AccountMetadataException;
+
+        /**
          * Batch add business stakeholder permission records.
          *
          * @param permissionItems list of account-user permission records to add

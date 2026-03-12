@@ -334,6 +334,44 @@ public class AccountMetadataServiceImplTest {
         }
 
         /**
+         * Verifies successful retrieval of business stakeholder permissions by account IDs.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testGetBatchBusinessStakeholderPermissionsByAccountIds() throws Exception {
+        List<String> accountIds = Arrays.asList("acc-130", "acc-131");
+        List<BusinessStakeholderPermissionItem> expected = Arrays.asList(
+            buildBusinessItem("acc-130", "user-1", "AUTHORIZE"),
+            buildBusinessItem("acc-130", "user-2", "REVOKE"),
+            buildBusinessItem("acc-131", "user-3", "VIEW"));
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(connection, accountIds))
+            .thenReturn(expected);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        List<BusinessStakeholderPermissionItem> result =
+            service.getBatchBusinessStakeholderPermissionsByAccountIds(accountIds);
+
+        Assert.assertEquals(result, expected);
+        Mockito.verify(metadataDAO).getBatchBusinessStakeholderPermissionsByAccountIds(connection, accountIds);
+        }
+
+        /**
+         * Verifies service propagation of DAO exceptions during account-level business stakeholder retrieval.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchBusinessStakeholderPermissionsByAccountIdsDaoException() throws Exception {
+        List<String> accountIds = Arrays.asList("acc-130", "acc-131");
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(connection, accountIds))
+            .thenThrow(new AccountMetadataException("dao error"));
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.getBatchBusinessStakeholderPermissionsByAccountIds(accountIds);
+        }
+
+        /**
          * Verifies successful add operation for business stakeholder permissions.
          *
          * @throws Exception if setup or invocation fails
@@ -462,6 +500,18 @@ public class AccountMetadataServiceImplTest {
             metadataDAO, getFailingConnectionProvider());
         service.getBatchBusinessStakeholderPermissions(items);
         }
+
+            /**
+             * Verifies SQLException handling for business stakeholder retrieval by account IDs.
+             */
+            @Test(expectedExceptions = AccountMetadataException.class)
+            public void testGetBatchBusinessStakeholderPermissionsByAccountIdsSqlExceptionFromConnectionProvider()
+                    throws Exception {
+            List<String> accountIds = Arrays.asList("acc-146", "acc-147");
+            AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+                metadataDAO, getFailingConnectionProvider());
+            service.getBatchBusinessStakeholderPermissionsByAccountIds(accountIds);
+            }
 
         /**
          * Verifies SQLException handling for business stakeholder add.

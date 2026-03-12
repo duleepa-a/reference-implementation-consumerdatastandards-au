@@ -759,9 +759,13 @@ public class BusinessStakeholdersManagementApiImplTest {
         public void testDeleteBusinessStakeholdersSuccess() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3");
         BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
+            BusinessStakeholderPermissionItem accountPermission = buildItem("acc-3", "user-3", "REVOKE");
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
             .thenReturn(Collections.singletonList(existing));
+            Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                    Mockito.eq(Collections.singletonList("acc-3"))))
+                .thenReturn(Collections.singletonList(accountPermission));
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(requestItem));
@@ -770,8 +774,61 @@ public class BusinessStakeholdersManagementApiImplTest {
         List<String> body = asStringList(response);
         Assert.assertEquals(body.size(), 1);
         Assert.assertEquals(body.get(0), "acc-3");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
+            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
+                ArgumentCaptor.forClass(List.class);
+        Mockito.verify(metadataDAO)
+            .updateBatchBusinessStakeholderPermissions(Mockito.eq(connection), revokeCaptor.capture());
+        Assert.assertEquals(revokeCaptor.getValue().size(), 1);
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getAccountId(), "acc-3");
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getUserId(), "user-3");
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission(), "REVOKE");
+
         Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 Mockito.anyList());
+        }
+
+        /**
+         * Verifies delete revokes account owners as well as nominated representatives.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testDeleteBusinessStakeholdersRevokesAccountOwnersAsWell() throws Exception {
+        BusinessStakeholderDeleteItem requestItem = buildDeleteItem(
+            "acc-4", Arrays.asList("owner-1"), "user-4");
+        List<BusinessStakeholderPermissionItem> existingItems = Arrays.asList(
+            buildItem("acc-4", "owner-1", "VIEW"),
+            buildItem("acc-4", "user-4", "VIEW"));
+        List<BusinessStakeholderPermissionItem> accountPermissions = Arrays.asList(
+            buildItem("acc-4", "owner-1", "REVOKE"),
+            buildItem("acc-4", "user-4", "REVOKE"));
+
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
+            .thenReturn(existingItems);
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                Mockito.eq(Collections.singletonList("acc-4"))))
+            .thenReturn(accountPermissions);
+
+        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
+            Collections.singletonList(requestItem));
+
+        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Assert.assertEquals(asStringList(response), Collections.singletonList("acc-4"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
+            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
+                ArgumentCaptor.forClass(List.class);
+        Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
+            revokeCaptor.capture());
+        Assert.assertEquals(revokeCaptor.getValue().size(), 2);
+        Assert.assertTrue(revokeCaptor.getValue().stream().anyMatch(item ->
+            "owner-1".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
+        Assert.assertTrue(revokeCaptor.getValue().stream().anyMatch(item ->
+            "user-4".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
         }
 
         /**
@@ -792,6 +849,10 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         Assert.assertEquals(asStringList(response).size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
+            .updateBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
+        Mockito.verify(metadataDAO, Mockito.never())
+            .getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.any(Connection.class), Mockito.anyList());
+        Mockito.verify(metadataDAO, Mockito.never())
             .deleteBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
         }
 
@@ -804,9 +865,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         public void testDeleteBusinessStakeholdersOkWhenPartialExisting() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3", "user-4");
         BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
+            List<BusinessStakeholderPermissionItem> accountPermissions = Arrays.asList(
+                buildItem("acc-3", "user-3", "REVOKE"),
+                buildItem("acc-3", "user-5", "VIEW"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
             .thenReturn(Collections.singletonList(existing));
+            Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                    Mockito.eq(Collections.singletonList("acc-3"))))
+                .thenReturn(accountPermissions);
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(requestItem));
@@ -817,13 +884,52 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(body.get(0), "acc-3");
 
         @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
+            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
+                ArgumentCaptor.forClass(List.class);
+        Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
+            revokeCaptor.capture());
+        Assert.assertEquals(revokeCaptor.getValue().size(), 1);
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getUserId(), "user-3");
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission(), "REVOKE");
+
+        @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> deleteCaptor =
             (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
                 ArgumentCaptor.forClass(List.class);
         Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
-            deleteCaptor.capture());
-        Assert.assertEquals(deleteCaptor.getValue().size(), 1);
-        Assert.assertEquals(deleteCaptor.getValue().get(0).getUserId(), "user-3");
+                deleteCaptor.capture());
+        Assert.assertEquals(deleteCaptor.getValue().size(), 2);
+        }
+
+        /**
+         * Verifies revoke-only behavior when at least one AUTHORIZE permission remains for the account.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testDeleteBusinessStakeholdersKeepsAccountWhenAuthorizeExists() throws Exception {
+        BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3");
+        BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
+        List<BusinessStakeholderPermissionItem> accountPermissions = Arrays.asList(
+            buildItem("acc-3", "user-3", "REVOKE"),
+            buildItem("acc-3", "user-admin", "AUTHORIZE"));
+
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
+            .thenReturn(Collections.singletonList(existing));
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                Mockito.eq(Collections.singletonList("acc-3"))))
+            .thenReturn(accountPermissions);
+
+        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
+            Collections.singletonList(requestItem));
+
+        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Assert.assertEquals(asStringList(response).size(), 0);
+        Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
+                Mockito.anyList());
+        Mockito.verify(metadataDAO, Mockito.never())
+            .deleteBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
         }
 
         /**
@@ -848,6 +954,31 @@ public class BusinessStakeholdersManagementApiImplTest {
         }
 
         /**
+         * Verifies internal server error when account-level permission retrieval fails.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testDeleteBusinessStakeholdersServiceErrorOnGetBatchByAccountIds() throws Exception {
+        BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
+        BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
+
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
+            .thenReturn(Collections.singletonList(existing));
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                Mockito.eq(Collections.singletonList("acc-1"))))
+            .thenThrow(new AccountMetadataException("fail"));
+
+        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
+            Collections.singletonList(item));
+
+        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
+        }
+
+        /**
          * Verifies internal server error when delete persistence fails.
          *
          * @throws Exception if setup or invocation fails
@@ -859,9 +990,37 @@ public class BusinessStakeholdersManagementApiImplTest {
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
             .thenReturn(Collections.singletonList(existing));
+            Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.eq(connection),
+                    Mockito.eq(Collections.singletonList("acc-1"))))
+                .thenReturn(Collections.singletonList(buildItem("acc-1", "user-1", "REVOKE")));
         Mockito.doThrow(new AccountMetadataException("fail"))
             .when(metadataDAO)
             .deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList());
+
+        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
+            Collections.singletonList(item));
+
+        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
+        }
+
+        /**
+         * Verifies internal server error when revoke update fails.
+         *
+         * @throws Exception if setup or invocation fails
+         */
+        @Test
+        public void testDeleteBusinessStakeholdersServiceErrorOnRevokeUpdate() throws Exception {
+        BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
+        BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
+
+        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
+            .thenReturn(Collections.singletonList(existing));
+        Mockito.doThrow(new AccountMetadataException("fail"))
+            .when(metadataDAO)
+            .updateBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList());
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(item));
@@ -919,9 +1078,17 @@ public class BusinessStakeholdersManagementApiImplTest {
      * Builds a delete request item.
      */
     private BusinessStakeholderDeleteItem buildDeleteItem(String accountId, String... representativeUserIds) {
+        return buildDeleteItem(accountId, new ArrayList<>(), representativeUserIds);
+    }
+
+    /**
+     * Builds a delete request item with account owners.
+     */
+    private BusinessStakeholderDeleteItem buildDeleteItem(String accountId, List<String> accountOwners,
+            String... representativeUserIds) {
         BusinessStakeholderDeleteItem item = new BusinessStakeholderDeleteItem();
         item.setAccountID(accountId);
-        item.setAccountOwners(new ArrayList<>());
+        item.setAccountOwners(new ArrayList<>(accountOwners));
         item.setNominatedRepresentatives(new ArrayList<>(Arrays.asList(representativeUserIds)));
         return item;
     }

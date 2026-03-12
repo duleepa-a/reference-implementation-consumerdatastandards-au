@@ -85,6 +85,15 @@ public interface AccountMetadataDbQueries {
     String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items);
 
     /**
+     * Get the SQL query for retrieving business stakeholder permission records for
+     * multiple account IDs.
+     *
+     * @param accountCount number of account IDs to query
+     * @return the SQL query with placeholders
+     */
+    String getBatchGetBusinessStakeholderPermissionByAccountQuery(int accountCount);
+
+    /**
      * Get the SQL query for batch adding business stakeholder permission records.
      *
      * @return the SQL query for batch insert
