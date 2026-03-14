@@ -200,6 +200,10 @@ public class CommonConstants {
     public static final String CONSENT_TYPE_QUERY_PARAM = "consentTypes";
     public static final String USER_IDS_QUERY_PARAM = "userIds";
     public static final String CAN_REVOKE_RESPONSE_PROPERTY = "can_revoke";
+    public static final String PROFILE_ID_RESPONSE_TAG = "profileId";
+    public static final String PROFILE_NAME_RESPONSE_TAG = "profileName";
+    public static final String PROFILE_ID_TAG = "profileId";
+    public static final String PROFILE_NAME_TAG = "profileName";
 
 
 }

@@ -173,8 +173,10 @@ public class ConsentAuthorizeUtil {
             consentData.setAdditionalProperty(CommonConstants.ID_TOKEN_CLAIMS,
                     Collections.singletonList(idTokenClaim.toString()));
 
-            //Specify to handle Account Selection Page Separately.
-            consentData.setHandleAccountSelectionSeparately(true);
+            if (!ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
+                //Specify to handle Account Selection Page Separately.
+                consentData.setHandleAccountSelectionSeparately(true);
+            }
 
             //Set allow multiple accounts to true
             consentData.setAllowMultipleAccounts(true);
@@ -434,6 +436,14 @@ public class ConsentAuthorizeUtil {
                 extractBusinessAccountOwners(accountJson));
             account.setAdditionalProperty(CommonConstants.NOMINATED_REPRESENTATIVES_TAG,
                 extractNominatedRepresentativesExcludingUser(accountJson, userId));
+
+            // add profile data if profile selection page is enabled.
+            if (ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
+                account.setAdditionalProperty(CommonConstants.PROFILE_ID_TAG
+                        , accountJson.optString(CommonConstants.PROFILE_ID_RESPONSE_TAG, ""));
+                account.setAdditionalProperty(CommonConstants.PROFILE_NAME_TAG ,
+                        accountJson.optString(CommonConstants.PROFILE_NAME_RESPONSE_TAG, ""));
+            }
         }
 
         if (isJointAccount && !isSecondaryAccount) {
