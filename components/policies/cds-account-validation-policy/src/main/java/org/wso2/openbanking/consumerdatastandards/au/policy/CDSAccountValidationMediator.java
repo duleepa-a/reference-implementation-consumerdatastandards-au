@@ -25,9 +25,11 @@ import org.apache.synapse.MessageContext;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.carbon.utils.xml.StringUtils;
 import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccountValidationConstants;
+import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 import org.wso2.openbanking.consumerdatastandards.au.policy.utils.CDSAccountValidationUtils;
 import org.wso2.openbanking.consumerdatastandards.au.policy.utils.Generated;
 
@@ -37,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Mediator to remove DOMS-blocked accounts from the Account-Request-Information JWT header.
+ * Mediator to remove blocked accounts from the Account-Request-Information JWT header.
  */
 public class CDSAccountValidationMediator extends AbstractMediator {
 
@@ -55,8 +57,8 @@ public class CDSAccountValidationMediator extends AbstractMediator {
     }
 
     /**
-     * Enforces DOMS account validation for the account information header by removing linked-member
-     * authorization resources, filtering blocked accounts, and updating the signed header payload.
+     * Enforces CDS account validation for the account information header by removing linked-member,
+     * Secondary account owner authorization resources, filtering blocked accounts, and updating the signed payload.
      *
      * @param messageContext Synapse message context containing transport headers and mediation properties
      * @return {@code true} to continue the mediation flow
@@ -121,7 +123,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 JSONObject mappingResource = consentMappingResources.getJSONObject(i);
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
-                // exclude linked-member accounts in account validation call.
+                // Exclude linked-member and secondary-user accounts in account validation call.(deduplicating accounts)
                 if (excludedAuthIds.contains(authId)) {
                     continue;
                 }
@@ -144,6 +146,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
 
                 String accountId = mappingResource.optString(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG);
                 if (!blockedAccounts.contains(accountId)) {
+                    // Normalize the account id field from Accelerator format (account_id) to CDS format (accountId).
                     mappingResource.put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, accountId);
                     mappingResource.remove(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG);
                     filteredConsentMappings.put(mappingResource);
@@ -161,7 +164,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
 
             log.debug("CDS mediation completed successfully");
 
-        } catch (ParseException | JOSEException e) {
+        } catch (ParseException | JOSEException | JSONException | CDSAccountValidationException e) {
             String errorDescription = "Error during CDS mediation policy";
             log.error(errorDescription, e);
             setErrorResponseProperties(messageContext, errorDescription);

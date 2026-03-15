@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponseForConsentSearchData;
@@ -335,21 +334,9 @@ public class CdsConsentSearchEnrichUtil {
         if (enrichmentParams == null) {
             return false;
         }
+        Map<?, ?> paramsMap = (Map<?, ?>) enrichmentParams;
+        return paramsMap.containsKey(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG);
 
-        if (enrichmentParams instanceof Map) {
-            Map<?, ?> paramsMap = (Map<?, ?>) enrichmentParams;
-            return paramsMap.containsKey(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
-                    || paramsMap.containsKey(CommonConstants.SECONDARY_INFO_TAG);
-        }
-
-        try {
-            JSONObject paramsJson = new JSONObject(enrichmentParams);
-            return paramsJson.has(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
-                    || paramsJson.has(CommonConstants.SECONDARY_INFO_TAG);
-        } catch (JSONException e) {
-            log.warn("Unable to parse enrichmentParams, skipping secondary account info enrichment", e);
-            return false;
-        }
     }
 
     /**

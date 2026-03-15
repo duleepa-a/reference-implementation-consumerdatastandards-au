@@ -167,7 +167,6 @@ public class CommonConstants {
     public static final String SECONDARY_ACCOUNT_OWNER_TAG = "secondaryAccountOwner";
     public static final String SECONDARY_ACCOUNT_PRIVILEGES_STATUS = "secondaryAccountPrivilegeStatus";
     public static final String SECONDARY_ACCOUNT_OWNERS_TAG = "secondaryAccountOwners";
-    public static final String SECONDARY_INFO_TAG = "secondaryInfo";
     public static final String SECONDARY_ACCOUNT_INFO_ACCOUNT_USER = "secondaryAccountUser";
     public static final String SECONDARY_ACCOUNT_INFO_SECONDARY_ACCOUNTS = "secondaryAccounts";
     public static final String SECONDARY_ACCOUNT_INFO_ACTIVE_ACCOUNTS = "activeAccounts";
