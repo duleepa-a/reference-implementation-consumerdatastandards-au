@@ -29,8 +29,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccountValidationConstants;
+import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 
 import java.io.IOException;
 import java.net.URI;
@@ -85,7 +87,8 @@ public class CDSAccountValidationUtils {
      * @return combined set of blocked account IDs from both services
      */
     public static Set<String> fetchAllBlockedAccounts(
-            Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64) {
+            Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64)
+            throws CDSAccountValidationException {
 
         String disclosureOptionsApi = baseUrl + CDSAccountValidationConstants.DISCLOSURE_OPTIONS_PATH;
         String secondaryAccountsApi = baseUrl + CDSAccountValidationConstants.SECONDARY_ACCOUNTS_PATH;
@@ -113,7 +116,8 @@ public class CDSAccountValidationUtils {
      * @return set of blocked account IDs
      */
     static Set<String> fetchBlockedJointAccountsFromService(
-            Set<String> accountIds, String blockedAccountsApi, String basicAuthBase64) {
+            Set<String> accountIds, String blockedAccountsApi, String basicAuthBase64)
+            throws CDSAccountValidationException {
 
         Set<String> blockedAccounts = new HashSet<>();
 
@@ -134,18 +138,21 @@ public class CDSAccountValidationUtils {
                     .header(CDSAccountValidationConstants.ACCEPT_TAG, CDSAccountValidationConstants.JSON_CONTENT_TYPE)
                     .GET();
 
-            if (StringUtils.isNotBlank(basicAuthBase64)) {
-                requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
-                        CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
-            } else {
-                log.warn("[DOMS] Basic Auth property not set, request for fetching blocked accounts may fail");
-            }
+            requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+                    CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
 
             HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JSONArray disclosureOptions = new JSONArray(response.body());
+                JSONArray disclosureOptions;
+                try {
+                    disclosureOptions = new JSONArray(response.body());
+                } catch (JSONException e) {
+                    String errorMessage = "Invalid disclosure options service response";
+                    log.error(errorMessage, e);
+                    throw new CDSAccountValidationException(errorMessage, e);
+                }
 
                 for (int i = 0; i < disclosureOptions.length(); i++) {
                     JSONObject accountDisclosure = disclosureOptions.optJSONObject(i);
@@ -164,11 +171,19 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                log.warn("Disclosure options service returned HTTP " + response.statusCode());
+                String errorMessage = "Disclosure options service returned HTTP " + response.statusCode();
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
             }
 
-        } catch (IOException | InterruptedException e) {
-            log.error("[DOMS] Error calling disclosure options service", e);
+        } catch (IOException e) {
+            String errorMessage = "[DOMS] Error calling disclosure options service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        } catch (InterruptedException e) {
+            String errorMessage = "[DOMS] Interrupted while calling disclosure options service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
         }
 
         return blockedAccounts;
@@ -185,7 +200,8 @@ public class CDSAccountValidationUtils {
      * @return set of blocked account IDs
      */
     static Set<String> fetchBlockedSecondaryAccountsFromService(
-            Set<String> accountIds, String secondaryAccountsApi, String userId, String basicAuthBase64) {
+            Set<String> accountIds, String secondaryAccountsApi, String userId, String basicAuthBase64)
+            throws CDSAccountValidationException {
 
         Set<String> blockedAccounts = new HashSet<>();
 
@@ -212,18 +228,21 @@ public class CDSAccountValidationUtils {
                     .header(CDSAccountValidationConstants.ACCEPT_TAG,
                             CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
 
-            if (StringUtils.isNotBlank(basicAuthBase64)) {
-                requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
-                        CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
-            } else {
-                log.warn("[SecondaryAccounts] Basic Auth property not set, request may fail");
-            }
+            requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+                    CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
 
             HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JSONArray secondaryAccounts = new JSONArray(response.body());
+                JSONArray secondaryAccounts;
+                try {
+                    secondaryAccounts = new JSONArray(response.body());
+                } catch (JSONException e) {
+                    String errorMessage = "Invalid secondary accounts service response";
+                    log.error(errorMessage, e);
+                    throw new CDSAccountValidationException(errorMessage, e);
+                }
 
                 for (int i = 0; i < secondaryAccounts.length(); i++) {
                     JSONObject accountInstruction = secondaryAccounts.optJSONObject(i);
@@ -243,11 +262,19 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                log.warn("Secondary accounts service returned HTTP " + response.statusCode());
+                String errorMessage = "Secondary accounts service returned HTTP " + response.statusCode();
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
             }
 
-        } catch (IOException | InterruptedException e) {
-            log.error("[SecondaryAccounts] Error calling secondary accounts service", e);
+        } catch (IOException e) {
+            String errorMessage = "[SecondaryAccounts] Error calling secondary accounts service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        } catch (InterruptedException e) {
+            String errorMessage = "[SecondaryAccounts] Interrupted while calling secondary accounts service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
         }
         return blockedAccounts;
     }

@@ -19,7 +19,6 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.util.List;
 
@@ -67,13 +66,13 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
-    public String getBatchGetSecondaryAccountInstructionQuery(List<SecondaryAccountInstructionItem> items) {
+    public String getBatchGetSecondaryAccountInstructionQuery(int pairCount) {
         StringBuilder query = new StringBuilder(
                 "SELECT ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
                         "FROM fs_account_secondary_user WHERE (ACCOUNT_ID, USER_ID) IN (");
-        for (int i = 0; i < items.size(); i++) {
+        for (int i = 0; i < pairCount; i++) {
             query.append("(?,?)");
-            if (i < items.size() - 1) {
+            if (i < pairCount - 1) {
                 query.append(",");
             }
         }

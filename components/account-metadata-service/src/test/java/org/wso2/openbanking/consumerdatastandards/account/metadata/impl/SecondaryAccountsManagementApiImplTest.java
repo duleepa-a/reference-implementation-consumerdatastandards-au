@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -133,8 +134,7 @@ public class SecondaryAccountsManagementApiImplTest {
                 "acc-1", "user-1", true, "active");
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(existing);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem(
-                                "acc-1", "user-1", true, "active"))))
+                        buildAccountUserPairs("acc-1", "user-1")))
                 .thenReturn(Collections.singletonList(existing));
 
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
@@ -143,9 +143,12 @@ public class SecondaryAccountsManagementApiImplTest {
         @SuppressWarnings("unchecked")
         List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.size(), 0);
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountId(), "acc-1");
+        Assert.assertEquals(body.get(0).getSecondaryUserId(), "user-1");
         Mockito.verify(metadataDAO, Mockito.never())
                 .addBatchSecondaryAccountInstructions(Mockito.any(Connection.class), Mockito.anyList());
+        Mockito.verify(metadataDAO).updateBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList());
     }
 
     /**
@@ -169,9 +172,11 @@ public class SecondaryAccountsManagementApiImplTest {
         @SuppressWarnings("unchecked")
         List<SecondaryAccountInstructionItem> body = (List<SecondaryAccountInstructionItem>) response.getEntity();
         Assert.assertNotNull(body);
-        Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0).getAccountId(), "acc-11");
-        Assert.assertEquals(body.get(0).getSecondaryUserId(), "user-11");
+        Assert.assertEquals(body.size(), 2);
+        Assert.assertTrue(body.stream().anyMatch(item -> "acc-11".equals(item.getAccountId())
+                && "user-11".equals(item.getSecondaryUserId())));
+        Assert.assertTrue(body.stream().anyMatch(item -> "acc-10".equals(item.getAccountId())
+                && "user-10".equals(item.getSecondaryUserId())));
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<SecondaryAccountInstructionItem>> addCaptor =
                 (ArgumentCaptor<List<SecondaryAccountInstructionItem>>) (ArgumentCaptor<?>)
@@ -180,6 +185,16 @@ public class SecondaryAccountsManagementApiImplTest {
         Assert.assertEquals(addCaptor.getValue().size(), 1);
         Assert.assertEquals(addCaptor.getValue().get(0).getAccountId(), "acc-11");
         Assert.assertEquals(addCaptor.getValue().get(0).getSecondaryUserId(), "user-11");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<SecondaryAccountInstructionItem>> updateCaptor =
+                (ArgumentCaptor<List<SecondaryAccountInstructionItem>>) (ArgumentCaptor<?>)
+                        ArgumentCaptor.forClass(List.class);
+        Mockito.verify(metadataDAO)
+                .updateBatchSecondaryAccountInstructions(Mockito.eq(connection), updateCaptor.capture());
+        Assert.assertEquals(updateCaptor.getValue().size(), 1);
+        Assert.assertEquals(updateCaptor.getValue().get(0).getAccountId(), "acc-10");
+        Assert.assertEquals(updateCaptor.getValue().get(0).getSecondaryUserId(), "user-10");
     }
 
     /**
@@ -192,8 +207,7 @@ public class SecondaryAccountsManagementApiImplTest {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
                 buildItem("acc-12", "user-12", true, "active"));
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem(
-                                "acc-12", "user-12", true, "active"))))
+                        buildAccountUserPairs("acc-12", "user-12")))
                 .thenThrow(new AccountMetadataException("fail"));
 
         Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
@@ -309,8 +323,7 @@ public class SecondaryAccountsManagementApiImplTest {
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(
                 buildItem("acc-15", "user-15", true, "active"));
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection,
-                        Collections.singletonList(buildItem(
-                                "acc-15", "user-15", true, "active"))))
+                        buildAccountUserPairs("acc-15", "user-15")))
                 .thenThrow(new AccountMetadataException("fail"));
 
         Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(request);
@@ -426,6 +439,10 @@ public class SecondaryAccountsManagementApiImplTest {
         item.setSecondaryAccountInstructionStatus(status);
         return item;
     }
+
+        private List<Pair<String, String>> buildAccountUserPairs(String accountId, String userId) {
+                return Collections.singletonList(Pair.of(accountId, userId));
+        }
 
     /**
      * Resets singleton state to isolate test execution.

@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponseForConsentSearchData;
@@ -468,10 +467,8 @@ public class CdsConsentSearchEnrichUtil {
      */
     private static Map<String, Object> parseEnrichmentParams(Object enrichmentParams) {
 
-        Map<String, Object> paramsMap = new HashMap<>();
-        if (enrichmentParams == null) {
-            return paramsMap;
-        }
+        Map<?, ?> paramsMap = (Map<?, ?>) enrichmentParams;
+        return paramsMap.containsKey(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG);
 
         if (enrichmentParams instanceof Map) {
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) enrichmentParams).entrySet()) {
