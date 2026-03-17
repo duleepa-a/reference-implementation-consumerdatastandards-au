@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
@@ -65,12 +66,12 @@ public interface AccountMetadataDAO {
      * Batch retrieve secondary account instructions for multiple account-user pairs.
      *
      * @param conn the database connection
-     * @param items list of secondary account instruction items with accountId and userId
+     * @param accountUserPairs list of account-user pairs
      * @return list of secondary account instruction records
      * @throws AccountMetadataException if an error occurs
      */
     List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(Connection conn,
-            List<SecondaryAccountInstructionItem> items) throws AccountMetadataException;
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
 
     /**
      * Batch add secondary account instructions.

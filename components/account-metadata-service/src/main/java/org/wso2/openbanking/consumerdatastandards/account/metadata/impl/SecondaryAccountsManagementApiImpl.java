@@ -19,6 +19,7 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
@@ -67,10 +68,11 @@ public class SecondaryAccountsManagementApiImpl {
         }
 
         try {
-            List<SecondaryAccountInstructionItem> validItems = validateAndNormalizeRequest(request);
+            List<SecondaryAccountInstructionItem> validItems = validateRequest(request);
+            List<Pair<String, String>> accountUserPairs = buildAccountUserPairs(validItems);
 
             List<SecondaryAccountInstructionItem> existingItems =
-                    accountMetadataService.getBatchSecondaryAccountInstructions(validItems);
+                accountMetadataService.getBatchSecondaryAccountInstructions(accountUserPairs);
             Set<String> existingKeys = existingItems.stream().map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
                     .collect(Collectors.toSet());
 
@@ -123,8 +125,7 @@ public class SecondaryAccountsManagementApiImpl {
         }
 
         List<String> accountIdList = Arrays.stream(accountIds.split(",")).map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toList());
+                .filter(StringUtils::isNotBlank).collect(Collectors.toList());
 
         if (accountIdList.isEmpty()) {
             log.error("[Secondary Accounts] No valid accountIds found after parsing");
@@ -135,11 +136,10 @@ public class SecondaryAccountsManagementApiImpl {
         }
 
         try {
-            List<SecondaryAccountInstructionItem> queryItems =
-                    getSecondaryAccountInstructionItems(userId, accountIdList);
+            List<Pair<String, String>> accountUserPairs = getSecondaryAccountInstructionPairs(userId, accountIdList);
 
             List<SecondaryAccountInstructionItem> result =
-                                accountMetadataService.getBatchSecondaryAccountInstructions(queryItems);
+                accountMetadataService.getBatchSecondaryAccountInstructions(accountUserPairs);
 
             return Response.status(Response.Status.OK).entity(result).build();
 
@@ -153,24 +153,21 @@ public class SecondaryAccountsManagementApiImpl {
     }
 
     /**
-     * Builds query items for batch retrieval using a single user ID and a list of account IDs.
+     * Builds account-user pairs for batch retrieval using a single user ID and a list of account IDs.
      *
-     * @param userId user ID to attach to each query item
+     * @param userId user ID to attach to each accountId
      * @param accountIdList list of account IDs to query
-     * @return list of query items with normalized user ID
+     * @return list of account-user pairs with normalized user ID
      */
-    private static List<SecondaryAccountInstructionItem> getSecondaryAccountInstructionItems(
+    private static List<Pair<String, String>> getSecondaryAccountInstructionPairs(
         String userId, List<String> accountIdList) {
 
         String normalizedUserId = StringUtils.trimToEmpty(userId);
-        List<SecondaryAccountInstructionItem> queryItems = new ArrayList<>();
+        List<Pair<String, String>> accountUserPairs = new ArrayList<>();
         for (String accountId : accountIdList) {
-                SecondaryAccountInstructionItem queryItem = new SecondaryAccountInstructionItem();
-                queryItem.setAccountId(accountId);
-                queryItem.setSecondaryUserId(normalizedUserId);
-                queryItems.add(queryItem);
+            accountUserPairs.add(Pair.of(accountId, normalizedUserId));
         }
-        return queryItems;
+        return accountUserPairs;
     }
 
     /**
@@ -188,32 +185,42 @@ public class SecondaryAccountsManagementApiImpl {
         }
 
         try {
-            List<SecondaryAccountInstructionItem> validItems = validateAndNormalizeRequest(request);
+            List<SecondaryAccountInstructionItem> validItems = validateRequest(request);
+            List<Pair<String, String>> accountUserPairs = buildAccountUserPairs(validItems);
 
             List<SecondaryAccountInstructionItem> existingItems =
-                    accountMetadataService.getBatchSecondaryAccountInstructions(validItems);
-            Set<String> existingKeys = existingItems.stream()
-                    .map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
+                accountMetadataService.getBatchSecondaryAccountInstructions(accountUserPairs);
+            Set<String> existingKeys = existingItems.stream().map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
                     .collect(Collectors.toSet());
 
             List<SecondaryAccountInstructionItem> itemsToAdd = validItems.stream()
                     .filter(item -> !existingKeys.contains(buildCompositeKey(item)))
                     .collect(Collectors.toList());
 
+            List<SecondaryAccountInstructionItem> itemsToUpdate = validItems.stream()
+                    .filter(item -> existingKeys.contains(buildCompositeKey(item)))
+                    .collect(Collectors.toList());
+
             if (!itemsToAdd.isEmpty()) {
                 accountMetadataService.addBatchSecondaryAccountInstructions(itemsToAdd);
             }
 
-            if (log.isDebugEnabled()) {
-                log.debug("[Secondary Accounts] Added secondary account instructions for " +
-                        itemsToAdd.size() + " item(s)");
+            if (!itemsToUpdate.isEmpty()) {
+                accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }
 
-            // Return 201 Created if all were new, 200 OK if some already existed
+            if (log.isDebugEnabled()) {
+                log.debug("[Secondary Accounts] Added secondary account instructions for " +
+                        itemsToAdd.size() + " item(s) and updated " + itemsToUpdate.size() + " item(s)");
+            }
+
+            // Combine results and return 201 Created if any new items added, 200 OK otherwise
+            List<SecondaryAccountInstructionItem> responseItems = new ArrayList<>(itemsToAdd);
+            responseItems.addAll(itemsToUpdate);
             Response.ResponseBuilder responseBuilder = itemsToAdd.isEmpty() ? 
                     Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
             
-            return responseBuilder.entity(itemsToAdd).build();
+            return responseBuilder.entity(responseItems).build();
 
         } catch (AccountMetadataException e) {
             log.error("[Secondary Accounts] Failed to add secondary account instructions", e);
@@ -226,16 +233,16 @@ public class SecondaryAccountsManagementApiImpl {
 
     /**
      * Validates mandatory fields, validates instruction status, normalizes values,
-     * and deduplicates request items by accountId and secondaryUserId.
+     * and rejects duplicate request items by accountId and secondaryUserId.
      *
      * @param request request items to validate and normalize
-     * @return validated, normalized, and deduplicated items
+     * @return validated and normalized items
      * @throws AccountMetadataException if request contains invalid items
      */
-    private static List<SecondaryAccountInstructionItem> validateAndNormalizeRequest(
-        List<SecondaryAccountInstructionItem> request) throws AccountMetadataException {
+    private static List<SecondaryAccountInstructionItem> validateRequest(List<SecondaryAccountInstructionItem> request)
+            throws AccountMetadataException {
 
-        Map<String, SecondaryAccountInstructionItem> deduplicatedItems = new HashMap<>();
+        Map<String, SecondaryAccountInstructionItem> validatedItemsByCompositeKey = new HashMap<>();
 
         for (SecondaryAccountInstructionItem item : request) {
             if (item == null) {
@@ -258,15 +265,28 @@ public class SecondaryAccountsManagementApiImpl {
             if (isValidInstructionStatus(instructionStatus)) {
                 item.setAccountId(accountId);
                 item.setSecondaryUserId(secondaryUserId);
-
-                deduplicatedItems.put(buildCompositeKey(item), item);
+                String compositeKey = buildCompositeKey(item);
+                if (validatedItemsByCompositeKey.containsKey(compositeKey)) {
+                    throw new AccountMetadataException(
+                            "Duplicate secondary account instruction found for accountId " + accountId +
+                                    " and secondaryUserId " + secondaryUserId);
+                }
+                validatedItemsByCompositeKey.put(compositeKey, item);
             } else {
                 throw new AccountMetadataException("Invalid secondary user instruction status for account: "
                         + item.getAccountId() + " - " + instructionStatus);
             }
         }
 
-        return new ArrayList<>(deduplicatedItems.values());
+        return new ArrayList<>(validatedItemsByCompositeKey.values());
+    }
+
+    private static List<Pair<String, String>> buildAccountUserPairs(List<SecondaryAccountInstructionItem> items) {
+        List<Pair<String, String>> accountUserPairs = new ArrayList<>();
+        for (SecondaryAccountInstructionItem item : items) {
+            accountUserPairs.add(Pair.of(item.getAccountId(), item.getSecondaryUserId()));
+        }
+        return accountUserPairs;
     }
 
     /**

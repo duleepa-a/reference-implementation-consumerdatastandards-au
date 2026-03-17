@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
@@ -163,20 +164,32 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      */
     @Override
     public List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(Connection conn,
-            List<SecondaryAccountInstructionItem> items) throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
-        if (items == null || items.isEmpty()) {
+        if (accountUserPairs == null || accountUserPairs.isEmpty()) {
             return Collections.emptyList();
         }
 
-        String sql = dbQueries.getBatchGetSecondaryAccountInstructionQuery(items);
+        List<Pair<String, String>> validAccountUserPairs = new ArrayList<>();
+        for (Pair<String, String> accountUserPair : accountUserPairs) {
+            if (accountUserPair != null) {
+                validAccountUserPairs.add(accountUserPair);
+            }
+        }
+
+        int pairCount = validAccountUserPairs.size();
+        if (pairCount == 0) {
+            return Collections.emptyList();
+        }
+
+        String sql = dbQueries.getBatchGetSecondaryAccountInstructionQuery(pairCount);
         List<SecondaryAccountInstructionItem> resultItems = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int parameterIndex = 1;
-            for (SecondaryAccountInstructionItem item : items) {
-                stmt.setString(parameterIndex++, item.getAccountId());
-                stmt.setString(parameterIndex++, item.getSecondaryUserId());
+            for (Pair<String, String> accountUserPair : validAccountUserPairs) {
+                stmt.setString(parameterIndex++, accountUserPair.getLeft());
+                stmt.setString(parameterIndex++, accountUserPair.getRight());
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -274,4 +287,5 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             throw new AccountMetadataException("Failed to batch update secondary account instructions", e);
         }
     }
+
 }

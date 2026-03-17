@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
@@ -160,17 +161,17 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
     /**
      * Batch retrieve secondary account instructions for multiple account-user pairs.
      *
-     * @param items list of secondary account instruction items with accountId and userId
+     * @param accountUserPairs list of account-user pairs
      * @return list of secondary account instruction records
      * @throws AccountMetadataException if an error occurs
      */
     @Override
     public List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(
-            List<SecondaryAccountInstructionItem> items)
+            List<Pair<String, String>> accountUserPairs)
             throws AccountMetadataException {
 
         try (Connection conn = connectionProvider.getConnection()) {
-            return metadataDAO.getBatchSecondaryAccountInstructions(conn, items);
+            return metadataDAO.getBatchSecondaryAccountInstructions(conn, accountUserPairs);
         } catch (SQLException e) {
             log.error("Error batch retrieving secondary account instructions", e);
             throw new AccountMetadataException("Failed to batch retrieve secondary account instructions", e);

@@ -263,8 +263,6 @@ public class CdsConsentAuthPersistUtil {
                             innerProps.get(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD);
                     if (otherAccountsAvailabilityObj instanceof Boolean) {
                         otherAccountsAvailabilityProp = (Boolean) otherAccountsAvailabilityObj;
-                    } else if (otherAccountsAvailabilityObj instanceof String) {
-                        otherAccountsAvailabilityProp = Boolean.parseBoolean((String) otherAccountsAvailabilityObj);
                     }
                     if (!secondaryAvailabilityResolved) {
                         otherAccountsAvailability = otherAccountsAvailabilityProp;

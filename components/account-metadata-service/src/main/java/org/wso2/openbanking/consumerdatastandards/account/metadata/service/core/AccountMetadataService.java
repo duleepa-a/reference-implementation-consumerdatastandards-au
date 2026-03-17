@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
@@ -57,12 +58,12 @@ public interface AccountMetadataService {
     /**
      * Batch retrieve secondary account instructions for multiple account-user pairs.
      *
-     * @param items list of secondary account instruction items with accountId and userId
+     * @param accountUserPairs list of account-user pairs
      * @return list of secondary account instruction records
      * @throws AccountMetadataException if an error occurs
      */
     List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions
-    (List<SecondaryAccountInstructionItem> items)
+    (List<Pair<String, String>> accountUserPairs)
         throws AccountMetadataException;
 
     /**
