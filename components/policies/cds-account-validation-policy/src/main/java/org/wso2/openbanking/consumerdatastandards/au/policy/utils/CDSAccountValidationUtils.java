@@ -178,6 +178,7 @@ public class CDSAccountValidationUtils {
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             String errorMessage = "[DOMS] Interrupted while calling disclosure options service";
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
@@ -269,6 +270,7 @@ public class CDSAccountValidationUtils {
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             String errorMessage = "[SecondaryAccounts] Interrupted while calling secondary accounts service";
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
