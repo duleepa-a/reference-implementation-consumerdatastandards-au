@@ -68,7 +68,7 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
     @Override
     public String getBatchGetSecondaryAccountInstructionQuery(int pairCount) {
         StringBuilder query = new StringBuilder(
-                "SELECT ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
+                "SELECT ACCOUNT_ID, USER_ID, INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
                         "FROM fs_account_secondary_user WHERE (ACCOUNT_ID, USER_ID) IN (");
         for (int i = 0; i < pairCount; i++) {
             query.append("(?,?)");
@@ -85,7 +85,7 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      */
     @Override
     public String getBatchAddSecondaryAccountInstructionQuery() {
-        return "INSERT INTO fs_account_secondary_user (ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, " +
+        return "INSERT INTO fs_account_secondary_user (ACCOUNT_ID, USER_ID, INSTRUCTION_STATUS, " +
                 "OTHER_ACCOUNTS_AVAILABILITY, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?, ?)";
     }
 
@@ -94,7 +94,7 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      */
     @Override
     public String getBatchUpdateSecondaryAccountInstructionQuery() {
-        return "UPDATE fs_account_secondary_user SET SECONDARY_ACCOUNT_INSTRUCTION_STATUS = ?, " +
+        return "UPDATE fs_account_secondary_user SET INSTRUCTION_STATUS = ?, " +
                 "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
 
