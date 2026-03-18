@@ -462,8 +462,8 @@ public class AccountMetadataServiceImplTest {
          */
         @Test(expectedExceptions = AccountMetadataException.class)
         public void testGetBatchSecondaryAccountInstructionsSqlExceptionFromConnectionProvider() throws Exception {
-        List<SecondaryAccountInstructionItem> queryItems = Collections.singletonList(
-            buildSecondaryItem("acc-143", "user-1", true, "active"));
+        List<Pair<String, String>> queryItems = Collections.singletonList(
+            Pair.of("acc-143", "user-1"));
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
             metadataDAO, getFailingConnectionProvider());
         service.getBatchSecondaryAccountInstructions(queryItems);

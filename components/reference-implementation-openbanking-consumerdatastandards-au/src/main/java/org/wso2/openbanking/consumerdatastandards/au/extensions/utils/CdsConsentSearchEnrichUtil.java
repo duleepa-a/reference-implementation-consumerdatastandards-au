@@ -392,8 +392,7 @@ public class CdsConsentSearchEnrichUtil {
      * Check whether the secondary account info enrichment is requested by query params.
      */
     private static boolean isSecondaryInfoEnrichmentRequested(Map<String, Object> paramsMap) {
-        return hasEnrichmentParam(paramsMap, CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
-                || hasEnrichmentParam(paramsMap, CommonConstants.SECONDARY_INFO_TAG);
+        return hasEnrichmentParam(paramsMap, CommonConstants.SECONDARY_ACCOUNT_INFO_TAG);
     }
 
     /**
@@ -467,27 +466,13 @@ public class CdsConsentSearchEnrichUtil {
      */
     private static Map<String, Object> parseEnrichmentParams(Object enrichmentParams) {
 
-        Map<?, ?> paramsMap = (Map<?, ?>) enrichmentParams;
-        return paramsMap.containsKey(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG);
-
+        Map<String, Object> paramsMap = new HashMap<>();
         if (enrichmentParams instanceof Map) {
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) enrichmentParams).entrySet()) {
                 if (entry.getKey() != null) {
                     paramsMap.put(String.valueOf(entry.getKey()), entry.getValue());
                 }
             }
-            return paramsMap;
-        }
-
-        try {
-            JSONObject paramsJson = enrichmentParams instanceof JSONObject ? (JSONObject) enrichmentParams
-                    : new JSONObject(enrichmentParams);
-
-            for (String key : paramsJson.keySet()) {
-                paramsMap.put(key, paramsJson.opt(key));
-            }
-        } catch (JSONException e) {
-            log.warn("Unable to parse enrichmentParams, skipping optional enrichments", e);
         }
 
         return paramsMap;
