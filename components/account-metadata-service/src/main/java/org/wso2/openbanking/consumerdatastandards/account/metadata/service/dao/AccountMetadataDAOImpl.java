@@ -44,6 +44,16 @@ import java.util.Map;
 public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
     private static final Log log = LogFactory.getLog(AccountMetadataDAOImpl.class);
+    // Column names for DOMS table.
+    private static final String DISCLOSURE_OPTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String DISCLOSURE_OPTIONS_COLUMN_STATUS = "DISCLOSURE_OPTION_STATUS";
+    // Column names for secondary user instructions table.
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_USER_ID = "USER_ID";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_STATUS =
+            "INSTRUCTION_STATUS";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
+        "OTHER_ACCOUNTS_AVAILABILITY";
 
     private final AccountMetadataDbQueries dbQueries;
 
@@ -77,7 +87,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    resultMap.put(rs.getString("ACCOUNT_ID"), rs.getString("DISCLOSURE_OPTION_STATUS"));
+                    resultMap.put(rs.getString(DISCLOSURE_OPTIONS_COLUMN_ACCOUNT_ID),
+                            rs.getString(DISCLOSURE_OPTIONS_COLUMN_STATUS));
                 }
             }
             if (log.isDebugEnabled()) {
@@ -195,12 +206,12 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     SecondaryAccountInstructionItem instructionItem = new SecondaryAccountInstructionItem();
-                    instructionItem.setAccountId(rs.getString("ACCOUNT_ID"));
-                    instructionItem.setSecondaryUserId(rs.getString("USER_ID"));
+                    instructionItem.setAccountId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID));
+                    instructionItem.setSecondaryUserId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_USER_ID));
                     instructionItem.setSecondaryAccountInstructionStatus(
-                            rs.getString("SECONDARY_ACCOUNT_INSTRUCTION_STATUS"));
+                        rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_STATUS));
                     instructionItem.setOtherAccountsAvailability(
-                            rs.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"));
+                        rs.getBoolean(SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY));
                     resultItems.add(instructionItem);
                 }
             }
