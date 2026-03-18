@@ -95,7 +95,7 @@ public class AccountMetadataDAOImplTest {
                 }
                 placeholders.append("(?,?)");
             }
-            return "SELECT ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
+            return "SELECT ACCOUNT_ID, USER_ID, INSTRUCTION_STATUS, OTHER_ACCOUNTS_AVAILABILITY " +
                     "FROM fs_account_secondary_user WHERE (ACCOUNT_ID, USER_ID) IN (" + placeholders + ")";
         }
 
@@ -104,7 +104,7 @@ public class AccountMetadataDAOImplTest {
          */
         @Override
         public String getBatchAddSecondaryAccountInstructionQuery() {
-            return "INSERT INTO fs_account_secondary_user (ACCOUNT_ID, USER_ID, SECONDARY_ACCOUNT_INSTRUCTION_STATUS, "
+            return "INSERT INTO fs_account_secondary_user (ACCOUNT_ID, USER_ID, INSTRUCTION_STATUS, "
                     + "OTHER_ACCOUNTS_AVAILABILITY, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?, ?)";
         }
 
@@ -113,7 +113,7 @@ public class AccountMetadataDAOImplTest {
          */
         @Override
         public String getBatchUpdateSecondaryAccountInstructionQuery() {
-            return "UPDATE fs_account_secondary_user SET SECONDARY_ACCOUNT_INSTRUCTION_STATUS = ?, " +
+            return "UPDATE fs_account_secondary_user SET INSTRUCTION_STATUS = ?, " +
                     "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
         }
     }
@@ -311,7 +311,7 @@ public class AccountMetadataDAOImplTest {
             .thenReturn("acc-900").thenReturn("acc-901");
         Mockito.when(resultSet.getString("USER_ID"))
             .thenReturn("user-1").thenReturn("user-2");
-        Mockito.when(resultSet.getString("SECONDARY_ACCOUNT_INSTRUCTION_STATUS"))
+        Mockito.when(resultSet.getString("INSTRUCTION_STATUS"))
             .thenReturn("ACTIVE").thenReturn("inactive");
         Mockito.when(resultSet.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"))
             .thenReturn(true).thenReturn(false);
