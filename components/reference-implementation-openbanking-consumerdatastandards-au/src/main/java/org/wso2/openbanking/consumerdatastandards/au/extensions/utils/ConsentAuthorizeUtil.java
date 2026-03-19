@@ -278,18 +278,18 @@ public class ConsentAuthorizeUtil {
      * as appropriate and added to the eligible account list. For secondary accounts,
      * other-accounts availability is also included based on whether the secondary user has more than one account.
      * @param accountJson The account JSON object
-     * @param accountId The account ID
      * @param account The account object to be populated
      * @param accountList The list of eligible accounts
      * @param blockedAccountsList The list of blocked accounts
      * @param hasMultipleAccounts hasMultipleAccounts Whether the authenticated user has multiple accounts
      * */
-    private static void processAccount(JSONObject accountJson, String accountId,
-            SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
+    private static void processAccount(
+            JSONObject accountJson, SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
             List<DisplayListItem> blockedAccountsList,
             boolean hasMultipleAccounts) {
 
+        String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
         boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
         boolean isSecondaryAccount = accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
 
@@ -384,9 +384,8 @@ public class ConsentAuthorizeUtil {
                     SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account =
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
-                    String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
 
-                    processAccount(accountJson, accountId, account, accountList, blockedAccountsList,
+                    processAccount(accountJson, account, accountList, blockedAccountsList,
                             hasMultipleAccounts);
                 }
 
