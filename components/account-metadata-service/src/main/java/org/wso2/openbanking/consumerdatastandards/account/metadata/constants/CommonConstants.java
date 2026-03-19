@@ -30,6 +30,8 @@ public class CommonConstants {
     // Constants Related to Secondary Accounts
     public static final String SUI_ACTIVE_STATUS = "active";
     public static final String SUI_INACTIVE_STATUS = "inactive";
+    public static final String LEGAL_ENTITY_SHARING_STATUS_BLOCKED = "blocked";
+    public static final String LEGAL_ENTITY_SHARING_STATUS_ACTIVE = "active";
 
     // Constants Related to Business Stakeholders
     public static final String BNR_PERMISSION_AUTHORIZE = "AUTHORIZE";

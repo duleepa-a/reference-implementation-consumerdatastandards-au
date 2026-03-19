@@ -86,6 +86,34 @@ public interface AccountMetadataService {
         throws AccountMetadataException;
 
         /**
+         * Batch retrieve blocked entity strings for multiple account-user pairs.
+         *
+         * @param accountUserPairs list of account-user pairs
+         * @return map of account-user pair to blocked entities CSV string
+         * @throws AccountMetadataException if an error occurs
+         */
+        Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(
+                List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
+
+        /**
+         * Batch update blocked entity strings for multiple account-user pairs.
+         *
+         * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+         * @throws AccountMetadataException if an error occurs
+         */
+        void updateBatchSecondaryUserBlockedEntities(Map<Pair<String, String>, String> blockedEntitiesByAccountUser)
+            throws AccountMetadataException;
+
+        /**
+         * Batch add blocked entity records for multiple account-user pairs.
+         *
+         * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+         * @throws AccountMetadataException if an error occurs
+         */
+        void addBatchSecondaryUserBlockedEntities(Map<Pair<String, String>, String> blockedEntitiesByAccountUser)
+            throws AccountMetadataException;
+
+        /**
          * Batch retrieve business stakeholder permissions for multiple account-user pairs.
          *
          * @param items list of account-user permission records with accountId and userId

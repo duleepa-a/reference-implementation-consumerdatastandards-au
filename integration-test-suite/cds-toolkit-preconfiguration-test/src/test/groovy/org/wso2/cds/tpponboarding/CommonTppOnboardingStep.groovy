@@ -53,13 +53,17 @@ class CommonTppOnboardingStep extends AUTest{
                 .when()
                 .post(AUConstants.DCR_REGISTRATION_ENDPOINT)
 
+        Assert.assertEquals(registrationResponse.statusCode(), AUConstants.STATUS_CODE_201,
+            "DCR registration failed. Response body: ${registrationResponse.asString()}")
+
         clientId = AUTestUtil.parseResponseBody(registrationResponse, AUConstants.CLIENT_ID)
+        Assert.assertNotNull(clientId,
+            "DCR registration response does not contain client_id. Response body: ${registrationResponse.asString()}")
 
         // add to context using key value pair
         context.setAttribute(ContextConstants.CLIENT_ID,clientId)
         AUTestUtil.writeToConfigFile(clientId)
 
-        Assert.assertEquals(registrationResponse.statusCode(), AUConstants.STATUS_CODE_201)
         Assert.assertEquals(parseResponseBody(registrationResponse, "software_statement"),
                 registrationRequestBuilder.getSSA())
     }

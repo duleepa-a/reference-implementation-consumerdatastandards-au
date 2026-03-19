@@ -55,6 +55,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
         "OTHER_ACCOUNTS_AVAILABILITY";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES = "BLOCK_LEGAL_ENTITIES";
 
     private final AccountMetadataDbQueries dbQueries;
 
@@ -297,6 +298,133 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
         } catch (SQLException e) {
             log.error("Error batch updating secondary account instructions", e);
             throw new AccountMetadataException("Failed to batch update secondary account instructions", e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(Connection conn,
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
+
+        if (accountUserPairs == null || accountUserPairs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Pair<String, String>> validAccountUserPairs = new ArrayList<>();
+        for (Pair<String, String> accountUserPair : accountUserPairs) {
+            if (accountUserPair != null) {
+                validAccountUserPairs.add(accountUserPair);
+            }
+        }
+
+        int pairCount = validAccountUserPairs.size();
+        if (pairCount == 0) {
+            return Collections.emptyMap();
+        }
+
+        String sql = dbQueries.getBatchGetSecondaryUserBlockedEntitiesQuery(pairCount);
+        Map<Pair<String, String>, String> blockedEntitiesByAccountUser = new HashMap<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            int parameterIndex = 1;
+            for (Pair<String, String> accountUserPair : validAccountUserPairs) {
+                stmt.setString(parameterIndex++, accountUserPair.getLeft());
+                stmt.setString(parameterIndex++, accountUserPair.getRight());
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Pair<String, String> accountUserPair = Pair.of(
+                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID),
+                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_USER_ID));
+                    blockedEntitiesByAccountUser.put(
+                            accountUserPair,
+                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES));
+                }
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved blocked entities for " + blockedEntitiesByAccountUser.size() + " records.");
+            }
+            return blockedEntitiesByAccountUser;
+
+        } catch (SQLException e) {
+            log.error("Error retrieving batch secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to retrieve batch secondary user blocked entities", e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateBatchSecondaryUserBlockedEntities(Connection conn,
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException {
+
+        if (blockedEntitiesByAccountUser == null || blockedEntitiesByAccountUser.isEmpty()) {
+            return;
+        }
+
+        String sql = dbQueries.getBatchUpdateSecondaryUserBlockedEntitiesQuery();
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
+
+            for (Map.Entry<Pair<String, String>, String> entry : blockedEntitiesByAccountUser.entrySet()) {
+                Pair<String, String> accountUserPair = entry.getKey();
+                stmt.setString(1, entry.getValue());
+                stmt.setTimestamp(2, currentTimestamp);
+                stmt.setString(3, accountUserPair.getLeft());
+                stmt.setString(4, accountUserPair.getRight());
+                stmt.addBatch();
+            }
+
+            int[] results = stmt.executeBatch();
+            if (log.isDebugEnabled()) {
+                log.debug("Batch updated blocked entities for " + results.length + " records.");
+            }
+
+        } catch (SQLException e) {
+            log.error("Error batch updating secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to batch update secondary user blocked entities", e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addBatchSecondaryUserBlockedEntities(Connection conn,
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException {
+
+        if (blockedEntitiesByAccountUser == null || blockedEntitiesByAccountUser.isEmpty()) {
+            return;
+        }
+
+        String sql = dbQueries.getBatchAddSecondaryUserBlockedEntitiesQuery();
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
+
+            for (Map.Entry<Pair<String, String>, String> entry : blockedEntitiesByAccountUser.entrySet()) {
+                Pair<String, String> accountUserPair = entry.getKey();
+                stmt.setString(1, accountUserPair.getLeft());
+                stmt.setString(2, accountUserPair.getRight());
+                stmt.setString(3, entry.getValue());
+                stmt.setTimestamp(4, currentTimestamp);
+                stmt.addBatch();
+            }
+
+            int[] results = stmt.executeBatch();
+            if (log.isDebugEnabled()) {
+                log.debug("Batch added blocked entities for " + results.length + " records.");
+            }
+
+        } catch (SQLException e) {
+            log.error("Error batch adding secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to batch add secondary user blocked entities", e);
         }
     }
 

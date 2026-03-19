@@ -315,6 +315,113 @@ public class AccountMetadataServiceImplTest {
         service.updateBatchSecondaryAccountInstructions(items);
     }
 
+    /**
+     * Verifies successful retrieval of blocked entities for secondary users through the service layer.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testGetBatchSecondaryUserBlockedEntities() throws Exception {
+        List<Pair<String, String>> queryItems = Arrays.asList(
+                Pair.of("acc-129", "user-3"),
+                Pair.of("acc-130", "user-4"));
+        Map<Pair<String, String>, String> expected = new HashMap<>();
+        expected.put(Pair.of("acc-129", "user-3"), "le-001,le-002");
+        expected.put(Pair.of("acc-130", "user-4"), "");
+
+        Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(connection, queryItems)).thenReturn(expected);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        Map<Pair<String, String>, String> result = service.getBatchSecondaryUserBlockedEntities(queryItems);
+
+        Assert.assertEquals(result, expected);
+        Mockito.verify(metadataDAO).getBatchSecondaryUserBlockedEntities(connection, queryItems);
+    }
+
+    /**
+     * Verifies service propagation of DAO exceptions during blocked entities retrieval.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testGetBatchSecondaryUserBlockedEntitiesDaoException() throws Exception {
+        List<Pair<String, String>> queryItems = Collections.singletonList(Pair.of("acc-131", "user-5"));
+
+        Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(connection, queryItems))
+                .thenThrow(new AccountMetadataException("dao error"));
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.getBatchSecondaryUserBlockedEntities(queryItems);
+    }
+
+    /**
+     * Verifies successful update of blocked entities for secondary users through the service layer.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBatchSecondaryUserBlockedEntities() throws Exception {
+        Map<Pair<String, String>, String> updates = new HashMap<>();
+        updates.put(Pair.of("acc-132", "user-6"), "le-003");
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.updateBatchSecondaryUserBlockedEntities(updates);
+
+        Mockito.verify(metadataDAO).updateBatchSecondaryUserBlockedEntities(connection, updates);
+    }
+
+    /**
+     * Verifies service propagation of DAO exceptions during blocked entities update.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testUpdateBatchSecondaryUserBlockedEntitiesDaoException() throws Exception {
+        Map<Pair<String, String>, String> updates = new HashMap<>();
+        updates.put(Pair.of("acc-133", "user-7"), "le-004");
+
+        Mockito.doThrow(new AccountMetadataException("dao error"))
+                .when(metadataDAO)
+                .updateBatchSecondaryUserBlockedEntities(connection, updates);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.updateBatchSecondaryUserBlockedEntities(updates);
+    }
+
+    /**
+     * Verifies successful add of blocked entities for secondary users through the service layer.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBatchSecondaryUserBlockedEntities() throws Exception {
+        Map<Pair<String, String>, String> inserts = new HashMap<>();
+        inserts.put(Pair.of("acc-134", "user-8"), "le-005");
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.addBatchSecondaryUserBlockedEntities(inserts);
+
+        Mockito.verify(metadataDAO).addBatchSecondaryUserBlockedEntities(connection, inserts);
+    }
+
+    /**
+     * Verifies service propagation of DAO exceptions during blocked entities add.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testAddBatchSecondaryUserBlockedEntitiesDaoException() throws Exception {
+        Map<Pair<String, String>, String> inserts = new HashMap<>();
+        inserts.put(Pair.of("acc-135", "user-9"), "le-006");
+
+        Mockito.doThrow(new AccountMetadataException("dao error"))
+                .when(metadataDAO)
+                .addBatchSecondaryUserBlockedEntities(connection, inserts);
+
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
+        service.addBatchSecondaryUserBlockedEntities(inserts);
+    }
+
         /**
          * Verifies successful retrieval of business stakeholder permissions through the service layer.
          *
@@ -491,6 +598,41 @@ public class AccountMetadataServiceImplTest {
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
             metadataDAO, getFailingConnectionProvider());
         service.updateBatchSecondaryAccountInstructions(items);
+        }
+
+        /**
+         * Verifies SQLException handling for blocked entities retrieval.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testGetBatchSecondaryUserBlockedEntitiesSqlExceptionFromConnectionProvider() throws Exception {
+        List<Pair<String, String>> queryItems = Collections.singletonList(Pair.of("acc-145", "user-3"));
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.getBatchSecondaryUserBlockedEntities(queryItems);
+        }
+
+        /**
+         * Verifies SQLException handling for blocked entities update.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testUpdateBatchSecondaryUserBlockedEntitiesSqlExceptionFromConnectionProvider() throws Exception {
+        Map<Pair<String, String>, String> updates = new HashMap<>();
+        updates.put(Pair.of("acc-146", "user-4"), "le-001");
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.updateBatchSecondaryUserBlockedEntities(updates);
+        }
+
+        /**
+         * Verifies SQLException handling for blocked entities add.
+         */
+        @Test(expectedExceptions = AccountMetadataException.class)
+        public void testAddBatchSecondaryUserBlockedEntitiesSqlExceptionFromConnectionProvider() throws Exception {
+        Map<Pair<String, String>, String> inserts = new HashMap<>();
+        inserts.put(Pair.of("acc-147", "user-5"), "le-002");
+        AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
+            metadataDAO, getFailingConnectionProvider());
+        service.addBatchSecondaryUserBlockedEntities(inserts);
         }
 
         /**

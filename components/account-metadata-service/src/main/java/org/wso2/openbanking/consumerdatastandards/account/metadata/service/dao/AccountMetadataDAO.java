@@ -96,6 +96,37 @@ public interface AccountMetadataDAO {
             throws AccountMetadataException;
 
     /**
+     * Batch retrieve blocked entity strings for multiple account-user pairs.
+     *
+     * @param conn the database connection
+     * @param accountUserPairs list of account-user pairs
+     * @return map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(Connection conn,
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
+
+    /**
+     * Batch update blocked entity strings for multiple account-user pairs.
+     *
+     * @param conn the database connection
+     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    void updateBatchSecondaryUserBlockedEntities(Connection conn,
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException;
+
+    /**
+     * Batch add blocked entity records for multiple account-user pairs.
+     *
+     * @param conn the database connection
+     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    void addBatchSecondaryUserBlockedEntities(Connection conn,
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException;
+
+    /**
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.
      *
      * @param conn the database connection

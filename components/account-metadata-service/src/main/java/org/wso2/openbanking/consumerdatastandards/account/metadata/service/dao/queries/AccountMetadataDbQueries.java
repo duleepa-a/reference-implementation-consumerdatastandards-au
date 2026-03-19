@@ -76,6 +76,28 @@ public interface AccountMetadataDbQueries {
     String getBatchUpdateSecondaryAccountInstructionQuery();
 
     /**
+     * Get the SQL query for retrieving blocked entity strings for multiple account-user pairs.
+     *
+     * @param pairCount number of account-user pairs to query
+     * @return the SQL query with placeholders
+     */
+    String getBatchGetSecondaryUserBlockedEntitiesQuery(int pairCount);
+
+    /**
+     * Get the SQL query for batch updating blocked entities for secondary user records.
+     *
+     * @return the SQL query for batch update
+     */
+    String getBatchUpdateSecondaryUserBlockedEntitiesQuery();
+
+    /**
+     * Get the SQL query for batch inserting blocked entities for secondary user records.
+     *
+     * @return the SQL query for batch insert
+     */
+    String getBatchAddSecondaryUserBlockedEntitiesQuery();
+
+    /**
      * Get the SQL query for retrieving business stakeholder permission records for
      * multiple account-user pairs.
      *

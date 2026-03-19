@@ -216,6 +216,64 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
     }
 
     /**
+     * Batch retrieve blocked entity strings for multiple account-user pairs.
+     *
+     * @param accountUserPairs list of account-user pairs
+     * @return map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(
+            List<Pair<String, String>> accountUserPairs)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            return metadataDAO.getBatchSecondaryUserBlockedEntities(conn, accountUserPairs);
+        } catch (SQLException e) {
+            log.error("Error batch retrieving secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to batch retrieve secondary user blocked entities", e);
+        }
+    }
+
+    /**
+     * Batch update blocked entity strings for multiple account-user pairs.
+     *
+     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public void updateBatchSecondaryUserBlockedEntities(
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            metadataDAO.updateBatchSecondaryUserBlockedEntities(conn, blockedEntitiesByAccountUser);
+        } catch (SQLException e) {
+            log.error("Error batch updating secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to batch update secondary user blocked entities", e);
+        }
+    }
+
+    /**
+     * Batch add blocked entity strings for multiple account-user pairs.
+     *
+     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+     * @throws AccountMetadataException if an error occurs
+     */
+    @Override
+    public void addBatchSecondaryUserBlockedEntities(
+            Map<Pair<String, String>, String> blockedEntitiesByAccountUser)
+            throws AccountMetadataException {
+
+        try (Connection conn = connectionProvider.getConnection()) {
+            metadataDAO.addBatchSecondaryUserBlockedEntities(conn, blockedEntitiesByAccountUser);
+        } catch (SQLException e) {
+            log.error("Error batch adding secondary user blocked entities", e);
+            throw new AccountMetadataException("Failed to batch add secondary user blocked entities", e);
+        }
+    }
+
+    /**
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.
      *
      * @param items list of account-user permission records with accountId and userId

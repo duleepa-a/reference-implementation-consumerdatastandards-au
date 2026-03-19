@@ -119,6 +119,41 @@ public class AccountMetadataDAOImplTest {
         }
 
         /**
+         * @param pairCount number of account-user pairs
+         * @return select query for blocked entities in secondary account table
+         */
+        @Override
+        public String getBatchGetSecondaryUserBlockedEntitiesQuery(int pairCount) {
+            StringBuilder placeholders = new StringBuilder();
+            for (int i = 0; i < pairCount; i++) {
+                if (i > 0) {
+                    placeholders.append(",");
+                }
+                placeholders.append("(?,?)");
+            }
+            return "SELECT ACCOUNT_ID, USER_ID, BLOCKED_ENTITIES FROM fs_account_secondary_user WHERE " +
+                    "(ACCOUNT_ID, USER_ID) IN (" + placeholders + ")";
+        }
+
+        /**
+         * @return update query for blocked entities in secondary account table
+         */
+        @Override
+        public String getBatchUpdateSecondaryUserBlockedEntitiesQuery() {
+            return "UPDATE fs_account_secondary_user SET BLOCKED_ENTITIES = ?, LAST_UPDATED_TIMESTAMP = ? " +
+                    "WHERE ACCOUNT_ID = ? AND USER_ID = ?";
+        }
+
+        /**
+         * @return insert query for blocked entities in secondary account table
+         */
+        @Override
+        public String getBatchAddSecondaryUserBlockedEntitiesQuery() {
+            return "INSERT INTO fs_account_secondary_user " +
+                "(ACCOUNT_ID, USER_ID, BLOCKED_ENTITIES, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?, ?, ?)";
+        }
+
+        /**
          * @param items account and user id pairs
          * @return select query for business stakeholder permissions
          */
@@ -919,25 +954,191 @@ public class AccountMetadataDAOImplTest {
         dao.deleteBatchBusinessStakeholderPermissions(connection, items);
     }
 
-        /**
-         * Builds a secondary instruction test item.
-         *
-         * @param accountId account id
-         * @param userId secondary user id
-         * @param otherAccountsAvailable whether other accounts are available
-         * @param status instruction status
-         * @return populated test item
-         */
-        private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-                                                                   boolean otherAccountsAvailable, String status) {
+    /**
+     * Verifies batch retrieval of blocked entities for secondary users.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testGetBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+        PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
 
-            SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
-            item.setAccountId(accountId);
-            item.setSecondaryUserId(userId);
-            item.setOtherAccountsAvailability(otherAccountsAvailable);
-            item.setSecondaryAccountInstructionStatus(status);
-            return item;
-        }
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+        Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+        Mockito.when(resultSet.next()).thenReturn(true).thenReturn(true).thenReturn(false);
+        Mockito.when(resultSet.getString("ACCOUNT_ID")).thenReturn("acc-200").thenReturn("acc-201");
+        Mockito.when(resultSet.getString("USER_ID")).thenReturn("user-200").thenReturn("user-201");
+        Mockito.when(resultSet.getString("BLOCK_LEGAL_ENTITIES")).thenReturn("le-001,le-002").thenReturn(null);
+
+        List<Pair<String, String>> queryItems = Arrays.asList(
+                Pair.of("acc-200", "user-200"),
+                Pair.of("acc-201", "user-201"));
+
+        Map<Pair<String, String>, String> result = dao.getBatchSecondaryUserBlockedEntities(connection, queryItems);
+
+        Assert.assertEquals(result.size(), 2);
+        Assert.assertEquals(result.get(Pair.of("acc-200", "user-200")), "le-001,le-002");
+    }
+
+    /**
+     * Verifies retrieval short-circuit when blocked entities input is empty.
+     */
+    @Test
+    public void testGetBatchSecondaryUserBlockedEntitiesEmptyInput() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Map<Pair<String, String>, String> result =
+                dao.getBatchSecondaryUserBlockedEntities(connection, Collections.emptyList());
+
+        Assert.assertTrue(result.isEmpty());
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies SQL exception handling during blocked entities retrieval.
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testGetBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
+
+        dao.getBatchSecondaryUserBlockedEntities(connection,
+                Collections.singletonList(Pair.of("acc-202", "user-202")));
+    }
+
+    /**
+     * Verifies successful batch update of blocked entities.
+     */
+    @Test
+    public void testUpdateBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+        PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+        Mockito.when(statement.executeBatch()).thenReturn(new int[] {1, 1});
+
+        Map<Pair<String, String>, String> updates = new HashMap<>();
+        updates.put(Pair.of("acc-203", "user-203"), "le-001,le-002");
+        updates.put(Pair.of("acc-204", "user-204"), "");
+
+        dao.updateBatchSecondaryUserBlockedEntities(connection, updates);
+
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(1), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setTimestamp(Mockito.eq(2), Mockito.any(Timestamp.class));
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(3), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(4), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).addBatch();
+        Mockito.verify(statement).executeBatch();
+    }
+
+    /**
+     * Verifies update short-circuit for empty blocked entities map.
+     */
+    @Test
+    public void testUpdateBatchSecondaryUserBlockedEntitiesEmpty() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        dao.updateBatchSecondaryUserBlockedEntities(connection, Collections.emptyMap());
+
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies SQL exception handling during blocked entities update.
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testUpdateBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
+
+        Map<Pair<String, String>, String> updates = Collections.singletonMap(
+                Pair.of("acc-205", "user-205"), "le-010");
+        dao.updateBatchSecondaryUserBlockedEntities(connection, updates);
+    }
+
+    /**
+     * Verifies successful batch insert of blocked entities for secondary users.
+     */
+    @Test
+    public void testAddBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+        PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+        Mockito.when(statement.executeBatch()).thenReturn(new int[] {1, 1});
+
+        Map<Pair<String, String>, String> inserts = new HashMap<>();
+        inserts.put(Pair.of("acc-206", "user-206"), "le-020");
+        inserts.put(Pair.of("acc-207", "user-207"), "");
+
+        dao.addBatchSecondaryUserBlockedEntities(connection, inserts);
+
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(1), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(2), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(3), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setTimestamp(Mockito.eq(4), Mockito.any(Timestamp.class));
+        Mockito.verify(statement, Mockito.times(2)).addBatch();
+        Mockito.verify(statement).executeBatch();
+    }
+
+    /**
+     * Verifies add short-circuit for empty blocked entities map.
+     */
+    @Test
+    public void testAddBatchSecondaryUserBlockedEntitiesEmpty() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        dao.addBatchSecondaryUserBlockedEntities(connection, Collections.emptyMap());
+
+        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
+    }
+
+    /**
+     * Verifies SQL exception handling during blocked entities insert.
+     */
+    @Test(expectedExceptions = AccountMetadataException.class)
+    public void testAddBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
+        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
+        Connection connection = Mockito.mock(Connection.class);
+
+        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
+
+        Map<Pair<String, String>, String> inserts = Collections.singletonMap(
+                Pair.of("acc-208", "user-208"), "le-021");
+        dao.addBatchSecondaryUserBlockedEntities(connection, inserts);
+    }
+
+    /**
+     * Builds a secondary instruction test item.
+     *
+     * @param accountId account id
+     * @param userId secondary user id
+     * @param otherAccountsAvailable whether other accounts are available
+     * @param status instruction status
+     * @return populated test item
+     */
+    private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
+                                                               boolean otherAccountsAvailable, String status) {
+
+        SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
+        item.setAccountId(accountId);
+        item.setSecondaryUserId(userId);
+        item.setOtherAccountsAvailability(otherAccountsAvailable);
+        item.setSecondaryAccountInstructionStatus(status);
+        return item;
+    }
 
     /**
      * Builds a business stakeholder permission test item.

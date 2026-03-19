@@ -417,6 +417,96 @@ paths:
         - OAuth2: []
         - BasicAuth: []
 
+  /legal-entity:
+    get:
+      tags:
+        - CeasingSecondaryUserShare
+      summary: Get legal entity sharing statuses for one user across multiple accounts
+      description: Retrieve legal entity sharing statuses (blocked or active) for a given user ID and multiple account IDs (comma-separated).
+      operationId: getLegalEntitySharingStatusGet
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: User ID
+          schema:
+            type: string
+            example: secondary.user@example.com
+        - name: accountIds
+          in: query
+          required: true
+          description: Comma-separated account IDs
+          schema:
+            type: string
+            example: "acc-12345,acc-67890"
+      responses:
+        '200':
+          description: Legal entity sharing statuses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LegalEntitySharingItem'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - OAuth2: []
+        - BasicAuth: []
+
+    put:
+      tags:
+        - CeasingSecondaryUserShare
+      summary: Update legal entity sharing statuses for one or more records
+      description: |
+        Update legal entity sharing status records identified by the (secondaryUserID, accountID) pair.
+        If legalEntitySharingStatus is blocked, legalEntityID is added to the fs_secondary_user.BLOCKED_ENTITIES column.
+        If a record already exists, legalEntityID values are appended with a preceding ','.
+        If legalEntitySharingStatus is active, legalEntityID is removed from the BLOCKED_ENTITIES string.
+      operationId: updateLegalEntitySharingStatusPut
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LegalEntitySharingItem'
+      responses:
+        '200':
+          description: Legal entity sharing statuses updated successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LegalEntitySharingItem'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - OAuth2: []
+        - BasicAuth: []
+
 components:
   securitySchemes:
     BasicAuth:
@@ -477,6 +567,31 @@ components:
           type: string
           description: Secondary account instruction status
           example: inactive
+
+    LegalEntitySharingItem:
+      type: object
+      required:
+        - secondaryUserID
+        - accountID
+        - legalEntityID
+        - legalEntitySharingStatus
+      properties:
+        secondaryUserID:
+          type: string
+          description: Secondary user identifier. Together with accountID, this uniquely identifies a record in fs_secondary_user.
+          example: secondary.user@example.com
+        accountID:
+          type: string
+          description: Account ID
+          example: acc-12345
+        legalEntityID:
+          type: string
+          description: Legal entity identifier
+          example: le-001
+        legalEntitySharingStatus:
+          type: string
+          description: Legal entity sharing status. blocked adds legalEntityID to BLOCKED_ENTITIES, active removes legalEntityID from BLOCKED_ENTITIES.
+          example: blocked
 
     BusinessStakeholderRepresentative:
       type: object

@@ -102,6 +102,42 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
+    public String getBatchGetSecondaryUserBlockedEntitiesQuery(int pairCount) {
+        StringBuilder query = new StringBuilder(
+                "SELECT ACCOUNT_ID, USER_ID, BLOCK_LEGAL_ENTITIES FROM fs_account_secondary_user " +
+                        "WHERE (ACCOUNT_ID, USER_ID) IN (");
+        for (int i = 0; i < pairCount; i++) {
+            query.append("(?,?)");
+            if (i < pairCount - 1) {
+                query.append(",");
+            }
+        }
+        query.append(")");
+        return query.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchUpdateSecondaryUserBlockedEntitiesQuery() {
+        return "UPDATE fs_account_secondary_user SET BLOCK_LEGAL_ENTITIES = ?, LAST_UPDATED_TIMESTAMP = ? " +
+                "WHERE ACCOUNT_ID = ? AND USER_ID = ?";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getBatchAddSecondaryUserBlockedEntitiesQuery() {
+        return "INSERT INTO fs_account_secondary_user " +
+                "(ACCOUNT_ID, USER_ID, BLOCK_LEGAL_ENTITIES, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items) {
         StringBuilder query = new StringBuilder(
                 "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +

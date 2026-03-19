@@ -401,7 +401,7 @@
         <org.jsoup.version>1.15.4</org.jsoup.version>
         <com.auth0.version>3.18.0</com.auth0.version>
         <org.wso2.openbanking.test.cds.version.range>[1.1.0, 2.0.0)</org.wso2.openbanking.test.cds.version.range>
-        <junit.version>4.10</junit.version>
+        <junit.version>4.13.2</junit.version>
         <org.osgi.version>6.0.0</org.osgi.version>
         <hamcrest.version>2.2</hamcrest.version>
     </properties>
