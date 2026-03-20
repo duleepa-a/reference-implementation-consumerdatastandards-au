@@ -370,7 +370,7 @@ public class ConsentAuthorizeUtil {
         List<String> accountOwners = new ArrayList<>();
         if (accountJson.has(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)) {
             JSONArray ownerArray = accountJson.getJSONObject(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
-                    .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG);
+                    .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG_IN_SHARABLE_ENDPOINT);
             if (ownerArray != null) {
                 for (int j = 0; j < ownerArray.length(); j++) {
                     accountOwners.add(ownerArray.getJSONObject(j).optString(CommonConstants.MEMBER_ID_TAG));
