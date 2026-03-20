@@ -161,10 +161,10 @@ public class CommonConstants {
     public static final String JOINT_ACCOUNT_TOOLTIP_TITLE = "&check; Pre-approval enabled";
 
     // Constants Related to Secondary user accounts
-
     public static final String IS_SECONDARY_ACCOUNT_RESPONSE = "isSecondaryAccount";
     public static final String SECONDARY_ACCOUNT_INFO_TAG = "secondaryAccountInfo";
     public static final String SECONDARY_ACCOUNT_OWNER_TAG = "secondaryAccountOwner";
+    public static final String SECONDARY_ACCOUNT_OWNER_TAG_IN_SHARABLE_ENDPOINT = "accountOwner";
     public static final String SECONDARY_ACCOUNT_PRIVILEGES_STATUS = "secondaryAccountPrivilegeStatus";
     public static final String SECONDARY_ACCOUNT_OWNERS_TAG = "secondaryAccountOwners";
     public static final String SECONDARY_ACCOUNT_INFO_ACCOUNT_USER = "secondaryAccountUser";
