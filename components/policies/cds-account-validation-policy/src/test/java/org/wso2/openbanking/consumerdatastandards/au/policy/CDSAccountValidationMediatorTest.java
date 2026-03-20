@@ -20,6 +20,13 @@ package org.wso2.openbanking.consumerdatastandards.au.policy;
 
 import com.nimbusds.jose.JOSEException;
 import org.apache.axis2.context.MessageContext;
+import org.apache.http.HttpEntity;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,9 +39,8 @@ import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccount
 import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 import org.wso2.openbanking.consumerdatastandards.au.policy.utils.CDSAccountValidationUtils;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -64,22 +70,29 @@ public class CDSAccountValidationMediatorTest {
     @Test(expectedExceptions = ExceptionInInitializerError.class)
     public void testMediateFiltersBlockedAccountsAndUpdatesHeader() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-        HttpClient client = Mockito.mock(HttpClient.class);
-        HttpClient.Builder clientBuilder = Mockito.mock(HttpClient.Builder.class);
-        HttpResponse<String> response = Mockito.mock(HttpResponse.class);
 
-        Mockito.when(clientBuilder.connectTimeout(Mockito.any())).thenReturn(clientBuilder);
-        Mockito.when(clientBuilder.build()).thenReturn(client);
-        Mockito.when(response.statusCode()).thenReturn(200);
-        Mockito.when(response.body()).thenReturn("["
+        // Mock Apache CloseableHttpClient for DOMS service call
+        CloseableHttpClient apacheClient = Mockito.mock(CloseableHttpClient.class);
+        HttpClientBuilder apacheBuilder = Mockito.mock(HttpClientBuilder.class);
+        CloseableHttpResponse apacheResponse = Mockito.mock(CloseableHttpResponse.class);
+        StatusLine statusLine = Mockito.mock(StatusLine.class);
+        HttpEntity entity = Mockito.mock(HttpEntity.class);
+        String responseBody = "["
                 + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"no-sharing\"},"
                 + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"pre-approval\"}"
-                + "]");
-        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
-                .thenReturn(response);
+                + "]";
 
-        try (MockedStatic<HttpClient> mockedHttpClient = Mockito.mockStatic(HttpClient.class)) {
-            mockedHttpClient.when(HttpClient::newBuilder).thenReturn(clientBuilder);
+        Mockito.when(statusLine.getStatusCode()).thenReturn(200);
+        Mockito.when(apacheResponse.getStatusLine()).thenReturn(statusLine);
+        Mockito.when(entity.getContent())
+                .thenReturn(new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8)));
+        Mockito.when(apacheResponse.getEntity()).thenReturn(entity);
+        Mockito.when(apacheClient.execute(Mockito.any(HttpUriRequest.class))).thenReturn(apacheResponse);
+        Mockito.when(apacheBuilder.setDefaultRequestConfig(Mockito.any())).thenReturn(apacheBuilder);
+        Mockito.when(apacheBuilder.build()).thenReturn(apacheClient);
+
+        try (MockedStatic<HttpClients> mockedHttpClients = Mockito.mockStatic(HttpClients.class)) {
+            mockedHttpClients.when(HttpClients::custom).thenReturn(apacheBuilder);
 
             mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
             mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -140,7 +153,7 @@ public class CDSAccountValidationMediatorTest {
 
                 mockedUtils.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                     Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                    Mockito.eq("dGVzdDp0ZXN0"))).thenReturn(blocked);
+                    Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString())).thenReturn(blocked);
                 mockedUtils.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenReturn("signed-jwt");
 
@@ -201,6 +214,7 @@ public class CDSAccountValidationMediatorTest {
                 .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")
                 .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
         payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+        payload.put(CDSAccountValidationConstants.CLIENT_ID_TAG, "client-123");
 
         JSONArray accounts = new JSONArray();
         accounts.put(new JSONObject()
@@ -218,7 +232,7 @@ public class CDSAccountValidationMediatorTest {
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                 Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                Mockito.eq("dGVzdDp0ZXN0")))
+                Mockito.eq("dGVzdDp0ZXN0"), Mockito.eq("client-123")))
                 .thenReturn(java.util.Collections.singleton("acc-2"));
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                 .thenReturn("signed-jwt");
@@ -229,7 +243,7 @@ public class CDSAccountValidationMediatorTest {
             Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                 Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                Mockito.eq("dGVzdDp0ZXN0")));
+                Mockito.eq("dGVzdDp0ZXN0"), Mockito.eq("client-123")));
             utilsMock.verify(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()));
         }
         }
@@ -250,7 +264,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString()))
                 .thenReturn(java.util.Collections.emptySet());
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                 .thenThrow(new JOSEException("signing failed"));
@@ -288,7 +303,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString()))
                 .thenThrow(new CDSAccountValidationException("metadata service unavailable"));
 
             boolean result = mediator.mediate(synapseMessageContext);

@@ -401,16 +401,20 @@ public class ConsentAuthorizeUtil {
     private static void processAccount(
             JSONObject accountJson, SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
-            List<DisplayListItem> blockedAccountsList, String userId, boolean hasMultipleAccounts) {
+            List<DisplayListItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
+            Map<String, Boolean> blockedSecondaryAccountsByLegalEntity) {
 
         String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
         boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
         boolean isSecondaryAccount = accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
         boolean isBusinessAccount = CommonConstants.BUSINESS_ACCOUNT_TYPE.equalsIgnoreCase(
             accountJson.optString(CommonConstants.CUSTOMER_ACCOUNT_TYPE, ""));
+        boolean blockedByLegalEntity = isSecondaryAccount
+            && blockedSecondaryAccountsByLegalEntity.getOrDefault(accountId, false);
 
         // Check eligibility for each account and block account if any eligibility check fails
-        if (!isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId)) {
+        if (blockedByLegalEntity
+            || !isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId)) {
             DisplayListItem blockedItem = new DisplayListItem();
             blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
                     accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
@@ -441,7 +445,7 @@ public class ConsentAuthorizeUtil {
             if (ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
                 account.setAdditionalProperty(CommonConstants.PROFILE_ID_TAG
                         , accountJson.optString(CommonConstants.PROFILE_ID_RESPONSE_TAG, ""));
-                account.setAdditionalProperty(CommonConstants.PROFILE_NAME_TAG ,
+                account.setAdditionalProperty(CommonConstants.PROFILE_NAME_TAG,
                         accountJson.optString(CommonConstants.PROFILE_NAME_RESPONSE_TAG, ""));
             }
         }
@@ -454,6 +458,65 @@ public class ConsentAuthorizeUtil {
         account.setDisplayName(getDisplayNameWithAccountNumber(accountJson.getString(CommonConstants.DISPLAY_NAME),
                 accountId));
         accountList.add(account);
+    }
+
+    /**
+     * Build accountId -> blocked map for secondary accounts based on legal entity sharing status.
+     *
+     * @param accountsJSON accounts payload
+     * @param userId authenticated user id
+     * @param clientId software product client id
+     * @return map of secondary accountId to blocked status for client's legal entity
+     */
+    private static Map<String, Boolean> buildSecondaryAccountLegalEntityBlockedMap(JSONArray accountsJSON,
+            String userId, String clientId) {
+
+        if (accountsJSON == null || StringUtils.isBlank(userId) || StringUtils.isBlank(clientId)) {
+            return new HashMap<>();
+        }
+
+        List<String> secondaryAccountIds = extractSecondaryAccountIds(accountsJSON);
+        if (secondaryAccountIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        String legalEntityId = CommonConsentExtensionUtil.getLegalEntityIdByClientId(clientId);
+        if (StringUtils.isBlank(legalEntityId)) {
+            log.warn("Unable to resolve legal_entity_id for clientId: " + clientId);
+            return new HashMap<>();
+        }
+
+        return AccountMetadataUtil.getSecondaryAccountBlockedByLegalEntityMap(secondaryAccountIds, userId,
+                legalEntityId);
+    }
+
+    private static List<String> extractSecondaryAccountIds(JSONArray accountsJSON) {
+        List<String> secondaryAccountIds = new ArrayList<>();
+        for (int i = 0; i < accountsJSON.length(); i++) {
+            JSONObject accountJson = accountsJSON.optJSONObject(i);
+            if (accountJson == null) {
+                continue;
+            }
+
+            if (!accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false)) {
+                continue;
+            }
+
+            String accountId = StringUtils.trimToEmpty(accountJson.optString(CommonConstants.ACCOUNT_ID, ""));
+            if (StringUtils.isNotBlank(accountId)) {
+                secondaryAccountIds.add(accountId);
+            }
+        }
+        return secondaryAccountIds;
+    }
+
+    private static String getClientIdFromRequestBody(JSONObject jsonRequestBody) {
+        String snakeCaseClientId = StringUtils.trimToEmpty(
+                jsonRequestBody.optString(CommonConstants.CLIENT_ID, StringUtils.EMPTY));
+        if (StringUtils.isNotBlank(snakeCaseClientId)) {
+            return snakeCaseClientId;
+        }
+        return StringUtils.trimToEmpty(jsonRequestBody.optString("clientId", StringUtils.EMPTY));
     }
 
     /**
@@ -508,13 +571,17 @@ public class ConsentAuthorizeUtil {
 
                 List<DisplayListItem> blockedAccountsList = new ArrayList<>();
 
+                String clientId = getClientIdFromRequestBody(jsonRequestBody);
+                Map<String, Boolean> blockedSecondaryAccountsByLegalEntity =
+                    buildSecondaryAccountLegalEntityBlockedMap(accountsJSON, userId, clientId);
+
                 for (int i = 0; i < accountsJSON.length(); i++) {
                     SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account =
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
 
                     processAccount(accountJson, account, accountList, blockedAccountsList, userId,
-                            hasMultipleAccounts);
+                        hasMultipleAccounts, blockedSecondaryAccountsByLegalEntity);
                 }
 
                 List<AdditionalDisplayDataSection> resolvedDisplayData = setDisplayData(blockedAccountsList);

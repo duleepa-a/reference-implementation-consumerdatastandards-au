@@ -40,6 +40,12 @@ public class ConfigurableProperties {
     public static final int ACCOUNT_METADATA_WEBAPP_CONNECT_TIMEOUT_MILLIS = 5000;
     public static final int ACCOUNT_METADATA_WEBAPP_SOCKET_TIMEOUT_MILLIS = 10000;
 
+    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
+    public static final String IS_APPLICATION_MGMT_USERNAME = "is_admin@wso2.com";
+    public static final String IS_APPLICATION_MGMT_PASSWORD = "wso2123";
+    public static final int IS_APPLICATION_MGMT_CONNECT_TIMEOUT_MILLIS = 3000;
+    public static final int IS_APPLICATION_MGMT_SOCKET_TIMEOUT_MILLIS = 3000;
+
     public static final Boolean PROFILE_SELECTION_PAGE_ENABLED = true;
 
 }

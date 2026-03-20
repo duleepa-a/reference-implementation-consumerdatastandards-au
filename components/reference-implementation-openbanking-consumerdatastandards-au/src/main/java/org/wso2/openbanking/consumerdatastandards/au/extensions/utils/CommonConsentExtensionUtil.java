@@ -21,28 +21,36 @@ package org.wso2.openbanking.consumerdatastandards.au.extensions.utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.configurations.ConfigurableProperties;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -220,5 +228,102 @@ public class CommonConsentExtensionUtil {
 
         // Get the number of seconds from the epoch for the successfully parsed Instant
         return instant.getEpochSecond();
+    }
+
+    /**
+     * Resolve legal_entity_id for a given clientId from IS applications endpoint.
+     *
+     * @param clientId client identifier from request object
+     * @return legal_entity_id if available, empty string otherwise
+     */
+    public static String getLegalEntityIdByClientId(String clientId) {
+
+        if (StringUtils.isBlank(clientId)) {
+            return StringUtils.EMPTY;
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(ConfigurableProperties.IS_APPLICATION_MGMT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(ConfigurableProperties.IS_APPLICATION_MGMT_SOCKET_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            URIBuilder uriBuilder = new URIBuilder(ConfigurableProperties.IS_APPLICATIONS_ENDPOINT);
+            uriBuilder.addParameter(CommonConstants.FILTER_QUERY_PARAM,
+                    CommonConstants.CLIENT_ID_FILTER_PREFIX + StringUtils.trimToEmpty(clientId));
+            uriBuilder.addParameter(CommonConstants.ATTRIBUTES_QUERY_PARAM,
+                    CommonConstants.ADVANCED_CONFIGURATIONS);
+
+            HttpGet request = new HttpGet(uriBuilder.build());
+            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
+            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+            addIsBasicAuthHeader(request);
+
+            HttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
+                log.error("Failed to retrieve IS application details for clientId: " + clientId
+                        + ", HTTP Status: " + response.getStatusLine().getStatusCode());
+                return StringUtils.EMPTY;
+            }
+
+            InputStream in = response.getEntity().getContent();
+            String responseBody = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
+            return extractLegalEntityIdFromIsResponse(responseBody);
+
+        } catch (IOException | URISyntaxException e) {
+            log.error("Failed to retrieve legal entity id for clientId: " + clientId, e);
+            return StringUtils.EMPTY;
+        }
+    }
+
+    private static String extractLegalEntityIdFromIsResponse(String responseBody) {
+        try {
+            JSONObject responseJson = new JSONObject(responseBody);
+            JSONArray applications = responseJson.optJSONArray(CommonConstants.APPLICATIONS);
+            if (applications == null || applications.length() == 0) {
+                return StringUtils.EMPTY;
+            }
+
+            JSONObject application = applications.optJSONObject(0);
+            if (application == null) {
+                return StringUtils.EMPTY;
+            }
+
+            JSONObject advancedConfigurations = application.optJSONObject(CommonConstants.ADVANCED_CONFIGURATIONS);
+            if (advancedConfigurations == null) {
+                return StringUtils.EMPTY;
+            }
+
+            JSONArray additionalSpProperties = advancedConfigurations
+                    .optJSONArray(CommonConstants.ADDITIONAL_SP_PROPERTIES);
+            if (additionalSpProperties == null) {
+                return StringUtils.EMPTY;
+            }
+
+            for (int i = 0; i < additionalSpProperties.length(); i++) {
+                JSONObject property = additionalSpProperties.optJSONObject(i);
+                if (property == null) {
+                    continue;
+                }
+
+                String propertyName = property.optString(CommonConstants.NAME, StringUtils.EMPTY);
+                if (CommonConstants.LEGAL_ENTITY_ID_PROPERTY_NAME.equalsIgnoreCase(propertyName)) {
+                    return StringUtils.trimToEmpty(property.optString(CommonConstants.VALUE, StringUtils.EMPTY));
+                }
+            }
+
+            return StringUtils.EMPTY;
+        } catch (JSONException e) {
+            log.error("Failed to parse IS application response for legal entity id extraction", e);
+            return StringUtils.EMPTY;
+        }
+    }
+
+    private static void addIsBasicAuthHeader(HttpRequestBase request) {
+        String credentials = ConfigurableProperties.IS_APPLICATION_MGMT_USERNAME + ":"
+                + ConfigurableProperties.IS_APPLICATION_MGMT_PASSWORD;
+        String encodedAuth = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        request.addHeader(CommonConstants.AUTH_HEADER, CommonConstants.BASIC_TAG + encodedAuth);
     }
 }

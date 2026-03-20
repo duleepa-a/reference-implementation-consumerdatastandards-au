@@ -180,6 +180,21 @@ public class CommonConstants {
     public static final String SECONDARY_USER_ID_FIELD = "secondaryUserId";
     public static final String OTHER_ACCOUNTS_AVAILABILITY_FIELD = "otherAccountsAvailability";
     public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD = "secondaryAccountInstructionStatus";
+    public static final String LEGAL_ENTITY_SHARING_ENDPOINT = "/legal-entity";
+    public static final String LEGAL_ENTITY_ID = "legalEntityID";
+    public static final String LEGAL_ENTITY_SHARING_STATUS = "legalEntitySharingStatus";
+    public static final String LEGAL_ENTITY_SHARING_STATUS_BLOCKED = "blocked";
+
+    // Constants related to IS applications endpoint response
+    public static final String FILTER_QUERY_PARAM = "filter";
+    public static final String ATTRIBUTES_QUERY_PARAM = "attributes";
+    public static final String CLIENT_ID_FILTER_PREFIX = "clientId eq ";
+    public static final String APPLICATIONS = "applications";
+    public static final String ADVANCED_CONFIGURATIONS = "advancedConfigurations";
+    public static final String ADDITIONAL_SP_PROPERTIES = "additionalSpProperties";
+    public static final String NAME = "name";
+    public static final String VALUE = "value";
+    public static final String LEGAL_ENTITY_ID_PROPERTY_NAME = "legal_entity_id";
 
     // Constants related to Business accounts
     public static final String AUTH_TYPE_BUSINESS_ACCOUNT_OWNER = "business_account_owner";

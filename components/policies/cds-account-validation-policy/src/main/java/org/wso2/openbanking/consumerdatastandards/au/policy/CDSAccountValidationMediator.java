@@ -80,6 +80,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
             // Unsigned payload
             JSONObject payload = new JSONObject(accountHeaderJwt);
             String userId = null;
+            String clientId = getClientIdFromPayload(payload);
 
             // Collect authorization IDs that should be removed from validation and mapping.
             Set<String> excludedAuthIds = new HashSet<>();
@@ -131,7 +132,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
             }
 
             Set<String> blockedAccounts = CDSAccountValidationUtils.fetchAllBlockedAccounts(accountIds,
-                    this.webappBaseURL, userId, this.basicAuthCredentials);
+                    this.webappBaseURL, userId, this.basicAuthCredentials, clientId);
 
             JSONArray filteredConsentMappings = new JSONArray();
 
@@ -220,5 +221,19 @@ public class CDSAccountValidationMediator extends AbstractMediator {
     private static boolean isExcludedAuthType(String authType) {
         return CDSAccountValidationConstants.LINKED_MEMBER_TAG.equalsIgnoreCase(authType)
                 || isSecondaryAccountOwnerAuthType(authType) || isBusinessAccountAuthType(authType);
+    }
+
+    /**
+     * Extract client id from payload using either clientId or client_id.
+     *
+     * @param payload account-request-information payload
+     * @return client id value if present, otherwise empty string
+     */
+    private static String getClientIdFromPayload(JSONObject payload) {
+        String clientId = payload.optString(CDSAccountValidationConstants.CLIENT_ID_TAG);
+        if (!StringUtils.isEmpty(clientId)) {
+            return clientId;
+        }
+        return payload.optString(CDSAccountValidationConstants.CLIENT_ID_SNAKE_CASE_TAG);
     }
 }

@@ -25,9 +25,15 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,15 +41,11 @@ import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccount
 import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 
 import java.io.IOException;
-import java.net.URI;
+import java.io.InputStream;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.text.ParseException;
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -77,22 +79,24 @@ public class CDSAccountValidationUtils {
     }
 
     /**
-     * Fetch all blocked account IDs by checking both the disclosure options
-     * and secondary accounts services.
+     * Fetch all blocked account IDs by checking disclosure options, secondary accounts,
+     * business stakeholders, and legal-entity sharing status.
      *
      * @param accountIds set of account IDs to check
      * @param baseUrl base URL of the account metadata webapp
-     * @param userId user ID for the secondary accounts query
+     * @param userId user ID for account metadata queries
      * @param basicAuthBase64 Base64-encoded Basic Auth credentials
-     * @return combined set of blocked account IDs from both services
+     * @param clientId software product client ID used to resolve legal_entity_id
+     * @return combined set of blocked account IDs
      */
     public static Set<String> fetchAllBlockedAccounts(
-            Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64)
+            Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64, String clientId)
             throws CDSAccountValidationException {
 
         String disclosureOptionsApi = baseUrl + CDSAccountValidationConstants.DISCLOSURE_OPTIONS_PATH;
         String secondaryAccountsApi = baseUrl + CDSAccountValidationConstants.SECONDARY_ACCOUNTS_PATH;
         String businessStakeholdersApi = baseUrl + CDSAccountValidationConstants.BUSINESS_STAKEHOLDERS_PATH;
+        String legalEntitySharingApi = baseUrl + CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_PATH;
 
         Set<String> blockedAccounts = fetchBlockedJointAccountsFromService(accountIds, disclosureOptionsApi,
                 basicAuthBase64);
@@ -100,11 +104,231 @@ public class CDSAccountValidationUtils {
                 secondaryAccountsApi, userId, basicAuthBase64);
         Set<String> blockedBusinessAccounts = fetchBlockedBusinessAccountsFromService(accountIds,
                 businessStakeholdersApi, userId, basicAuthBase64);
+        Set<String> blockedLegalEntityAccounts = fetchBlockedLegalEntityAccountsFromService(accountIds,
+                legalEntitySharingApi, userId, basicAuthBase64, clientId);
 
         blockedAccounts.addAll(blockedSecondaryAccounts);
         blockedAccounts.addAll(blockedBusinessAccounts);
+        blockedAccounts.addAll(blockedLegalEntityAccounts);
 
         return blockedAccounts;
+    }
+
+    /**
+     * Call legal-entity GET endpoint and return blocked account IDs for the requesting client's legal entity.
+     *
+     * @param accountIds set of account IDs to check
+     * @param legalEntitySharingApi legal-entity API endpoint
+     * @param userId user ID for the legal-entity query
+     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
+     * @param clientId software product client ID
+     * @return set of blocked account IDs by legal entity
+     */
+    static Set<String> fetchBlockedLegalEntityAccountsFromService(Set<String> accountIds, String legalEntitySharingApi,
+            String userId, String basicAuthBase64, String clientId) throws CDSAccountValidationException {
+
+        Set<String> blockedAccounts = new HashSet<>();
+
+        if (accountIds == null || accountIds.isEmpty()) {
+            return blockedAccounts;
+        }
+
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(clientId)) {
+            return blockedAccounts;
+        }
+
+        String legalEntityId = fetchLegalEntityIdByClientId(clientId, basicAuthBase64);
+        if (StringUtils.isBlank(legalEntityId)) {
+            return blockedAccounts;
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
+            String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+            String requestUrl = legalEntitySharingApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
+                    + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
+
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
+                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
+
+            if (StringUtils.isNotBlank(basicAuthBase64)) {
+                request.addHeader(CDSAccountValidationConstants.AUTH_HEADER,
+                        CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
+            }
+
+            CloseableHttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseBody;
+                try (InputStream inputStream = response.getEntity().getContent()) {
+                    responseBody = IOUtils.toString(inputStream, "UTF-8");
+                }
+
+                JSONArray legalEntitySharingItems;
+                try {
+                    legalEntitySharingItems = new JSONArray(responseBody);
+                } catch (JSONException e) {
+                    String errorMessage = "Invalid legal entity sharing service response";
+                    log.error(errorMessage, e);
+                    throw new CDSAccountValidationException(errorMessage, e);
+                }
+
+                for (int i = 0; i < legalEntitySharingItems.length(); i++) {
+                    JSONObject sharingItem = legalEntitySharingItems.optJSONObject(i);
+                    if (sharingItem == null) {
+                        continue;
+                    }
+
+                    String sharingStatus = sharingItem.optString(
+                            CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_STATUS_TAG, null);
+                    String itemLegalEntityId = sharingItem.optString(
+                            CDSAccountValidationConstants.LEGAL_ENTITY_ID_TAG,
+                            sharingItem.optString(
+                                    CDSAccountValidationConstants.LEGAL_ENTITY_ID_CAMEL_CASE_TAG, null));
+
+                    if (CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED
+                            .equalsIgnoreCase(sharingStatus)
+                            && itemLegalEntityId.equalsIgnoreCase(legalEntityId)) {
+                        String accountId = sharingItem.optString(
+                                CDSAccountValidationConstants.ACCOUNT_ID_UPPER_CASE_TAG,
+                                sharingItem.optString(
+                                        CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, null));
+                        if (StringUtils.isNotBlank(accountId)) {
+                            blockedAccounts.add(accountId);
+                        }
+                    }
+                }
+            } else {
+                String errorMessage = "Legal-entity service returned HTTP "
+                        + response.getStatusLine().getStatusCode();
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
+            }
+
+        } catch (IOException e) {
+            String errorMessage = "[LegalEntity] Error calling legal-entity service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        }
+
+        return blockedAccounts;
+    }
+
+    /**
+     * Fetch legal_entity_id from IS application management endpoint by clientId.
+     *
+     * @param clientId software product client ID
+     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
+     * @return legal_entity_id if available, otherwise empty
+     */
+    static String fetchLegalEntityIdByClientId(String clientId, String basicAuthBase64)
+            throws CDSAccountValidationException {
+
+        if (StringUtils.isBlank(clientId)) {
+            return StringUtils.EMPTY;
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig).build()) {
+            String filterParam = URLEncoder.encode(
+                    CDSAccountValidationConstants.CLIENT_ID_FILTER_PREFIX + clientId, StandardCharsets.UTF_8);
+            String attributesParam = URLEncoder.encode(CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG,
+                    StandardCharsets.UTF_8);
+            String requestUrl = CDSAccountValidationConstants.IS_APPLICATIONS_ENDPOINT + "?"
+                    + CDSAccountValidationConstants.FILTER_TAG + "=" + filterParam
+                    + "&" + CDSAccountValidationConstants.ATTRIBUTES_TAG + "="
+                    + attributesParam;
+
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
+                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
+
+            if (StringUtils.isNotBlank(basicAuthBase64)) {
+                String basicAuth = CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64;
+                request.addHeader(CDSAccountValidationConstants.AUTH_HEADER, basicAuth);
+            }
+
+            org.apache.http.HttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String errorMessage = "IS applications service returned HTTP "
+                        + response.getStatusLine().getStatusCode();
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
+            }
+
+            String responseBody;
+            try (InputStream inputStream = response.getEntity().getContent()) {
+                responseBody = IOUtils.toString(inputStream, "UTF-8");
+            }
+
+            return parseLegalEntityIdFromIsResponse(responseBody);
+
+        } catch (IOException e) {
+            String errorMessage = "[LegalEntity] Error calling IS applications service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        }
+    }
+
+    private static String parseLegalEntityIdFromIsResponse(String responseBody)
+            throws CDSAccountValidationException {
+
+        JSONObject responseJson;
+        try {
+            responseJson = new JSONObject(responseBody);
+        } catch (JSONException e) {
+            String errorMessage = "Invalid IS applications service response";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        }
+
+        JSONArray applications = responseJson.optJSONArray(CDSAccountValidationConstants.APPLICATIONS_TAG);
+        if (applications == null || applications.length() == 0) {
+            return StringUtils.EMPTY;
+        }
+
+        JSONObject application = applications.optJSONObject(0);
+        if (application == null) {
+            return StringUtils.EMPTY;
+        }
+
+        JSONObject advancedConfigurations = application
+                .optJSONObject(CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG);
+        if (advancedConfigurations == null) {
+            return StringUtils.EMPTY;
+        }
+
+        JSONArray additionalSpProperties = advancedConfigurations
+                .optJSONArray(CDSAccountValidationConstants.ADDITIONAL_SP_PROPERTIES_TAG);
+        if (additionalSpProperties == null) {
+            return StringUtils.EMPTY;
+        }
+
+        for (int i = 0; i < additionalSpProperties.length(); i++) {
+            JSONObject property = additionalSpProperties.optJSONObject(i);
+            if (property == null) {
+                continue;
+            }
+
+            String name = property.optString(CDSAccountValidationConstants.NAME_TAG, StringUtils.EMPTY);
+            if (CDSAccountValidationConstants.LEGAL_ENTITY_ID_PROPERTY_NAME.equalsIgnoreCase(name)) {
+                return property.optString(CDSAccountValidationConstants.VALUE_TAG, StringUtils.EMPTY);
+            }
+        }
+
+        return StringUtils.EMPTY;
     }
 
     /**
@@ -125,29 +349,33 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        try {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String requestUrl = blockedAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam;
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS))
-                    .build();
 
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS))
-                    .header(CDSAccountValidationConstants.ACCEPT_TAG, CDSAccountValidationConstants.JSON_CONTENT_TYPE)
-                    .GET();
-
-            requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
+                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
+            request.addHeader(CDSAccountValidationConstants.AUTH_HEADER,
                     CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
 
-            HttpRequest request = requestBuilder.build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            CloseableHttpResponse response = client.execute(request);
 
-            if (response.statusCode() == 200) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseBody;
+                try (InputStream inputStream = response.getEntity().getContent()) {
+                    responseBody = IOUtils.toString(inputStream, "UTF-8");
+                }
+
                 JSONArray disclosureOptions;
                 try {
-                    disclosureOptions = new JSONArray(response.body());
+                    disclosureOptions = new JSONArray(responseBody);
                 } catch (JSONException e) {
                     String errorMessage = "Invalid disclosure options service response";
                     log.error(errorMessage, e);
@@ -171,18 +399,14 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                String errorMessage = "Disclosure options service returned HTTP " + response.statusCode();
+                String errorMessage = "Disclosure options service returned HTTP "
+                        + response.getStatusLine().getStatusCode();
                 log.error(errorMessage);
                 throw new CDSAccountValidationException(errorMessage);
             }
 
         } catch (IOException e) {
             String errorMessage = "[DOMS] Error calling disclosure options service";
-            log.error(errorMessage, e);
-            throw new CDSAccountValidationException(errorMessage, e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            String errorMessage = "[DOMS] Interrupted while calling disclosure options service";
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         }
@@ -215,30 +439,34 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        try {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
             String requestUrl = secondaryAccountsApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
 
-            HttpClient client = HttpClient.newBuilder().connectTimeout(
-                    Duration.ofMillis(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)).build();
-
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS))
-                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
-                            CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
-
-            requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
+                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
+            request.addHeader(CDSAccountValidationConstants.AUTH_HEADER,
                     CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
 
-            HttpRequest request = requestBuilder.build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            CloseableHttpResponse response = client.execute(request);
 
-            if (response.statusCode() == 200) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseBody;
+                try (InputStream inputStream = response.getEntity().getContent()) {
+                    responseBody = IOUtils.toString(inputStream, "UTF-8");
+                }
+
                 JSONArray secondaryAccounts;
                 try {
-                    secondaryAccounts = new JSONArray(response.body());
+                    secondaryAccounts = new JSONArray(responseBody);
                 } catch (JSONException e) {
                     String errorMessage = "Invalid secondary accounts service response";
                     log.error(errorMessage, e);
@@ -263,7 +491,8 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                String errorMessage = "Secondary accounts service returned HTTP " + response.statusCode();
+                String errorMessage = "Secondary accounts service returned HTTP "
+                        + response.getStatusLine().getStatusCode();
                 log.error(errorMessage);
                 throw new CDSAccountValidationException(errorMessage);
             }
@@ -272,12 +501,8 @@ public class CDSAccountValidationUtils {
             String errorMessage = "[SecondaryAccounts] Error calling secondary accounts service";
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            String errorMessage = "[SecondaryAccounts] Interrupted while calling secondary accounts service";
-            log.error(errorMessage, e);
-            throw new CDSAccountValidationException(errorMessage, e);
         }
+
         return blockedAccounts;
     }
 
@@ -305,32 +530,37 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        try {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
             String requestUrl = businessStakeholdersApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
                     + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
 
-            HttpClient client = HttpClient.newBuilder().connectTimeout(
-                    Duration.ofMillis(CDSAccountValidationConstants.HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS)).build();
-
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(URI.create(requestUrl))
-                    .timeout(Duration.ofMillis(CDSAccountValidationConstants.HTTP_REQUEST_TIMEOUT_MILLIS))
-                    .header(CDSAccountValidationConstants.ACCEPT_TAG,
-                            CDSAccountValidationConstants.JSON_CONTENT_TYPE).GET();
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
+                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
 
             if (StringUtils.isNotBlank(basicAuthBase64)) {
-                requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
+                request.addHeader(CDSAccountValidationConstants.AUTH_HEADER,
                         CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
             } else {
                 log.warn("[BusinessStakeholders] Basic Auth property not set, request may fail");
             }
 
-            HttpRequest request = requestBuilder.build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            CloseableHttpResponse response = client.execute(request);
 
-            if (response.statusCode() == 200) {
-                JSONArray businessStakeholders = new JSONArray(response.body());
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseBody;
+                try (InputStream inputStream = response.getEntity().getContent()) {
+                    responseBody = IOUtils.toString(inputStream, "UTF-8");
+                }
+
+                JSONArray businessStakeholders = new JSONArray(responseBody);
 
                 for (int i = 0; i < businessStakeholders.length(); i++) {
                     JSONObject permissionItem = businessStakeholders.optJSONObject(i);
@@ -349,12 +579,14 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                log.warn("Business stakeholders service returned HTTP " + response.statusCode());
+                log.warn("Business stakeholders service returned HTTP "
+                        + response.getStatusLine().getStatusCode());
             }
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             log.error("[BusinessStakeholders] Error calling business stakeholders service", e);
         }
+
         return blockedAccounts;
     }
 }

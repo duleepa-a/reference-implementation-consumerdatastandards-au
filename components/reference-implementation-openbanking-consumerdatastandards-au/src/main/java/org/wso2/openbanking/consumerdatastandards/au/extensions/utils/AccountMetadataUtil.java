@@ -164,6 +164,74 @@ public class AccountMetadataUtil {
     }
 
     /**
+     * Retrieve legal-entity blocked status for secondary accounts for a given user and legal entity.
+     * Calls GET /legal-entity with comma-separated account IDs and userId query parameters.
+     *
+     * @param accountIds list of secondary account IDs
+     * @param secondaryUserId secondary user ID
+     * @param legalEntityId legal entity ID to evaluate blocking status against
+     * @return map of accountId to blocking status (true when blocked for given legal entity)
+     */
+    public static Map<String, Boolean> getSecondaryAccountBlockedByLegalEntityMap(List<String> accountIds,
+            String secondaryUserId, String legalEntityId) {
+
+        Map<String, Boolean> blockedMap = new HashMap<>();
+
+        if (accountIds == null || accountIds.isEmpty() || StringUtils.isBlank(secondaryUserId)
+                || StringUtils.isBlank(legalEntityId)) {
+            return blockedMap;
+        }
+
+        List<String> validAccountIds = new ArrayList<>();
+        for (String accountId : accountIds) {
+            if (StringUtils.isNotBlank(accountId)) {
+                validAccountIds.add(accountId);
+                blockedMap.put(accountId, false);
+            }
+        }
+
+        if (validAccountIds.isEmpty()) {
+            return blockedMap;
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_CONNECT_TIMEOUT_MILLIS)
+                .setSocketTimeout(ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_SOCKET_TIMEOUT_MILLIS)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            String baseUrl = buildLegalEntitySharingUrl();
+            String accountIdParam = String.join(",", validAccountIds);
+
+            URIBuilder uriBuilder = new URIBuilder(baseUrl);
+            uriBuilder.addParameter(CommonConstants.ACCOUNT_IDS, accountIdParam);
+            uriBuilder.addParameter(CommonConstants.USER_ID_QUERY_PARAM, secondaryUserId);
+
+            HttpGet request = new HttpGet(uriBuilder.build());
+            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
+            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+            addBasicAuthHeader(request);
+
+            HttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
+                log.error("Failed to retrieve legal entity sharing statuses, HTTP Status: " +
+                        response.getStatusLine().getStatusCode());
+                return blockedMap;
+            }
+
+            InputStream in = response.getEntity().getContent();
+            String responseBody = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
+            return extractLegalEntityBlockedStatusFromBatchResponse(responseBody, blockedMap, legalEntityId);
+
+        } catch (IOException | URISyntaxException e) {
+            log.error("Failed to retrieve legal entity sharing statuses", e);
+        }
+
+        return blockedMap;
+    }
+
+    /**
      * Retrieve BNR permissions for multiple accounts for a given user.
      * Calls GET /business-stakeholders with comma-separated account IDs and userId query params.
      *
@@ -410,6 +478,15 @@ public class AccountMetadataUtil {
     }
 
     /**
+     * Build the request URL for the legal-entity sharing endpoint.
+     *
+     * @return the complete request URL
+     */
+    private static String buildLegalEntitySharingUrl() {
+        return ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_BASE_URL + CommonConstants.LEGAL_ENTITY_SHARING_ENDPOINT;
+    }
+
+    /**
      * Build the request body for adding secondary account instructions.
      * Constructs JSON array with account ID, secondary user ID, and instruction status.
      * @param accountIds set of account IDs
@@ -603,5 +680,64 @@ public class AccountMetadataUtil {
             log.error("Failed to parse business stakeholder permission batch response JSON", e);
             return permissionMap;
         }
+    }
+
+    /**
+     * Extract legal-entity blocked statuses from batch API response body.
+     *
+     * @param responseBody the JSON response body as a string
+     * @param defaultStatusMap account-level default statuses
+     * @param legalEntityId legal entity to compare against
+     * @return map of accountId to blocked status
+     */
+    private static Map<String, Boolean> extractLegalEntityBlockedStatusFromBatchResponse(String responseBody,
+            Map<String, Boolean> defaultStatusMap, String legalEntityId) {
+
+        Map<String, Boolean> blockedStatusMap = new HashMap<>(defaultStatusMap);
+
+        try {
+            Gson gson = new Gson();
+            JsonElement responseElement = gson.fromJson(responseBody, JsonElement.class);
+
+            if (responseElement != null && responseElement.isJsonArray()) {
+                JsonArray responseArray = responseElement.getAsJsonArray();
+                for (JsonElement itemElement : responseArray) {
+                    if (itemElement == null || !itemElement.isJsonObject()) {
+                        continue;
+                    }
+
+                    JsonObject item = itemElement.getAsJsonObject();
+                    String accountId = getJsonString(item, "accountID", CommonConstants.ACCOUNT_ID);
+                    String itemLegalEntityId = getJsonString(item, CommonConstants.LEGAL_ENTITY_ID, "legalEntityId");
+                    String sharingStatus = getJsonString(item, CommonConstants.LEGAL_ENTITY_SHARING_STATUS,
+                            "legalEntitySharingStatus");
+
+                    if (StringUtils.isBlank(accountId) || !blockedStatusMap.containsKey(accountId)) {
+                        continue;
+                    }
+
+                    if (StringUtils.equalsIgnoreCase(itemLegalEntityId, legalEntityId)
+                            && StringUtils.equalsIgnoreCase(sharingStatus,
+                            CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED)) {
+                        blockedStatusMap.put(accountId, true);
+                    }
+                }
+            }
+
+            return blockedStatusMap;
+        } catch (JsonSyntaxException e) {
+            log.error("Failed to parse legal-entity sharing batch response JSON", e);
+            return blockedStatusMap;
+        }
+    }
+
+    private static String getJsonString(JsonObject item, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            JsonElement value = item.get(fieldName);
+            if (value != null && !value.isJsonNull()) {
+                return value.getAsString();
+            }
+        }
+        return StringUtils.EMPTY;
     }
 }

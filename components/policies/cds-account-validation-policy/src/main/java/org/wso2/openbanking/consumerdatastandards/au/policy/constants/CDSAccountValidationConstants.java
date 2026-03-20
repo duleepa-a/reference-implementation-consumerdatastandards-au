@@ -37,6 +37,8 @@ public class CDSAccountValidationConstants {
 
     // Additional param keys
     public static final String USER_ID_TAG = "userId";
+    public static final String CLIENT_ID_TAG = "clientId";
+    public static final String CLIENT_ID_SNAKE_CASE_TAG = "client_id";
     public static final String AUTH_RESOURCES_TAG = "authorizationResources";
     public static final String CONSENT_MAPPING_RESOURCES_TAG = "consentMappingResources";
     public static final String AUTH_TYPE_TAG = "authorizationType";
@@ -62,6 +64,26 @@ public class CDSAccountValidationConstants {
     public static final String DISCLOSURE_OPTIONS_PATH = "/disclosure-options";
     public static final String SECONDARY_ACCOUNTS_PATH = "/secondary-accounts";
     public static final String BUSINESS_STAKEHOLDERS_PATH = "/business-stakeholders";
+    public static final String LEGAL_ENTITY_SHARING_PATH = "/legal-entity";
+    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
+
+    // IS applications API query and response fields
+    public static final String FILTER_TAG = "filter";
+    public static final String ATTRIBUTES_TAG = "attributes";
+    public static final String CLIENT_ID_FILTER_PREFIX = "clientId eq ";
+    public static final String ADVANCED_CONFIGURATIONS_TAG = "advancedConfigurations";
+    public static final String APPLICATIONS_TAG = "applications";
+    public static final String ADDITIONAL_SP_PROPERTIES_TAG = "additionalSpProperties";
+    public static final String NAME_TAG = "name";
+    public static final String VALUE_TAG = "value";
+    public static final String LEGAL_ENTITY_ID_PROPERTY_NAME = "legal_entity_id";
+
+    // Legal entity sharing response fields
+    public static final String LEGAL_ENTITY_ID_TAG = "legalEntityID";
+    public static final String LEGAL_ENTITY_ID_CAMEL_CASE_TAG = "legalEntityId";
+    public static final String LEGAL_ENTITY_SHARING_STATUS_TAG = "legalEntitySharingStatus";
+    public static final String LEGAL_ENTITY_SHARING_STATUS_BLOCKED = "blocked";
+    public static final String ACCOUNT_ID_UPPER_CASE_TAG = "accountID";
 
     // Constants related to Secondary Accounts
     public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_TAG = "secondaryAccountInstructionStatus";
@@ -76,7 +98,7 @@ public class CDSAccountValidationConstants {
     public static final String BUSINESS_PERMISSION_AUTHORIZE = "AUTHORIZE";
 
     // Timeouts
-    public static final int HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS = 3000;
-    public static final int HTTP_REQUEST_TIMEOUT_MILLIS = 3000;
+    public static final int HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS = 5000;
+    public static final int HTTP_REQUEST_TIMEOUT_MILLIS = 10000;
 
 }
