@@ -26,6 +26,7 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.Ac
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries.AccountMetadataDbQueries;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries.AccountMetadataDbQueriesMySqlImpl;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -119,20 +120,22 @@ public class AccountMetadataDAOImplTest {
         }
 
         /**
-         * @param items account and user id pairs
-         * @return select query for business stakeholder permissions
+         * @param accountUserPairs list of account-user pairs
+         * @return select query for business stakeholder permissions by account-user pairs
          */
         @Override
-        public String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items) {
-            StringBuilder placeholders = new StringBuilder();
-            for (int i = 0; i < items.size(); i++) {
-                if (i > 0) {
-                    placeholders.append(",");
+        public String getBatchGetBusinessStakeholderPermissionQuery(List<Pair<String, String>> accountUserPairs) {
+            StringBuilder query = new StringBuilder(
+                    "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
+                            "WHERE (ACCOUNT_ID, USER_ID) IN (");
+            for (int i = 0; i < accountUserPairs.size(); i++) {
+                query.append("(?,?)");
+                if (i < accountUserPairs.size() - 1) {
+                    query.append(",");
                 }
-                placeholders.append("(?,?)");
             }
-            return "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission WHERE " +
-                    "(ACCOUNT_ID, USER_ID) IN (" + placeholders + ")";
+            query.append(")");
+            return query.toString();
         }
 
         /**
@@ -635,12 +638,12 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(resultSet.getString("USER_ID")).thenReturn("user-b1").thenReturn("user-b2");
         Mockito.when(resultSet.getString("PERMISSION")).thenReturn("AUTHORIZE").thenReturn("VIEW");
 
-        List<BusinessStakeholderPermissionItem> queryItems = Arrays.asList(
-                buildBusinessItem("acc-b1", "user-b1", null),
-                buildBusinessItem("acc-b2", "user-b2", null));
+        List<Pair<String, String>> queryPairs = Arrays.asList(
+                Pair.of("acc-b1", "user-b1"),
+                Pair.of("acc-b2", "user-b2"));
 
         List<BusinessStakeholderPermissionItem> result =
-                dao.getBatchBusinessStakeholderPermissions(connection, queryItems);
+                dao.getBatchBusinessStakeholderPermissions(connection, queryPairs);
 
         Assert.assertEquals(result.size(), 2);
         Assert.assertEquals(result.get(0).getAccountId(), "acc-b1");
@@ -678,9 +681,9 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(connection.prepareStatement(Mockito.anyString()))
                 .thenThrow(new SQLException("bad"));
 
-        List<BusinessStakeholderPermissionItem> items = Collections.singletonList(
-                buildBusinessItem("acc-b3", "user-b3", null));
-        dao.getBatchBusinessStakeholderPermissions(connection, items);
+        List<Pair<String, String>> queryPairs = Collections.singletonList(
+                Pair.of("acc-b3", "user-b3"));
+        dao.getBatchBusinessStakeholderPermissions(connection, queryPairs);
     }
 
     /**
@@ -919,25 +922,76 @@ public class AccountMetadataDAOImplTest {
         dao.deleteBatchBusinessStakeholderPermissions(connection, items);
     }
 
-        /**
-         * Builds a secondary instruction test item.
-         *
-         * @param accountId account id
-         * @param userId secondary user id
-         * @param otherAccountsAvailable whether other accounts are available
-         * @param status instruction status
-         * @return populated test item
-         */
-        private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-                                                                   boolean otherAccountsAvailable, String status) {
+    /**
+     * Verifies that a single account-user pair produces the correct SELECT query with one tuple placeholder.
+     */
+    @Test
+    public void testGetBatchGetBusinessStakeholderPermissionQuerySinglePair() {
+        AccountMetadataDbQueriesMySqlImpl queries = new AccountMetadataDbQueriesMySqlImpl();
+        List<Pair<String, String>> pairs = Collections.singletonList(Pair.of("acc-1", "user-1"));
 
-            SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
-            item.setAccountId(accountId);
-            item.setSecondaryUserId(userId);
-            item.setOtherAccountsAvailability(otherAccountsAvailable);
-            item.setSecondaryAccountInstructionStatus(status);
-            return item;
-        }
+        String sql = queries.getBatchGetBusinessStakeholderPermissionQuery(pairs);
+
+        Assert.assertTrue(sql.startsWith(
+                "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
+                        "WHERE (ACCOUNT_ID, USER_ID) IN ("));
+        Assert.assertTrue(sql.endsWith(")"));
+        Assert.assertTrue(sql.contains("(?,?)"));
+        Assert.assertFalse(sql.contains("(?,?),(?,?)"));
+    }
+
+    /**
+     * Verifies that multiple account-user pairs produce comma-separated tuple placeholders.
+     */
+    @Test
+    public void testGetBatchGetBusinessStakeholderPermissionQueryMultiplePairs() {
+        AccountMetadataDbQueriesMySqlImpl queries = new AccountMetadataDbQueriesMySqlImpl();
+        List<Pair<String, String>> pairs = Arrays.asList(
+                Pair.of("acc-1", "user-1"),
+                Pair.of("acc-2", "user-2"),
+                Pair.of("acc-3", "user-3"));
+
+        String sql = queries.getBatchGetBusinessStakeholderPermissionQuery(pairs);
+
+        Assert.assertEquals(sql,
+                "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
+                        "WHERE (ACCOUNT_ID, USER_ID) IN ((?,?),(?,?),(?,?))");
+    }
+
+    /**
+     * Verifies the exact SQL output for a single pair.
+     */
+    @Test
+    public void testGetBatchGetBusinessStakeholderPermissionQueryExactSql() {
+        AccountMetadataDbQueriesMySqlImpl queries = new AccountMetadataDbQueriesMySqlImpl();
+        List<Pair<String, String>> pairs = Collections.singletonList(Pair.of("acc-1", "user-1"));
+
+        String sql = queries.getBatchGetBusinessStakeholderPermissionQuery(pairs);
+
+        Assert.assertEquals(sql,
+                "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
+                        "WHERE (ACCOUNT_ID, USER_ID) IN ((?,?))");
+    }
+
+    /**
+     * Builds a secondary instruction test item.
+     *
+     * @param accountId account id
+     * @param userId secondary user id
+     * @param otherAccountsAvailable whether other accounts are available
+     * @param status instruction status
+     * @return populated test item
+     */
+    private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
+                                                               boolean otherAccountsAvailable, String status) {
+
+        SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
+        item.setAccountId(accountId);
+        item.setSecondaryUserId(userId);
+        item.setOtherAccountsAvailability(otherAccountsAvailable);
+        item.setSecondaryAccountInstructionStatus(status);
+        return item;
+    }
 
     /**
      * Builds a business stakeholder permission test item.

@@ -538,8 +538,9 @@ public class CDSAccountValidationUtilsTest {
             accounts.add("acc-30");
             accounts.add("acc-31");
 
+            String basicAuth = Base64.getEncoder().encodeToString("user:pass".getBytes());
             Set<String> blocked = CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
-                    accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "user-3", "");
+                    accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "user-3", basicAuth);
 
             Assert.assertEquals(blocked.size(), 1);
             Assert.assertTrue(blocked.contains("acc-30"));
@@ -590,7 +591,7 @@ public class CDSAccountValidationUtilsTest {
     }
 
     @Test
-    public void testFetchBlockedBusinessAccountsFromServiceSkipsBlankUserId() {
+    public void testFetchBlockedBusinessAccountsFromServiceSkipsBlankUserId() throws CDSAccountValidationException {
         Set<String> accounts = new HashSet<>();
         accounts.add("acc-1");
 
@@ -620,10 +621,10 @@ public class CDSAccountValidationUtilsTest {
             Set<String> accounts = new HashSet<>();
             accounts.add("acc-1");
 
-            Set<String> blocked = CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
-                    accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "user-1", "");
-
-            Assert.assertTrue(blocked.isEmpty());
+            String basicAuth = Base64.getEncoder().encodeToString("user:pass".getBytes());
+            Assert.expectThrows(CDSAccountValidationException.class, () ->
+                    CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
+                            accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "user-1", basicAuth));
         }
     }
 }

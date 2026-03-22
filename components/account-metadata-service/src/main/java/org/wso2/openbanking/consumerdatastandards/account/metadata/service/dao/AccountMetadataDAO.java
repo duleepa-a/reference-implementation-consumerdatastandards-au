@@ -99,12 +99,12 @@ public interface AccountMetadataDAO {
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.
      *
      * @param conn the database connection
-     * @param items list of account-user permission records with accountId and userId
+     * @param accountUserPairs list of (accountId, userId) pairs to query
      * @return list of existing business stakeholder permission records
      * @throws AccountMetadataException if an error occurs
      */
     List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(Connection conn,
-            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException;
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
 
     /**
      * Batch retrieve business stakeholder permissions for multiple account IDs.

@@ -85,51 +85,51 @@ public interface AccountMetadataService {
     void updateBatchSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> instructionItems)
         throws AccountMetadataException;
 
-        /**
-         * Batch retrieve business stakeholder permissions for multiple account-user pairs.
-         *
-         * @param items list of account-user permission records with accountId and userId
-         * @return list of existing business stakeholder permission records
-         * @throws AccountMetadataException if an error occurs
-         */
-        List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
-            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException;
+    /**
+     * Batch retrieve business stakeholder permissions for multiple account-user pairs.
+     *
+     * @param accountUserPairs list of (accountId, userId) pairs to query
+     * @return list of existing business stakeholder permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
+        List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
 
-        /**
-         * Batch retrieve business stakeholder permissions for multiple account IDs.
-         *
-         * @param accountIds list of account IDs
-         * @return list of existing business stakeholder permission records
-         * @throws AccountMetadataException if an error occurs
-         */
-        List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissionsByAccountIds(
-            List<String> accountIds) throws AccountMetadataException;
+    /**
+     * Batch retrieve business stakeholder permissions for multiple account IDs.
+     *
+     * @param accountIds list of account IDs
+     * @return list of existing business stakeholder permission records
+     * @throws AccountMetadataException if an error occurs
+     */
+    List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissionsByAccountIds(
+        List<String> accountIds) throws AccountMetadataException;
 
-        /**
-         * Batch add business stakeholder permission records.
-         *
-         * @param permissionItems list of account-user permission records to add
-         * @throws AccountMetadataException if an error occurs
-         */
-        void addBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
-            throws AccountMetadataException;
+    /**
+     * Batch add business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records to add
+     * @throws AccountMetadataException if an error occurs
+     */
+    void addBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+        throws AccountMetadataException;
 
-        /**
-         * Batch update business stakeholder permission records.
-         *
-         * @param permissionItems list of account-user permission records to update
-         * @throws AccountMetadataException if an error occurs
-         */
-        void updateBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
-            throws AccountMetadataException;
+    /**
+     * Batch update business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records to update
+     * @throws AccountMetadataException if an error occurs
+     */
+    void updateBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+        throws AccountMetadataException;
 
-        /**
-         * Batch delete business stakeholder permission records.
-         *
-         * @param permissionItems list of account-user permission records to delete
-         * @throws AccountMetadataException if an error occurs
-         */
-        void deleteBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
-            throws AccountMetadataException;
+    /**
+     * Batch delete business stakeholder permission records.
+     *
+     * @param permissionItems list of account-user permission records to delete
+     * @throws AccountMetadataException if an error occurs
+     */
+    void deleteBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
+        throws AccountMetadataException;
 
 }

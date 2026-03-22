@@ -418,19 +418,23 @@ public class ConsentAuthorizeUtil {
             return;
         }
 
+        // Enrich with type-specific additional properties
         List<String> linkedMembers = Collections.emptyList();
 
-        // Enrich with type-specific additional properties
+        // Setting Linked member Details for joint accounts.
         if (isJointAccount) {
             linkedMembers = extractLinkedMembers(accountJson);
             account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, linkedMembers);
         }
+
+        // Setting secondary account owners data for secondary accounts.
         if (isSecondaryAccount) {
             account.setAdditionalProperty(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG,
                     extractSecondaryAccountOwners(accountJson));
             account.setAdditionalProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, hasMultipleAccounts);
         }
 
+        // Setting BNR and account owners data for business accounts.
         if (isBusinessAccount) {
             account.setAdditionalProperty(CommonConstants.ACCOUNT_OWNERS_TAG,
                 extractBusinessAccountOwners(accountJson));

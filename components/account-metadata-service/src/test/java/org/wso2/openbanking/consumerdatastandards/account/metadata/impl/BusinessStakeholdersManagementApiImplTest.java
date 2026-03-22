@@ -18,6 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -26,9 +27,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderDeleteItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderRepresentative;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderUpsertItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
@@ -81,104 +82,105 @@ public class BusinessStakeholdersManagementApiImplTest {
         Mockito.when(connectionProvider.getConnection()).thenReturn(connection);
     }
 
-        /**
-         * Verifies bad request response when add payload is null.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnNull() {
+    /**
+     * Verifies bad request response when add payload is null.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnNull() {
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(null);
 
-        assertBadRequest(response, "No business stakeholder items provided");
-        }
+        assertSendBadRequest(response, "No business stakeholder items provided");
+    }
 
-        /**
-         * Verifies bad request when add request contains null item.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnNullRequestItem() {
+    /**
+     * Verifies bad request when add request contains null item.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnNullRequestItem() {
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(null));
 
-        assertBadRequest(response, "Request contains null business stakeholder item");
-        }
+        assertSendBadRequest(response, "Request contains null business stakeholder item");
+    }
 
-        /**
-         * Verifies bad request when account id is missing.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnMissingAccountId() {
-        BusinessStakeholderUpsertItem item = buildUpsertItem(" ",
+    /**
+     * Verifies bad request when account id is missing.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnMissingAccountId() {
+        BusinessStakeholderItem item = buildUpsertItem(" ",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "accountID is required");
-        }
+        assertSendBadRequest(response, "accountID is required");
+    }
 
-        /**
-         * Verifies bad request when nominated representatives list is null.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnNullRepresentatives() {
-        BusinessStakeholderUpsertItem item = new BusinessStakeholderUpsertItem();
+    /**
+     * Verifies bad request when nominated representatives list is null.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnNullRepresentatives() {
+        BusinessStakeholderItem item = new BusinessStakeholderItem();
         item.setAccountID("acc-1");
         item.setNominatedRepresentatives(null);
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
-        }
+        assertSendBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
+    }
 
-        /**
-         * Verifies bad request when representative entry is null.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnNullRepresentativeItem() {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1");
+    /**
+     * Verifies bad request when representative entry is null.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnNullRepresentativeItem() {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1");
         item.setNominatedRepresentatives(Collections.singletonList(null));
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "nominatedRepresentatives contains null item for accountID acc-1");
-        }
+        assertSendBadRequest(response, "nominatedRepresentatives contains null item for accountID acc-1");
+    }
 
-        /**
-         * Verifies bad request when representative name is missing.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnMissingRepresentativeName() {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies bad request when representative name is missing.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnMissingRepresentativeName() {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative(" ", "AUTHORIZE"));
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "Representative name is required for accountID acc-1");
-        }
+        assertSendBadRequest(response, "Representative name is required for accountID acc-1");
+    }
 
-        /**
-         * Verifies bad request when representative permission is missing.
-         */
-        @Test
-        public void testAddBusinessStakeholdersBadRequestOnMissingRepresentativePermission() {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies bad request when representative permission is missing.
+     */
+    @Test
+    public void testAddBusinessStakeholdersSendBadRequestOnMissingRepresentativePermission() {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", " "));
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "Representative permission is required for accountID acc-1 and user user-1");
-        }
+        assertSendBadRequest(response, "Invalid or missing permission for accountID acc-1 and " +
+                "user user-1. Allowed values: VIEW, AUTHORIZE");
+    }
 
-        /**
-         * Verifies add returns OK with empty list when request has no representatives.
-         */
-        @Test
-        public void testAddBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1");
+    /**
+     * Verifies add returns OK with empty list when request has no representatives.
+     */
+    @Test
+    public void testAddBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1");
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
@@ -189,16 +191,16 @@ public class BusinessStakeholdersManagementApiImplTest {
             .getBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
         Mockito.verify(metadataDAO, Mockito.never())
             .addBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies create response when all requested business stakeholder records are new.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersCreatedWhenAllNew() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies create response when all requested business stakeholder records are new.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersCreatedWhenAllNew() throws Exception {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"),
             buildRepresentative("user-2", "VIEW"));
 
@@ -209,26 +211,27 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(item));
 
         Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderItem> body = asUpsertItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-1");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-1");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> captor =
             (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
                 ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(Mockito.eq(connection), captor.capture());
+        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(
+                Mockito.eq(connection), captor.capture());
         Assert.assertEquals(captor.getValue().size(), 2);
-        }
+    }
 
-        /**
-         * Verifies add persists account owners with VIEW permission.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersCreatedWithAccountOwners() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1", Arrays.asList("owner-1", "owner-2"),
+    /**
+     * Verifies add persists account owners with VIEW permission.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersCreatedWithAccountOwners() throws Exception {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1", Arrays.asList("owner-1", "owner-2"),
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -243,7 +246,8 @@ public class BusinessStakeholdersManagementApiImplTest {
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> captor =
             (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
                 ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(Mockito.eq(connection), captor.capture());
+        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(
+                Mockito.eq(connection), captor.capture());
         Assert.assertEquals(captor.getValue().size(), 3);
         Assert.assertTrue(captor.getValue().stream().anyMatch(itemToAdd ->
             "owner-1".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission())));
@@ -251,45 +255,32 @@ public class BusinessStakeholdersManagementApiImplTest {
             "owner-2".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission())));
         Assert.assertTrue(captor.getValue().stream().anyMatch(itemToAdd ->
             "user-1".equals(itemToAdd.getUserId()) && "AUTHORIZE".equals(itemToAdd.getPermission())));
-        }
+    }
 
-        /**
-         * Verifies duplicate account-user pairs in add payload are de-duplicated.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersDeduplicatesAccountUserPairs() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies that duplicate account-user pairs in the add payload return a bad request.
+     */
+    @Test
+    public void testAddBusinessStakeholdersDeduplicatesAccountUserPairs() {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"),
             buildRepresentative("user-1", "VIEW"));
-
-        Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
-            .thenReturn(Collections.emptyList());
 
         Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
             Collections.singletonList(item));
 
-        Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        assertSendBadRequest(response, "Duplicate entry for accountID acc-1 and user user-1");
+    }
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> captor =
-            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
-                ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(Mockito.eq(connection), captor.capture());
-        Assert.assertEquals(captor.getValue().size(), 1);
-        Assert.assertEquals(captor.getValue().get(0).getPermission(), "VIEW");
-        }
-
-        /**
-         * Verifies ok response when all requested add records already exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersOkWhenAllExisting() throws Exception {
+    /**
+     * Verifies ok response when all requested add records already exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersOkWhenAllExisting() throws Exception {
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "AUTHORIZE");
-        BusinessStakeholderUpsertItem requestItem = buildUpsertItem("acc-1",
+        BusinessStakeholderItem requestItem = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -302,17 +293,17 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(asStringList(response).size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
             .addBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies partial add behavior when some records already exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersCreatedWhenPartialExisting() throws Exception {
+    /**
+     * Verifies partial add behavior when some records already exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersCreatedWhenPartialExisting() throws Exception {
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "AUTHORIZE");
-        BusinessStakeholderUpsertItem requestItem = buildUpsertItem("acc-1",
+        BusinessStakeholderItem requestItem = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"),
             buildRepresentative("user-2", "VIEW"));
 
@@ -323,9 +314,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderItem> body = asUpsertItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-1");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-1");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> addCaptor =
@@ -334,16 +325,16 @@ public class BusinessStakeholdersManagementApiImplTest {
         Mockito.verify(metadataDAO).addBatchBusinessStakeholderPermissions(Mockito.eq(connection), addCaptor.capture());
         Assert.assertEquals(addCaptor.getValue().size(), 1);
         Assert.assertEquals(addCaptor.getValue().get(0).getUserId(), "user-2");
-        }
+    }
 
-        /**
-         * Verifies internal server error when add retrieval fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies internal server error when add retrieval fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -356,16 +347,16 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies internal server error when add persistence fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testAddBusinessStakeholdersServiceErrorOnAddBatch() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies internal server error when add persistence fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testAddBusinessStakeholdersServiceErrorOnAddBatch() throws Exception {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -381,43 +372,43 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add business stakeholder records:"));
-        }
+    }
 
     /**
      * Verifies bad request response when account and user ids are empty.
      */
     @Test
-    public void testGetBusinessStakeholdersBadRequestOnEmpty() {
+    public void testGetBusinessStakeholdersSendBadRequestOnEmpty() {
         Response response = BusinessStakeholdersManagementApiImpl.getBusinessStakeholders("", "");
-        assertBadRequest(response, "At least one accountId and userId are required");
+        assertSendBadRequest(response, "At least one accountId and userId are required");
     }
 
     /**
      * Verifies bad request response when account and user ids are blank.
      */
     @Test
-    public void testGetBusinessStakeholdersBadRequestOnBlank() {
+    public void testGetBusinessStakeholdersSendBadRequestOnBlank() {
         Response response = BusinessStakeholdersManagementApiImpl.getBusinessStakeholders("   ", "   ");
-        assertBadRequest(response, "At least one accountId and userId are required");
+        assertSendBadRequest(response, "At least one accountId and userId are required");
     }
 
     /**
      * Verifies bad request response when account ids parse to an empty set.
      */
     @Test
-    public void testGetBusinessStakeholdersBadRequestOnOnlyCommas() {
+    public void testGetBusinessStakeholdersSendBadRequestOnOnlyCommas() {
         Response response = BusinessStakeholdersManagementApiImpl.getBusinessStakeholders(" , , ", "user-1");
-        assertBadRequest(response, "At least one accountId and userId are required");
+        assertSendBadRequest(response, "At least one accountId and userId are required");
     }
 
     /**
      * Verifies bad request response when user id is missing.
      */
     @Test
-    public void testGetBusinessStakeholdersBadRequestOnMissingUserId() {
+    public void testGetBusinessStakeholdersSendBadRequestOnMissingUserId() {
         Response response = BusinessStakeholdersManagementApiImpl
                 .getBusinessStakeholders("acc-1,acc-2", " ");
-        assertBadRequest(response, "At least one accountId and userId are required");
+        assertSendBadRequest(response, "At least one accountId and userId are required");
     }
 
     /**
@@ -446,24 +437,24 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(body.get(0).getUserId(), "user-1");
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> captor =
-                (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
+        ArgumentCaptor<List<Pair<String, String>>> captor =
+                (ArgumentCaptor<List<Pair<String, String>>>) (ArgumentCaptor<?>)
                         ArgumentCaptor.forClass(List.class);
         Mockito.verify(metadataDAO).getBatchBusinessStakeholderPermissions(Mockito.eq(connection), captor.capture());
         Assert.assertEquals(captor.getValue().size(), 2);
-        Assert.assertEquals(captor.getValue().get(0).getAccountId(), "acc-1");
-        Assert.assertEquals(captor.getValue().get(0).getUserId(), "user-1");
-        Assert.assertEquals(captor.getValue().get(1).getAccountId(), "acc-2");
-        Assert.assertEquals(captor.getValue().get(1).getUserId(), "user-1");
+        Assert.assertEquals(captor.getValue().get(0).getLeft(), "acc-1");
+        Assert.assertEquals(captor.getValue().get(0).getRight(), "user-1");
+        Assert.assertEquals(captor.getValue().get(1).getLeft(), "acc-2");
+        Assert.assertEquals(captor.getValue().get(1).getRight(), "user-1");
     }
 
-        /**
-         * Verifies account ids are trimmed and blanks are ignored for get flow.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testGetBusinessStakeholdersTrimsAndFiltersAccountIds() throws Exception {
+    /**
+     * Verifies account ids are trimmed and blanks are ignored for get flow.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testGetBusinessStakeholdersTrimsAndFiltersAccountIds() throws Exception {
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
             .thenReturn(Collections.emptyList());
 
@@ -472,15 +463,15 @@ public class BusinessStakeholdersManagementApiImplTest {
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> captor =
-            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
+        ArgumentCaptor<List<Pair<String, String>>> captor =
+            (ArgumentCaptor<List<Pair<String, String>>>) (ArgumentCaptor<?>)
                 ArgumentCaptor.forClass(List.class);
         Mockito.verify(metadataDAO).getBatchBusinessStakeholderPermissions(Mockito.eq(connection), captor.capture());
         Assert.assertEquals(captor.getValue().size(), 2);
-        Assert.assertEquals(captor.getValue().get(0).getAccountId(), "acc-1");
-        Assert.assertEquals(captor.getValue().get(1).getAccountId(), "acc-2");
-        Assert.assertEquals(captor.getValue().get(0).getUserId(), "user-1");
-        Assert.assertEquals(captor.getValue().get(1).getUserId(), "user-1");
+        Assert.assertEquals(captor.getValue().get(0).getLeft(), "acc-1");
+        Assert.assertEquals(captor.getValue().get(1).getLeft(), "acc-2");
+        Assert.assertEquals(captor.getValue().get(0).getRight(), "user-1");
+        Assert.assertEquals(captor.getValue().get(1).getRight(), "user-1");
         }
 
     /**
@@ -504,36 +495,36 @@ public class BusinessStakeholdersManagementApiImplTest {
                 "permissions:"));
     }
 
-        /**
-         * Verifies bad request response when update payload is null.
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersBadRequestOnNull() {
+    /**
+     * Verifies bad request response when update payload is null.
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersSendBadRequestOnNull() {
         Response response = BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(null);
 
-        assertBadRequest(response, "No business stakeholder items provided");
-        }
+        assertSendBadRequest(response, "No business stakeholder items provided");
+    }
 
-        /**
-         * Verifies bad request when update payload has invalid representative data.
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersBadRequestOnMissingRepresentativeName() {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies bad request when update payload has invalid representative data.
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersSendBadRequestOnMissingRepresentativeName() {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative(" ", "AUTHORIZE"));
 
         Response response = BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "Representative name is required for accountID acc-1");
-        }
+        assertSendBadRequest(response, "Representative name is required for accountID acc-1");
+    }
 
-        /**
-         * Verifies update returns OK with empty body when payload has no representatives.
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1");
+    /**
+     * Verifies update returns OK with empty body when payload has no representatives.
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1");
 
         Response response = BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(
             Collections.singletonList(item));
@@ -542,17 +533,17 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(asStringList(response).size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
             .updateBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies successful update when all requested records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersSuccess() throws Exception {
+    /**
+     * Verifies successful update when all requested records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersSuccess() throws Exception {
         BusinessStakeholderPermissionItem existing = buildItem("acc-2", "user-2", "VIEW");
-        BusinessStakeholderUpsertItem requestItem = buildUpsertItem("acc-2",
+        BusinessStakeholderItem requestItem = buildUpsertItem("acc-2",
             buildRepresentative("user-2", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -562,21 +553,21 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderItem> body = asUpsertItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-2");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-2");
         Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies update returns OK without persistence when no records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersOkWhenNoneExist() throws Exception {
-        BusinessStakeholderUpsertItem requestItem = buildUpsertItem("acc-2",
+    /**
+     * Verifies update returns OK without persistence when no records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersOkWhenNoneExist() throws Exception {
+        BusinessStakeholderItem requestItem = buildUpsertItem("acc-2",
             buildRepresentative("user-2", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -589,17 +580,17 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(asStringList(response).size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
             .updateBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies update only persists existing subset in partial-existing scenario.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersOkWhenPartialExisting() throws Exception {
+    /**
+     * Verifies update only persists existing subset in partial-existing scenario.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersOkWhenPartialExisting() throws Exception {
         BusinessStakeholderPermissionItem existing = buildItem("acc-2", "user-2", "VIEW");
-        BusinessStakeholderUpsertItem requestItem = buildUpsertItem("acc-2",
+        BusinessStakeholderItem requestItem = buildUpsertItem("acc-2",
             buildRepresentative("user-2", "AUTHORIZE"),
             buildRepresentative("user-3", "VIEW"));
 
@@ -610,9 +601,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderItem> body = asUpsertItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-2");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-2");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> updateCaptor =
@@ -622,16 +613,16 @@ public class BusinessStakeholdersManagementApiImplTest {
             updateCaptor.capture());
         Assert.assertEquals(updateCaptor.getValue().size(), 1);
         Assert.assertEquals(updateCaptor.getValue().get(0).getUserId(), "user-2");
-        }
+    }
 
-        /**
-         * Verifies internal server error when update retrieval fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+    /**
+     * Verifies internal server error when update retrieval fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -644,17 +635,17 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to update business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies internal server error when update persistence fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testUpdateBusinessStakeholdersServiceErrorOnUpdateBatch() throws Exception {
+    /**
+     * Verifies internal server error when update persistence fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testUpdateBusinessStakeholdersServiceErrorOnUpdateBatch() throws Exception {
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
-        BusinessStakeholderUpsertItem item = buildUpsertItem("acc-1",
+        BusinessStakeholderItem item = buildUpsertItem("acc-1",
             buildRepresentative("user-1", "AUTHORIZE"));
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -670,47 +661,47 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to update business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies bad request response when delete payload is null.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersBadRequestOnNull() {
+    /**
+     * Verifies bad request response when delete payload is null.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSendBadRequestOnNull() {
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(null);
 
-        assertBadRequest(response, "No business stakeholder items provided");
-        }
+        assertSendBadRequest(response, "No business stakeholder items provided");
+    }
 
-        /**
-         * Verifies bad request when delete request contains null item.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersBadRequestOnNullRequestItem() {
+    /**
+     * Verifies bad request when delete request contains null item.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSendBadRequestOnNullRequestItem() {
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(null));
 
-        assertBadRequest(response, "Request contains null business stakeholder item");
-        }
+        assertSendBadRequest(response, "Request contains null business stakeholder item");
+    }
 
-        /**
-         * Verifies bad request when delete account id is missing.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersBadRequestOnMissingAccountId() {
+    /**
+     * Verifies bad request when delete account id is missing.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSendBadRequestOnMissingAccountId() {
         BusinessStakeholderDeleteItem item = buildDeleteItem(" ", "user-1");
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "accountID is required");
-        }
+        assertSendBadRequest(response, "accountID is required");
+    }
 
-        /**
-         * Verifies bad request when delete nominated representatives list is null.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersBadRequestOnNullRepresentatives() {
+    /**
+     * Verifies bad request when delete nominated representatives list is null.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSendBadRequestOnNullRepresentatives() {
         BusinessStakeholderDeleteItem item = new BusinessStakeholderDeleteItem();
         item.setAccountID("acc-1");
         item.setNominatedRepresentatives(null);
@@ -718,27 +709,27 @@ public class BusinessStakeholdersManagementApiImplTest {
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
-        }
+        assertSendBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
+    }
 
-        /**
-         * Verifies bad request when delete nominated representative is blank.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersBadRequestOnBlankRepresentative() {
+    /**
+     * Verifies bad request when delete nominated representative is blank.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSendBadRequestOnBlankRepresentative() {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", " ");
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(item));
 
-        assertBadRequest(response, "Representative name is required for accountID acc-1");
-        }
+        assertSendBadRequest(response, "Representative name is required for accountID acc-1");
+    }
 
-        /**
-         * Verifies delete returns OK and empty body when request has no representatives.
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
+    /**
+     * Verifies delete returns OK and empty body when request has no representatives.
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersOkOnEmptyRepresentatives() throws AccountMetadataException {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1");
 
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
@@ -748,15 +739,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(asStringList(response).size(), 0);
         Mockito.verify(metadataDAO, Mockito.never())
             .deleteBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies successful delete when all requested records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersSuccess() throws Exception {
+    /**
+     * Verifies successful delete when all requested records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersSuccess() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3");
         BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
             BusinessStakeholderPermissionItem accountPermission = buildItem("acc-3", "user-3", "REVOKE");
@@ -771,9 +762,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderDeleteItem> body = asDeleteItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-3");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-3");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
@@ -788,15 +779,15 @@ public class BusinessStakeholdersManagementApiImplTest {
 
         Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies delete revokes account owners as well as nominated representatives.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersRevokesAccountOwnersAsWell() throws Exception {
+    /**
+     * Verifies delete revokes account owners as well as nominated representatives.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersRevokesAccountOwnersAsWell() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem(
             "acc-4", Arrays.asList("owner-1"), "user-4");
         List<BusinessStakeholderPermissionItem> existingItems = Arrays.asList(
@@ -816,7 +807,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Assert.assertEquals(asStringList(response), Collections.singletonList("acc-4"));
+        List<BusinessStakeholderDeleteItem> body = asDeleteItemList(response);
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-4");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
@@ -829,15 +822,15 @@ public class BusinessStakeholdersManagementApiImplTest {
             "owner-1".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
         Assert.assertTrue(revokeCaptor.getValue().stream().anyMatch(item ->
             "user-4".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
-        }
+    }
 
-        /**
-         * Verifies delete returns OK and does not persist when no records exist.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersOkWhenNoneExist() throws Exception {
+    /**
+     * Verifies delete returns OK and does not persist when no records exist.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersOkWhenNoneExist() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3");
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -854,15 +847,15 @@ public class BusinessStakeholdersManagementApiImplTest {
             .getBatchBusinessStakeholderPermissionsByAccountIds(Mockito.any(Connection.class), Mockito.anyList());
         Mockito.verify(metadataDAO, Mockito.never())
             .deleteBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies delete only removes existing subset in partial-existing scenario.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersOkWhenPartialExisting() throws Exception {
+    /**
+     * Verifies delete only removes existing subset in partial-existing scenario.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersOkWhenPartialExisting() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3", "user-4");
         BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
             List<BusinessStakeholderPermissionItem> accountPermissions = Arrays.asList(
@@ -879,9 +872,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<String> body = asStringList(response);
+        List<BusinessStakeholderDeleteItem> body = asDeleteItemList(response);
         Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0), "acc-3");
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-3");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
@@ -900,15 +893,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 deleteCaptor.capture());
         Assert.assertEquals(deleteCaptor.getValue().size(), 2);
-        }
+    }
 
-        /**
-         * Verifies revoke-only behavior when at least one AUTHORIZE permission remains for the account.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersKeepsAccountWhenAuthorizeExists() throws Exception {
+    /**
+     * Verifies revoke-only behavior when at least one AUTHORIZE permission remains for the account.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersKeepsAccountWhenAuthorizeExists() throws Exception {
         BusinessStakeholderDeleteItem requestItem = buildDeleteItem("acc-3", "user-3");
         BusinessStakeholderPermissionItem existing = buildItem("acc-3", "user-3", "VIEW");
         List<BusinessStakeholderPermissionItem> accountPermissions = Arrays.asList(
@@ -925,20 +918,22 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(requestItem));
 
         Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Assert.assertEquals(asStringList(response).size(), 0);
+        List<BusinessStakeholderDeleteItem> body = asDeleteItemList(response);
+        Assert.assertEquals(body.size(), 1);
+        Assert.assertEquals(body.get(0).getAccountID(), "acc-3");
         Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 Mockito.anyList());
         Mockito.verify(metadataDAO, Mockito.never())
             .deleteBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
-        }
+    }
 
-        /**
-         * Verifies internal server error when delete retrieval fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
+    /**
+     * Verifies internal server error when delete retrieval fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersServiceErrorOnGetBatch() throws Exception {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
 
         Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(Mockito.eq(connection), Mockito.anyList()))
@@ -951,15 +946,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies internal server error when account-level permission retrieval fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersServiceErrorOnGetBatchByAccountIds() throws Exception {
+    /**
+     * Verifies internal server error when account-level permission retrieval fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersServiceErrorOnGetBatchByAccountIds() throws Exception {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
 
@@ -976,15 +971,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies internal server error when delete persistence fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersServiceErrorOnDeleteBatch() throws Exception {
+    /**
+     * Verifies internal server error when delete persistence fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersServiceErrorOnDeleteBatch() throws Exception {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
 
@@ -1004,15 +999,15 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
-        }
+    }
 
-        /**
-         * Verifies internal server error when revoke update fails.
-         *
-         * @throws Exception if setup or invocation fails
-         */
-        @Test
-        public void testDeleteBusinessStakeholdersServiceErrorOnRevokeUpdate() throws Exception {
+    /**
+     * Verifies internal server error when revoke update fails.
+     *
+     * @throws Exception if setup or invocation fails
+     */
+    @Test
+    public void testDeleteBusinessStakeholdersServiceErrorOnRevokeUpdate() throws Exception {
         BusinessStakeholderDeleteItem item = buildDeleteItem("acc-1", "user-1");
         BusinessStakeholderPermissionItem existing = buildItem("acc-1", "user-1", "VIEW");
 
@@ -1029,7 +1024,7 @@ public class BusinessStakeholdersManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to delete business stakeholder records:"));
-        }
+    }
 
     /**
      * Builds a business stakeholder permission item.
@@ -1055,19 +1050,17 @@ public class BusinessStakeholdersManagementApiImplTest {
     /**
      * Builds an upsert request item.
      */
-    private BusinessStakeholderUpsertItem buildUpsertItem(String accountId,
-            BusinessStakeholderRepresentative... representatives) {
-
+    private BusinessStakeholderItem buildUpsertItem(String accountId,
+                                                    BusinessStakeholderRepresentative... representatives) {
         return buildUpsertItem(accountId, new ArrayList<>(), representatives);
     }
 
     /**
      * Builds an upsert request item with account owners.
      */
-    private BusinessStakeholderUpsertItem buildUpsertItem(String accountId, List<String> accountOwners,
-            BusinessStakeholderRepresentative... representatives) {
-
-        BusinessStakeholderUpsertItem item = new BusinessStakeholderUpsertItem();
+    private BusinessStakeholderItem buildUpsertItem(String accountId, List<String> accountOwners,
+                                                    BusinessStakeholderRepresentative... representatives) {
+        BusinessStakeholderItem item = new BusinessStakeholderItem();
         item.setAccountID(accountId);
         item.setAccountOwners(new ArrayList<>(accountOwners));
         item.setNominatedRepresentatives(new ArrayList<>(Arrays.asList(representatives)));
@@ -1096,7 +1089,7 @@ public class BusinessStakeholdersManagementApiImplTest {
     /**
      * Asserts a bad request response with expected error description.
      */
-    private void assertBadRequest(Response response, String expectedDescription) {
+    private void assertSendBadRequest(Response response, String expectedDescription) {
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
@@ -1109,6 +1102,16 @@ public class BusinessStakeholdersManagementApiImplTest {
     @SuppressWarnings("unchecked")
     private List<String> asStringList(Response response) {
         return (List<String>) response.getEntity();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<BusinessStakeholderItem> asUpsertItemList(Response response) {
+        return (List<BusinessStakeholderItem>) response.getEntity();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<BusinessStakeholderDeleteItem> asDeleteItemList(Response response) {
+        return (List<BusinessStakeholderDeleteItem>) response.getEntity();
     }
 
     /**

@@ -305,20 +305,20 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      */
     @Override
         public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(Connection conn,
-            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
-        if (items == null) {
+        if (accountUserPairs == null) {
             return Collections.emptyList();
         }
 
-        String sql = dbQueries.getBatchGetBusinessStakeholderPermissionQuery(items);
+        String sql = dbQueries.getBatchGetBusinessStakeholderPermissionQuery(accountUserPairs);
         List<BusinessStakeholderPermissionItem> resultItems = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int parameterIndex = 1;
-            for (BusinessStakeholderPermissionItem item : items) {
-                stmt.setString(parameterIndex++, item.getAccountId());
-                stmt.setString(parameterIndex++, item.getUserId());
+            for (Pair<String, String> pair : accountUserPairs) {
+                stmt.setString(parameterIndex++, pair.getLeft());
+                stmt.setString(parameterIndex++, pair.getRight());
             }
 
             try (ResultSet rs = stmt.executeQuery()) {

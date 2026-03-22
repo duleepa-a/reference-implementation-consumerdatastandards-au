@@ -292,7 +292,8 @@ public class CDSAccountValidationUtils {
      * @return set of blocked account IDs
      */
     static Set<String> fetchBlockedBusinessAccountsFromService(Set<String> accountIds, String businessStakeholdersApi,
-                                                               String userId, String basicAuthBase64) {
+                                                               String userId, String basicAuthBase64)
+            throws CDSAccountValidationException {
 
         Set<String> blockedAccounts = new HashSet<>();
 
@@ -323,14 +324,23 @@ public class CDSAccountValidationUtils {
                 requestBuilder.header(CDSAccountValidationConstants.AUTH_HEADER,
                         CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
             } else {
-                log.warn("[BusinessStakeholders] Basic Auth property not set, request may fail");
+                String errorMessage = "[BusinessStakeholders] Basic Auth property not set, request may fail";
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
             }
 
             HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JSONArray businessStakeholders = new JSONArray(response.body());
+                JSONArray businessStakeholders;
+                try {
+                    businessStakeholders = new JSONArray(response.body());
+                } catch (JSONException e) {
+                    String errorMessage = "Invalid business stakeholders service response";
+                    log.error(errorMessage, e);
+                    throw new CDSAccountValidationException(errorMessage, e);
+                }
 
                 for (int i = 0; i < businessStakeholders.length(); i++) {
                     JSONObject permissionItem = businessStakeholders.optJSONObject(i);
@@ -349,11 +359,20 @@ public class CDSAccountValidationUtils {
                     }
                 }
             } else {
-                log.warn("Business stakeholders service returned HTTP " + response.statusCode());
+                String errorMessage = "Business stakeholders service returned HTTP " + response.statusCode();
+                log.error(errorMessage);
+                throw new CDSAccountValidationException(errorMessage);
             }
 
-        } catch (IOException | InterruptedException e) {
-            log.error("[BusinessStakeholders] Error calling business stakeholders service", e);
+        } catch (IOException e) {
+            String errorMessage = "[BusinessStakeholders] Error calling business stakeholders service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            String errorMessage = "[BusinessStakeholders] Interrupted while calling business stakeholders service";
+            log.error(errorMessage, e);
+            throw new CDSAccountValidationException(errorMessage, e);
         }
         return blockedAccounts;
     }

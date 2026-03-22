@@ -18,7 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 
@@ -102,13 +102,13 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
-    public String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items) {
+    public String getBatchGetBusinessStakeholderPermissionQuery(List<Pair<String, String>> accountUserPairs) {
         StringBuilder query = new StringBuilder(
                 "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
                         "WHERE (ACCOUNT_ID, USER_ID) IN (");
-        for (int i = 0; i < items.size(); i++) {
+        for (int i = 0; i < accountUserPairs.size(); i++) {
             query.append("(?,?)");
-            if (i < items.size() - 1) {
+            if (i < accountUserPairs.size() - 1) {
                 query.append(",");
             }
         }

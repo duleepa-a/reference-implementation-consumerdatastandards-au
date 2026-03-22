@@ -165,8 +165,8 @@ public class CDSAccountValidationMediatorTest {
         Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), originalHeader);
     }
 
-        @Test
-        public void testMediateHandlesDecodeError() throws Exception {
+    @Test
+    public void testMediateHandlesDecodeError() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
 
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, "{not-json");
@@ -184,8 +184,8 @@ public class CDSAccountValidationMediatorTest {
             "Error during CDS mediation policy");
     }
 
-        @Test
-        public void testMediateFiltersLinkedAndBlockedAccountsAndSignsHeader() throws Exception {
+    @Test
+    public void testMediateFiltersLinkedAndBlockedAccountsAndSignsHeader() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -232,10 +232,10 @@ public class CDSAccountValidationMediatorTest {
                 Mockito.eq("dGVzdDp0ZXN0")));
             utilsMock.verify(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()));
         }
-        }
+    }
 
-        @Test
-        public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
+    @Test
+    public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -267,10 +267,10 @@ public class CDSAccountValidationMediatorTest {
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
                 "Error during CDS mediation policy");
         }
-        }
+    }
 
-        @Test
-        public void testMediateSetsErrorPropertiesWhenAccountValidationFails() throws Exception {
+    @Test
+    public void testMediateSetsErrorPropertiesWhenAccountValidationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -303,5 +303,5 @@ public class CDSAccountValidationMediatorTest {
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
                 "Error during CDS mediation policy");
         }
-        }
+    }
 }
