@@ -55,6 +55,10 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
         "OTHER_ACCOUNTS_AVAILABILITY";
+    // Column names for business stakeholder permissions table.
+    private static final String BNR_PERMISSIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_USER_ID = "USER_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_PERMISSION = "PERMISSION";
 
     private final AccountMetadataDbQueries dbQueries;
 
@@ -324,9 +328,9 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
-                    permissionItem.setAccountId(rs.getString("ACCOUNT_ID"));
-                    permissionItem.setUserId(rs.getString("USER_ID"));
-                    permissionItem.setPermission(rs.getString("PERMISSION"));
+                    permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
+                    permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
+                    permissionItem.setPermission(rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION));
                     resultItems.add(permissionItem);
                 }
             }
@@ -364,9 +368,9 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
-                    permissionItem.setAccountId(rs.getString("ACCOUNT_ID"));
-                    permissionItem.setUserId(rs.getString("USER_ID"));
-                    permissionItem.setPermission(rs.getString("PERMISSION"));
+                    permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
+                    permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
+                    permissionItem.setPermission(rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION));
                     resultItems.add(permissionItem);
                 }
             }

@@ -437,9 +437,9 @@ public class ConsentAuthorizeUtil {
         // Setting BNR and account owners data for business accounts.
         if (isBusinessAccount) {
             account.setAdditionalProperty(CommonConstants.ACCOUNT_OWNERS_TAG,
-                extractBusinessAccountOwners(accountJson));
+                    extractBusinessAccountOwners(accountJson));
             account.setAdditionalProperty(CommonConstants.NOMINATED_REPRESENTATIVES_TAG,
-                extractNominatedRepresentativesExcludingUser(accountJson, userId));
+                    extractNominatedRepresentativesExcludingUser(accountJson, userId));
 
             // add profile data if profile selection page is enabled.
             if (ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
