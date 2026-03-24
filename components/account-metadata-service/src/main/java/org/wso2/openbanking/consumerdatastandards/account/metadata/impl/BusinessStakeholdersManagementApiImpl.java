@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderDeleteItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderItem;
@@ -64,10 +63,7 @@ public class BusinessStakeholdersManagementApiImpl {
     public static Response addBusinessStakeholders(List<BusinessStakeholderItem> request) {
 
         if (request == null) {
-            log.error("[Business Stakeholders] No business stakeholder items provided");
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ErrorResponse().errorDescription("No business stakeholder items provided"))
-                    .build();
+            return sendBadRequest("No business stakeholder items provided");
         }
 
         List<BusinessStakeholderPermissionItem> validItems;
@@ -242,7 +238,7 @@ public class BusinessStakeholdersManagementApiImpl {
             List<BusinessStakeholderPermissionItem> itemsToRevoke = validItems.stream()
                 .filter(item -> existingKeys.contains(buildKey(item)))
                 .map(item -> new BusinessStakeholderPermissionItem(
-                        item.getAccountId(), item.getUserId(), CommonConstants.BNR_PERMISSION_REVOKE))
+                        item.getAccountId(), item.getUserId(), BusinessStakeholderPermissionItem.PermissionEnum.REVOKE))
                 .collect(Collectors.toList());
 
             if (!itemsToRevoke.isEmpty()) {
@@ -298,8 +294,7 @@ public class BusinessStakeholdersManagementApiImpl {
      * @return true if permission is AUTHORIZE, false otherwise
      */
     private static boolean isAuthorizePermission(BusinessStakeholderPermissionItem permissionItem) {
-        return CommonConstants.BNR_PERMISSION_AUTHORIZE
-                .equalsIgnoreCase(StringUtils.trimToEmpty(permissionItem.getPermission()));
+        return BusinessStakeholderPermissionItem.PermissionEnum.AUTHORIZE.equals(permissionItem.getPermission());
     }
 
     /**
@@ -316,6 +311,7 @@ public class BusinessStakeholdersManagementApiImpl {
         Map<String, BusinessStakeholderPermissionItem> validatedItems = new LinkedHashMap<>();
 
         for (BusinessStakeholderItem requestItem : request) {
+
             if (requestItem == null) {
                 throw new AccountMetadataException("Request contains null business stakeholder item");
             }
@@ -326,20 +322,18 @@ public class BusinessStakeholdersManagementApiImpl {
             }
 
             List<String> accountOwners = requestItem.getAccountOwners();
+            // Add account owners with VIEW permission
             if (accountOwners != null) {
-                // Add account owners with VIEW permission
                 for (String owner : accountOwners) {
                     String ownerId = StringUtils.trimToEmpty(owner);
-                    if (StringUtils.isNotBlank(ownerId)) {
-                        BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem(
-                                accountId, ownerId, CommonConstants.BNR_PERMISSION_VIEW);
-                        String key = buildKey(permissionItem);
-                        if (validatedItems.containsKey(key)) {
-                            throw new AccountMetadataException(
-                                    "Duplicate entry for accountID " + accountId + " and user " + ownerId);
-                        }
-                        validatedItems.put(key, permissionItem);
+                    BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem(
+                            accountId, ownerId, BusinessStakeholderPermissionItem.PermissionEnum.VIEW);
+                    String key = buildKey(permissionItem);
+                    if (validatedItems.containsKey(key)) {
+                        throw new AccountMetadataException(
+                                "Duplicate entry for accountID " + accountId + " and user " + ownerId);
                     }
+                    validatedItems.put(key, permissionItem);
                 }
             }
 
@@ -347,26 +341,30 @@ public class BusinessStakeholdersManagementApiImpl {
             List<BusinessStakeholderRepresentative> nominatedRepresentatives =
                     requestItem.getNominatedRepresentatives();
             if (nominatedRepresentatives == null) {
-                throw new AccountMetadataException("nominatedRepresentatives is required for accountID " + accountId);
+                throw new AccountMetadataException(
+                        "nominatedRepresentatives is required for accountID " + accountId);
             }
 
             for (BusinessStakeholderRepresentative representative : nominatedRepresentatives) {
+
                 if (representative == null) {
                     throw new AccountMetadataException(
                             "nominatedRepresentatives contains null item for accountID " + accountId);
                 }
 
                 String userId = StringUtils.trimToEmpty(representative.getName());
-                String permission = StringUtils.trimToEmpty(representative.getPermission());
-
                 if (StringUtils.isBlank(userId)) {
-                    throw new AccountMetadataException("Representative name is required for accountID " + accountId);
+                    throw new AccountMetadataException(
+                            "Representative name is required for accountID " + accountId);
                 }
-                if (!isValidRepresentativePermission(permission)) {
+                if (representative.getPermission() == null) {
                     throw new AccountMetadataException(
                             "Invalid or missing permission for accountID " + accountId + " and user " + userId +
                                     ". Allowed values: VIEW, AUTHORIZE");
                 }
+                BusinessStakeholderPermissionItem.PermissionEnum permission =
+                        BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                                representative.getPermission().value());
 
                 BusinessStakeholderPermissionItem permissionItem =
                     new BusinessStakeholderPermissionItem(accountId, userId, permission);
@@ -396,6 +394,7 @@ public class BusinessStakeholdersManagementApiImpl {
         Map<String, BusinessStakeholderPermissionItem> validatedItems = new LinkedHashMap<>();
 
         for (BusinessStakeholderDeleteItem requestItem : request) {
+
             if (requestItem == null) {
                 throw new AccountMetadataException("Request contains null business stakeholder item");
             }
@@ -409,10 +408,6 @@ public class BusinessStakeholdersManagementApiImpl {
             if (accountOwners != null) {
                 for (String owner : accountOwners) {
                     String ownerId = StringUtils.trimToEmpty(owner);
-                    if (StringUtils.isBlank(ownerId)) {
-                        throw new AccountMetadataException("Account owner name is required for accountID " + accountId);
-                    }
-
                     BusinessStakeholderPermissionItem permissionItem =
                             new BusinessStakeholderPermissionItem(accountId, ownerId, null);
                     String key = buildKey(permissionItem);
@@ -426,16 +421,15 @@ public class BusinessStakeholdersManagementApiImpl {
 
             List<String> nominatedRepresentatives = requestItem.getNominatedRepresentatives();
             if (nominatedRepresentatives == null) {
-                throw new AccountMetadataException("nominatedRepresentatives is required for accountID " + accountId);
+                throw new AccountMetadataException(
+                        "nominatedRepresentatives is required for accountID " + accountId);
             }
-
             for (String representative : nominatedRepresentatives) {
                 String userId = StringUtils.trimToEmpty(representative);
                 if (StringUtils.isBlank(userId)) {
                     throw new AccountMetadataException(
                             "Representative name is required for accountID " + accountId);
                 }
-
                 BusinessStakeholderPermissionItem permissionItem =
                     new BusinessStakeholderPermissionItem(accountId, userId, null);
                 String key = buildKey(permissionItem);
@@ -480,17 +474,6 @@ public class BusinessStakeholdersManagementApiImpl {
             pairs.add(Pair.of(item.getAccountId(), item.getUserId()));
         }
         return pairs;
-    }
-
-    /**
-     * Returns true if the given permission is a valid representative permission (VIEW or AUTHORIZE).
-     *
-     * @param permission the permission string to validate
-     * @return true if VIEW or AUTHORIZE, false otherwise (including blank/null)
-     */
-    private static boolean isValidRepresentativePermission(String permission) {
-        return CommonConstants.BNR_PERMISSION_VIEW.equalsIgnoreCase(permission) ||
-                CommonConstants.BNR_PERMISSION_AUTHORIZE.equalsIgnoreCase(permission);
     }
 
     /**

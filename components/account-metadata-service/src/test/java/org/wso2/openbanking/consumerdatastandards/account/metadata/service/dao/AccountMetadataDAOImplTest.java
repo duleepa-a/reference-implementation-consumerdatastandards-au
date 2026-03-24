@@ -648,7 +648,7 @@ public class AccountMetadataDAOImplTest {
         Assert.assertEquals(result.size(), 2);
         Assert.assertEquals(result.get(0).getAccountId(), "acc-b1");
         Assert.assertEquals(result.get(0).getUserId(), "user-b1");
-        Assert.assertEquals(result.get(0).getPermission(), "AUTHORIZE");
+        Assert.assertEquals(result.get(0).getPermission().value(), "AUTHORIZE");
     }
 
     /**
@@ -710,8 +710,8 @@ public class AccountMetadataDAOImplTest {
 
         Assert.assertEquals(result.size(), 2);
         Assert.assertEquals(result.get(0).getAccountId(), "acc-b1");
-        Assert.assertEquals(result.get(0).getPermission(), "AUTHORIZE");
-        Assert.assertEquals(result.get(1).getPermission(), "REVOKE");
+        Assert.assertEquals(result.get(0).getPermission().value(), "AUTHORIZE");
+        Assert.assertEquals(result.get(1).getPermission().value(), "REVOKE");
     }
 
     /**
@@ -1000,7 +1000,8 @@ public class AccountMetadataDAOImplTest {
         BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
         item.setAccountId(accountId);
         item.setUserId(userId);
-        item.setPermission(permission);
+        item.setPermission(permission != null
+                ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
         return item;
     }
 }

@@ -13,21 +13,69 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 
+
 @JsonTypeName("BusinessStakeholderPermissionItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-10T11:22:16.010207+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-23T16:02:15.442856200+05:30[Asia/Colombo]", comments = "Generator version: 7.20.0")
 public class BusinessStakeholderPermissionItem   {
   private String accountId;
   private String userId;
-  private String permission;
+  public enum PermissionEnum {
+
+    VIEW(String.valueOf("VIEW")), AUTHORIZE(String.valueOf("AUTHORIZE")), REVOKE(String.valueOf("REVOKE"));
+
+
+    private String value;
+
+    PermissionEnum (String v) {
+      value = v;
+    }
+
+    public String value() {
+      return value;
+    }
+
+    @Override
+    @JsonValue
+    public String toString() {
+      return String.valueOf(value);
+    }
+
+    /**
+     * Convert a String into String, as specified in the
+     * <a href="https://download.oracle.com/otndocs/jcp/jaxrs-2_0-fr-eval-spec/index.html">See JAX RS 2.0 Specification, section 3.2, p. 12</a>
+     */
+    public static PermissionEnum fromString(String s) {
+      for (PermissionEnum b : PermissionEnum.values()) {
+        // using Objects.toString() to be safe if value type non-object type
+        // because types like 'int' etc. will be auto-boxed
+        if (java.util.Objects.toString(b.value).equals(s)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected string value '" + s + "'");
+    }
+
+    @JsonCreator
+    public static PermissionEnum fromValue(String value) {
+      for (PermissionEnum b : PermissionEnum.values()) {
+        if (b.value.equals(value)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    }
+  }
+
+  private PermissionEnum permission;
 
   public BusinessStakeholderPermissionItem() {
   }
 
   @JsonCreator
   public BusinessStakeholderPermissionItem(
-    @JsonProperty(required = true, value = "accountId") String accountId,
-    @JsonProperty(required = true, value = "userId") String userId,
-    @JsonProperty(required = true, value = "permission") String permission
+          @JsonProperty(required = true, value = "accountId") String accountId,
+          @JsonProperty(required = true, value = "userId") String userId,
+          @JsonProperty(required = true, value = "permission") PermissionEnum permission
   ) {
     this.accountId = accountId;
     this.userId = userId;
@@ -42,10 +90,10 @@ public class BusinessStakeholderPermissionItem   {
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "586-522-B0025", required = true, value = "Account ID")
   @JsonProperty(required = true, value = "accountId")
-  @NotNull public String getAccountId() {
+  @NotNull  @Size(min=1)public String getAccountId() {
     return accountId;
   }
 
@@ -62,10 +110,10 @@ public class BusinessStakeholderPermissionItem   {
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "nominatedUser1@wso2.com@carbon.super", required = true, value = "User identifier")
   @JsonProperty(required = true, value = "userId")
-  @NotNull public String getUserId() {
+  @NotNull  @Size(min=1)public String getUserId() {
     return userId;
   }
 
@@ -77,20 +125,20 @@ public class BusinessStakeholderPermissionItem   {
   /**
    * Permission assigned to the user for the account
    **/
-  public BusinessStakeholderPermissionItem permission(String permission) {
+  public BusinessStakeholderPermissionItem permission(PermissionEnum permission) {
     this.permission = permission;
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "AUTHORIZE", required = true, value = "Permission assigned to the user for the account")
   @JsonProperty(required = true, value = "permission")
-  @NotNull public String getPermission() {
+  @NotNull public PermissionEnum getPermission() {
     return permission;
   }
 
   @JsonProperty(required = true, value = "permission")
-  public void setPermission(String permission) {
+  public void setPermission(PermissionEnum permission) {
     this.permission = permission;
   }
 
@@ -105,8 +153,8 @@ public class BusinessStakeholderPermissionItem   {
     }
     BusinessStakeholderPermissionItem businessStakeholderPermissionItem = (BusinessStakeholderPermissionItem) o;
     return Objects.equals(this.accountId, businessStakeholderPermissionItem.accountId) &&
-        Objects.equals(this.userId, businessStakeholderPermissionItem.userId) &&
-        Objects.equals(this.permission, businessStakeholderPermissionItem.permission);
+            Objects.equals(this.userId, businessStakeholderPermissionItem.userId) &&
+            Objects.equals(this.permission, businessStakeholderPermissionItem.permission);
   }
 
   @Override
@@ -118,7 +166,7 @@ public class BusinessStakeholderPermissionItem   {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class BusinessStakeholderPermissionItem {\n");
-    
+
     sb.append("    accountId: ").append(toIndentedString(accountId)).append("\n");
     sb.append("    userId: ").append(toIndentedString(userId)).append("\n");
     sb.append("    permission: ").append(toIndentedString(permission)).append("\n");

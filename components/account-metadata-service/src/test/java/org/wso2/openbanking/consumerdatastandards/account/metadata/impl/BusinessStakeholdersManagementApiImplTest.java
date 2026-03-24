@@ -250,11 +250,11 @@ public class BusinessStakeholdersManagementApiImplTest {
                 Mockito.eq(connection), captor.capture());
         Assert.assertEquals(captor.getValue().size(), 3);
         Assert.assertTrue(captor.getValue().stream().anyMatch(itemToAdd ->
-            "owner-1".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission())));
+            "owner-1".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission().value())));
         Assert.assertTrue(captor.getValue().stream().anyMatch(itemToAdd ->
-            "owner-2".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission())));
+            "owner-2".equals(itemToAdd.getUserId()) && "VIEW".equals(itemToAdd.getPermission().value())));
         Assert.assertTrue(captor.getValue().stream().anyMatch(itemToAdd ->
-            "user-1".equals(itemToAdd.getUserId()) && "AUTHORIZE".equals(itemToAdd.getPermission())));
+            "user-1".equals(itemToAdd.getUserId()) && "AUTHORIZE".equals(itemToAdd.getPermission().value())));
     }
 
     /**
@@ -775,7 +775,7 @@ public class BusinessStakeholdersManagementApiImplTest {
         Assert.assertEquals(revokeCaptor.getValue().size(), 1);
         Assert.assertEquals(revokeCaptor.getValue().get(0).getAccountId(), "acc-3");
         Assert.assertEquals(revokeCaptor.getValue().get(0).getUserId(), "user-3");
-        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission(), "REVOKE");
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission().value(), "REVOKE");
 
         Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
                 Mockito.anyList());
@@ -819,9 +819,9 @@ public class BusinessStakeholdersManagementApiImplTest {
             revokeCaptor.capture());
         Assert.assertEquals(revokeCaptor.getValue().size(), 2);
         Assert.assertTrue(revokeCaptor.getValue().stream().anyMatch(item ->
-            "owner-1".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
+            "owner-1".equals(item.getUserId()) && "REVOKE".equals(item.getPermission().value())));
         Assert.assertTrue(revokeCaptor.getValue().stream().anyMatch(item ->
-            "user-4".equals(item.getUserId()) && "REVOKE".equals(item.getPermission())));
+            "user-4".equals(item.getUserId()) && "REVOKE".equals(item.getPermission().value())));
     }
 
     /**
@@ -884,7 +884,7 @@ public class BusinessStakeholdersManagementApiImplTest {
             revokeCaptor.capture());
         Assert.assertEquals(revokeCaptor.getValue().size(), 1);
         Assert.assertEquals(revokeCaptor.getValue().get(0).getUserId(), "user-3");
-        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission(), "REVOKE");
+        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission().value(), "REVOKE");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<BusinessStakeholderPermissionItem>> deleteCaptor =
@@ -1033,7 +1033,8 @@ public class BusinessStakeholdersManagementApiImplTest {
         BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
         item.setAccountId(accountId);
         item.setUserId(userId);
-        item.setPermission(permission);
+        item.setPermission(permission != null
+                ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
         return item;
     }
 
@@ -1043,7 +1044,10 @@ public class BusinessStakeholdersManagementApiImplTest {
     private BusinessStakeholderRepresentative buildRepresentative(String name, String permission) {
         BusinessStakeholderRepresentative representative = new BusinessStakeholderRepresentative();
         representative.setName(name);
-        representative.setPermission(permission);
+        if (permission != null && !permission.trim().isEmpty()) {
+            representative.setPermission(
+                    BusinessStakeholderRepresentative.PermissionEnum.fromValue(permission.trim()));
+        }
         return representative;
     }
 

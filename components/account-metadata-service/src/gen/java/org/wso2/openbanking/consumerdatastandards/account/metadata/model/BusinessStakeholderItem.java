@@ -14,10 +14,10 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 
 @JsonTypeName("BusinessStakeholderItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-09T16:20:09.461136400+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
-public class BusinessStakeholderItem {
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-23T16:02:15.442856200+05:30[Asia/Colombo]", comments = "Generator version: 7.20.0")
+public class BusinessStakeholderItem   {
   private String accountID;
-  private @Valid List<String> accountOwners = new ArrayList<>();
+  private @Valid List<@Size(min = 1)String> accountOwners = new ArrayList<>();
   private @Valid List<@Valid BusinessStakeholderRepresentative> nominatedRepresentatives = new ArrayList<>();
 
   public BusinessStakeholderItem() {
@@ -25,9 +25,9 @@ public class BusinessStakeholderItem {
 
   @JsonCreator
   public BusinessStakeholderItem(
-    @JsonProperty(required = true, value = "accountID") String accountID,
-    @JsonProperty(required = true, value = "accountOwners") List<String> accountOwners,
-    @JsonProperty(required = true, value = "nominatedRepresentatives") List<@Valid BusinessStakeholderRepresentative> nominatedRepresentatives
+          @JsonProperty(required = true, value = "accountID") String accountID,
+          @JsonProperty(required = true, value = "accountOwners") List< @Size(min=1)String> accountOwners,
+          @JsonProperty(required = true, value = "nominatedRepresentatives") List<@Valid BusinessStakeholderRepresentative> nominatedRepresentatives
   ) {
     this.accountID = accountID;
     this.accountOwners = accountOwners;
@@ -42,10 +42,10 @@ public class BusinessStakeholderItem {
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "586-522-B0025", required = true, value = "Account ID")
   @JsonProperty(required = true, value = "accountID")
-  @NotNull public String getAccountID() {
+  @NotNull  @Size(min=1)public String getAccountID() {
     return accountID;
   }
 
@@ -57,20 +57,20 @@ public class BusinessStakeholderItem {
   /**
    * List of account owner user identifiers
    **/
-  public BusinessStakeholderItem accountOwners(List<String> accountOwners) {
+  public BusinessStakeholderItem accountOwners(List<@Size(min = 1)String> accountOwners) {
     this.accountOwners = accountOwners;
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "[\"nominatedUser3@wso2.com@carbon.super\",\"user2@wso2.com@carbon.super\"]", required = true, value = "List of account owner user identifiers")
   @JsonProperty(required = true, value = "accountOwners")
-  @NotNull public List<String> getAccountOwners() {
+  @NotNull public List< @Size(min=1)String> getAccountOwners() {
     return accountOwners;
   }
 
   @JsonProperty(required = true, value = "accountOwners")
-  public void setAccountOwners(List<String> accountOwners) {
+  public void setAccountOwners(List<@Size(min = 1)String> accountOwners) {
     this.accountOwners = accountOwners;
   }
 
@@ -98,10 +98,10 @@ public class BusinessStakeholderItem {
     return this;
   }
 
-  
+
   @ApiModelProperty(required = true, value = "List of nominated representatives with permissions")
   @JsonProperty(required = true, value = "nominatedRepresentatives")
-  @NotNull @Valid public List<@Valid BusinessStakeholderRepresentative> getNominatedRepresentatives() {
+  @NotNull @Valid  @Size(min=1)public List<@Valid BusinessStakeholderRepresentative> getNominatedRepresentatives() {
     return nominatedRepresentatives;
   }
 
@@ -137,8 +137,8 @@ public class BusinessStakeholderItem {
     }
     BusinessStakeholderItem businessStakeholderItem = (BusinessStakeholderItem) o;
     return Objects.equals(this.accountID, businessStakeholderItem.accountID) &&
-        Objects.equals(this.accountOwners, businessStakeholderItem.accountOwners) &&
-        Objects.equals(this.nominatedRepresentatives, businessStakeholderItem.nominatedRepresentatives);
+            Objects.equals(this.accountOwners, businessStakeholderItem.accountOwners) &&
+            Objects.equals(this.nominatedRepresentatives, businessStakeholderItem.nominatedRepresentatives);
   }
 
   @Override
@@ -150,7 +150,7 @@ public class BusinessStakeholderItem {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class BusinessStakeholderItem {\n");
-    
+
     sb.append("    accountID: ").append(toIndentedString(accountID)).append("\n");
     sb.append("    accountOwners: ").append(toIndentedString(accountOwners)).append("\n");
     sb.append("    nominatedRepresentatives: ").append(toIndentedString(nominatedRepresentatives)).append("\n");

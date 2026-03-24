@@ -586,7 +586,8 @@ public class AccountMetadataServiceImplTest {
             BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
             item.setAccountId(accountId);
             item.setUserId(userId);
-            item.setPermission(permission);
+            item.setPermission(permission != null
+                    ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
             return item;
         }
 

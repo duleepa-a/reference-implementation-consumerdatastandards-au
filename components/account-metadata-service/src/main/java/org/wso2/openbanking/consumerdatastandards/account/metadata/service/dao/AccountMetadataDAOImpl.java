@@ -330,7 +330,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
                     permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
                     permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
-                    permissionItem.setPermission(rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION));
+                    permissionItem.setPermission(BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                            rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION)));
                     resultItems.add(permissionItem);
                 }
             }
@@ -370,7 +371,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
                     permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
                     permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
-                    permissionItem.setPermission(rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION));
+                    permissionItem.setPermission(BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                            rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION)));
                     resultItems.add(permissionItem);
                 }
             }
@@ -407,7 +409,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             for (BusinessStakeholderPermissionItem item : permissionItems) {
                 stmt.setString(1, item.getAccountId());
                 stmt.setString(2, item.getUserId());
-                stmt.setString(3, item.getPermission());
+                stmt.setString(3, item.getPermission().value());
                 stmt.setTimestamp(4, currentTimestamp);
                 stmt.addBatch();
             }
@@ -440,7 +442,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
 
             for (BusinessStakeholderPermissionItem item : permissionItems) {
-                stmt.setString(1, item.getPermission());
+                stmt.setString(1, item.getPermission().value());
                 stmt.setTimestamp(2, currentTimestamp);
                 stmt.setString(3, item.getAccountId());
                 stmt.setString(4, item.getUserId());

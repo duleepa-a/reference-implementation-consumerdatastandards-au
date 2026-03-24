@@ -18,20 +18,20 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 
 @JsonTypeName("BusinessStakeholderDeleteItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-09T16:20:09.461136400+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-23T16:02:15.442856200+05:30[Asia/Colombo]", comments = "Generator version: 7.20.0")
 public class BusinessStakeholderDeleteItem   {
   private String accountID;
-  private @Valid List<String> accountOwners = new ArrayList<>();
-  private @Valid List<String> nominatedRepresentatives = new ArrayList<>();
+  private @Valid List<@Size(min = 1)String> accountOwners = new ArrayList<>();
+  private @Valid List<@Size(min = 1)String> nominatedRepresentatives = new ArrayList<>();
 
   public BusinessStakeholderDeleteItem() {
   }
 
   @JsonCreator
   public BusinessStakeholderDeleteItem(
-    @JsonProperty(required = true, value = "accountID") String accountID,
-    @JsonProperty(required = true, value = "accountOwners") List<String> accountOwners,
-    @JsonProperty(required = true, value = "nominatedRepresentatives") List<String> nominatedRepresentatives
+          @JsonProperty(required = true, value = "accountID") String accountID,
+          @JsonProperty(required = true, value = "accountOwners") List< @Size(min=1)String> accountOwners,
+          @JsonProperty(required = true, value = "nominatedRepresentatives") List< @Size(min=1)String> nominatedRepresentatives
   ) {
     this.accountID = accountID;
     this.accountOwners = accountOwners;
@@ -46,10 +46,10 @@ public class BusinessStakeholderDeleteItem   {
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "586-522-B0025", required = true, value = "Account ID")
   @JsonProperty(required = true, value = "accountID")
-  @NotNull public String getAccountID() {
+  @NotNull  @Size(min=1)public String getAccountID() {
     return accountID;
   }
 
@@ -61,20 +61,20 @@ public class BusinessStakeholderDeleteItem   {
   /**
    * Account owners list to retain in request structure
    **/
-  public BusinessStakeholderDeleteItem accountOwners(List<String> accountOwners) {
+  public BusinessStakeholderDeleteItem accountOwners(List<@Size(min = 1)String> accountOwners) {
     this.accountOwners = accountOwners;
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "[]", required = true, value = "Account owners list to retain in request structure")
   @JsonProperty(required = true, value = "accountOwners")
-  @NotNull public List<String> getAccountOwners() {
+  @NotNull public List< @Size(min=1)String> getAccountOwners() {
     return accountOwners;
   }
 
   @JsonProperty(required = true, value = "accountOwners")
-  public void setAccountOwners(List<String> accountOwners) {
+  public void setAccountOwners(List<@Size(min = 1)String> accountOwners) {
     this.accountOwners = accountOwners;
   }
 
@@ -97,20 +97,20 @@ public class BusinessStakeholderDeleteItem   {
   /**
    * List of nominated representative user identifiers to remove
    **/
-  public BusinessStakeholderDeleteItem nominatedRepresentatives(List<String> nominatedRepresentatives) {
+  public BusinessStakeholderDeleteItem nominatedRepresentatives(List<@Size(min = 1)String> nominatedRepresentatives) {
     this.nominatedRepresentatives = nominatedRepresentatives;
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "[\"psu@gold.com@carbon.super\"]", required = true, value = "List of nominated representative user identifiers to remove")
   @JsonProperty(required = true, value = "nominatedRepresentatives")
-  @NotNull public List<String> getNominatedRepresentatives() {
+  @NotNull  @Size(min=1)public List< @Size(min=1)String> getNominatedRepresentatives() {
     return nominatedRepresentatives;
   }
 
   @JsonProperty(required = true, value = "nominatedRepresentatives")
-  public void setNominatedRepresentatives(List<String> nominatedRepresentatives) {
+  public void setNominatedRepresentatives(List<@Size(min = 1)String> nominatedRepresentatives) {
     this.nominatedRepresentatives = nominatedRepresentatives;
   }
 
@@ -141,8 +141,8 @@ public class BusinessStakeholderDeleteItem   {
     }
     BusinessStakeholderDeleteItem businessStakeholderDeleteItem = (BusinessStakeholderDeleteItem) o;
     return Objects.equals(this.accountID, businessStakeholderDeleteItem.accountID) &&
-        Objects.equals(this.accountOwners, businessStakeholderDeleteItem.accountOwners) &&
-        Objects.equals(this.nominatedRepresentatives, businessStakeholderDeleteItem.nominatedRepresentatives);
+            Objects.equals(this.accountOwners, businessStakeholderDeleteItem.accountOwners) &&
+            Objects.equals(this.nominatedRepresentatives, businessStakeholderDeleteItem.nominatedRepresentatives);
   }
 
   @Override
@@ -154,7 +154,7 @@ public class BusinessStakeholderDeleteItem   {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class BusinessStakeholderDeleteItem {\n");
-    
+
     sb.append("    accountID: ").append(toIndentedString(accountID)).append("\n");
     sb.append("    accountOwners: ").append(toIndentedString(accountOwners)).append("\n");
     sb.append("    nominatedRepresentatives: ").append(toIndentedString(nominatedRepresentatives)).append("\n");
