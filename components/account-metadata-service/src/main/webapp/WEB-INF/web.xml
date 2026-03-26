@@ -78,7 +78,10 @@
     <!-- JSON Provider -->
     <init-param>
       <param-name>jaxrs.providers</param-name>
-      <param-value>com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider</param-value>
+      <param-value>
+        com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider,
+        org.wso2.openbanking.consumerdatastandards.account.metadata.error.AccountMetadataThrowableMapper
+      </param-value>
     </init-param>
 
     <load-on-startup>1</load-on-startup>

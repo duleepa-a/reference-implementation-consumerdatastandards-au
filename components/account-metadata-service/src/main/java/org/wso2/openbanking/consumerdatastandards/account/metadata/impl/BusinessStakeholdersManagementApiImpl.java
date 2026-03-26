@@ -62,10 +62,6 @@ public class BusinessStakeholdersManagementApiImpl {
      */
     public static Response addBusinessStakeholders(List<BusinessStakeholderItem> request) {
 
-        if (request == null) {
-            return sendBadRequest("No business stakeholder items provided");
-        }
-
         List<BusinessStakeholderPermissionItem> validItems;
         try {
             validItems = validateRequest(request);
@@ -158,10 +154,6 @@ public class BusinessStakeholdersManagementApiImpl {
      */
     public static Response updateBusinessStakeholders(List<BusinessStakeholderItem> request) {
 
-        if (request == null) {
-            return sendBadRequest("No business stakeholder items provided");
-        }
-
         List<BusinessStakeholderPermissionItem> validItems;
         try {
             validItems = validateRequest(request);
@@ -212,10 +204,6 @@ public class BusinessStakeholdersManagementApiImpl {
      * @return response with list of account IDs where records were deleted
      */
     public static Response deleteBusinessStakeholders(List<BusinessStakeholderDeleteItem> request) {
-
-        if (request == null) {
-            return sendBadRequest("No business stakeholder items provided");
-        }
 
         List<BusinessStakeholderPermissionItem> validItems;
         try {
@@ -340,27 +328,13 @@ public class BusinessStakeholdersManagementApiImpl {
             // Add nominated representatives
             List<BusinessStakeholderRepresentative> nominatedRepresentatives =
                     requestItem.getNominatedRepresentatives();
-            if (nominatedRepresentatives == null) {
-                throw new AccountMetadataException(
-                        "nominatedRepresentatives is required for accountID " + accountId);
-            }
 
             for (BusinessStakeholderRepresentative representative : nominatedRepresentatives) {
-
-                if (representative == null) {
-                    throw new AccountMetadataException(
-                            "nominatedRepresentatives contains null item for accountID " + accountId);
-                }
 
                 String userId = StringUtils.trimToEmpty(representative.getName());
                 if (StringUtils.isBlank(userId)) {
                     throw new AccountMetadataException(
                             "Representative name is required for accountID " + accountId);
-                }
-                if (representative.getPermission() == null) {
-                    throw new AccountMetadataException(
-                            "Invalid or missing permission for accountID " + accountId + " and user " + userId +
-                                    ". Allowed values: VIEW, AUTHORIZE");
                 }
                 BusinessStakeholderPermissionItem.PermissionEnum permission =
                         BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
@@ -420,10 +394,6 @@ public class BusinessStakeholdersManagementApiImpl {
             }
 
             List<String> nominatedRepresentatives = requestItem.getNominatedRepresentatives();
-            if (nominatedRepresentatives == null) {
-                throw new AccountMetadataException(
-                        "nominatedRepresentatives is required for accountID " + accountId);
-            }
             for (String representative : nominatedRepresentatives) {
                 String userId = StringUtils.trimToEmpty(representative);
                 if (StringUtils.isBlank(userId)) {

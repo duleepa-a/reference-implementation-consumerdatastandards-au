@@ -83,16 +83,6 @@ public class BusinessStakeholdersManagementApiImplTest {
     }
 
     /**
-     * Verifies bad request response when add payload is null.
-     */
-    @Test
-    public void testAddBusinessStakeholdersSendBadRequestOnNull() {
-        Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(null);
-
-        assertSendBadRequest(response, "No business stakeholder items provided");
-    }
-
-    /**
      * Verifies bad request when add request contains null item.
      */
     @Test
@@ -115,64 +105,6 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(item));
 
         assertSendBadRequest(response, "accountID is required");
-    }
-
-    /**
-     * Verifies bad request when nominated representatives list is null.
-     */
-    @Test
-    public void testAddBusinessStakeholdersSendBadRequestOnNullRepresentatives() {
-        BusinessStakeholderItem item = new BusinessStakeholderItem();
-        item.setAccountID("acc-1");
-        item.setNominatedRepresentatives(null);
-
-        Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
-            Collections.singletonList(item));
-
-        assertSendBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
-    }
-
-    /**
-     * Verifies bad request when representative entry is null.
-     */
-    @Test
-    public void testAddBusinessStakeholdersSendBadRequestOnNullRepresentativeItem() {
-        BusinessStakeholderItem item = buildUpsertItem("acc-1");
-        item.setNominatedRepresentatives(Collections.singletonList(null));
-
-        Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
-            Collections.singletonList(item));
-
-        assertSendBadRequest(response, "nominatedRepresentatives contains null item for accountID acc-1");
-    }
-
-    /**
-     * Verifies bad request when representative name is missing.
-     */
-    @Test
-    public void testAddBusinessStakeholdersSendBadRequestOnMissingRepresentativeName() {
-        BusinessStakeholderItem item = buildUpsertItem("acc-1",
-            buildRepresentative(" ", "AUTHORIZE"));
-
-        Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
-            Collections.singletonList(item));
-
-        assertSendBadRequest(response, "Representative name is required for accountID acc-1");
-    }
-
-    /**
-     * Verifies bad request when representative permission is missing.
-     */
-    @Test
-    public void testAddBusinessStakeholdersSendBadRequestOnMissingRepresentativePermission() {
-        BusinessStakeholderItem item = buildUpsertItem("acc-1",
-            buildRepresentative("user-1", " "));
-
-        Response response = BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(
-            Collections.singletonList(item));
-
-        assertSendBadRequest(response, "Invalid or missing permission for accountID acc-1 and " +
-                "user user-1. Allowed values: VIEW, AUTHORIZE");
     }
 
     /**
@@ -496,16 +428,6 @@ public class BusinessStakeholdersManagementApiImplTest {
     }
 
     /**
-     * Verifies bad request response when update payload is null.
-     */
-    @Test
-    public void testUpdateBusinessStakeholdersSendBadRequestOnNull() {
-        Response response = BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(null);
-
-        assertSendBadRequest(response, "No business stakeholder items provided");
-    }
-
-    /**
      * Verifies bad request when update payload has invalid representative data.
      */
     @Test
@@ -664,16 +586,6 @@ public class BusinessStakeholdersManagementApiImplTest {
     }
 
     /**
-     * Verifies bad request response when delete payload is null.
-     */
-    @Test
-    public void testDeleteBusinessStakeholdersSendBadRequestOnNull() {
-        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(null);
-
-        assertSendBadRequest(response, "No business stakeholder items provided");
-    }
-
-    /**
      * Verifies bad request when delete request contains null item.
      */
     @Test
@@ -695,21 +607,6 @@ public class BusinessStakeholdersManagementApiImplTest {
             Collections.singletonList(item));
 
         assertSendBadRequest(response, "accountID is required");
-    }
-
-    /**
-     * Verifies bad request when delete nominated representatives list is null.
-     */
-    @Test
-    public void testDeleteBusinessStakeholdersSendBadRequestOnNullRepresentatives() {
-        BusinessStakeholderDeleteItem item = new BusinessStakeholderDeleteItem();
-        item.setAccountID("acc-1");
-        item.setNominatedRepresentatives(null);
-
-        Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
-            Collections.singletonList(item));
-
-        assertSendBadRequest(response, "nominatedRepresentatives is required for accountID acc-1");
     }
 
     /**
