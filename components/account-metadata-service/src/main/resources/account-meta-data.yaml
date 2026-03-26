@@ -443,7 +443,12 @@ components:
         disclosureOption:
           type: string
           description: Disclosure option status
+          enum: [no-sharing, pre-approval]
           example: no-sharing
+          x-enum-description: |
+            Allowed values:
+              - no-sharing: No data sharing
+              - pre-approval: Pre-approved sharing
 
     ErrorResponse:
       type: object
@@ -476,7 +481,12 @@ components:
         secondaryAccountInstructionStatus:
           type: string
           description: Secondary account instruction status
+          enum: [active, inactive]
           example: inactive
+          x-enum-description: |
+            Allowed values:
+              - active: Instruction is active
+              - inactive: Instruction is inactive
 
     BusinessStakeholderRepresentative:
       type: object
@@ -494,6 +504,10 @@ components:
           enum: [VIEW, AUTHORIZE]
           description: Permission assigned to the nominated representative
           example: AUTHORIZE
+          x-enum-description: |
+            Allowed values:
+              - VIEW: Can view account
+              - AUTHORIZE: Can authorize actions
 
     BusinessStakeholderPermissionItem:
       type: object
@@ -517,6 +531,11 @@ components:
           enum: [VIEW, AUTHORIZE, REVOKE]
           description: Permission assigned to the user for the account
           example: AUTHORIZE
+          x-enum-description: |
+            Allowed values:
+              - VIEW: Can view account
+              - AUTHORIZE: Can authorize actions
+              - REVOKE: Permission revoked
 
     BusinessStakeholderItem:
       type: object
