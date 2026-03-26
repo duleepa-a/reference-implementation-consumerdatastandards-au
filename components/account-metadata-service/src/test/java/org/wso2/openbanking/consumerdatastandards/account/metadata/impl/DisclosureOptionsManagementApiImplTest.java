@@ -553,7 +553,7 @@ public class DisclosureOptionsManagementApiImplTest {
     private DisclosureOptionItem buildRequestItem(String accountId, String status) {
         DisclosureOptionItem item = new DisclosureOptionItem();
         item.setAccountId(accountId);
-        item.setDisclosureOption(status);
+        item.setDisclosureOption(DisclosureOptionItem.DisclosureOptionEnum.valueOf(status));
         return item;
     }
 

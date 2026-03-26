@@ -1,5 +1,6 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.model;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.*;
 
@@ -9,12 +10,59 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 @JsonTypeName("SecondaryAccountInstructionItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-02-22T21:56:16.859163500+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-26T15:09:37.936151200+05:30[Asia/Colombo]", comments = "Generator version: 7.21.0")
 public class SecondaryAccountInstructionItem   {
   private String accountId;
   private String secondaryUserId;
   private Boolean otherAccountsAvailability;
-  private String secondaryAccountInstructionStatus;
+  public enum SecondaryAccountInstructionStatusEnum {
+
+    ACTIVE(String.valueOf("active")), INACTIVE(String.valueOf("inactive"));
+
+
+    private String value;
+
+    SecondaryAccountInstructionStatusEnum (String v) {
+      value = v;
+    }
+
+    public String value() {
+      return value;
+    }
+
+    @Override
+    @JsonValue
+    public String toString() {
+      return String.valueOf(value);
+    }
+
+    /**
+     * Convert a String into String, as specified in the
+     * <a href="https://download.oracle.com/otndocs/jcp/jaxrs-2_0-fr-eval-spec/index.html">See JAX RS 2.0 Specification, section 3.2, p. 12</a>
+     */
+    public static SecondaryAccountInstructionStatusEnum fromString(String s) {
+      for (SecondaryAccountInstructionStatusEnum b : SecondaryAccountInstructionStatusEnum.values()) {
+        // using Objects.toString() to be safe if value type non-object type
+        // because types like 'int' etc. will be auto-boxed
+        if (java.util.Objects.toString(b.value).equals(s)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected string value '" + s + "'");
+    }
+
+    @JsonCreator
+    public static SecondaryAccountInstructionStatusEnum fromValue(String value) {
+      for (SecondaryAccountInstructionStatusEnum b : SecondaryAccountInstructionStatusEnum.values()) {
+        if (b.value.equals(value)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    }
+  }
+
+  private SecondaryAccountInstructionStatusEnum secondaryAccountInstructionStatus;
 
   public SecondaryAccountInstructionItem() {
   }
@@ -24,7 +72,7 @@ public class SecondaryAccountInstructionItem   {
           @JsonProperty(required = true, value = "accountId") String accountId,
           @JsonProperty(required = true, value = "secondaryUserId") String secondaryUserId,
           @JsonProperty(required = true, value = "otherAccountsAvailability") Boolean otherAccountsAvailability,
-          @JsonProperty(required = true, value = "secondaryAccountInstructionStatus") String secondaryAccountInstructionStatus
+          @JsonProperty(required = true, value = "secondaryAccountInstructionStatus") SecondaryAccountInstructionStatusEnum secondaryAccountInstructionStatus
   ) {
     this.accountId = accountId;
     this.secondaryUserId = secondaryUserId;
@@ -95,7 +143,7 @@ public class SecondaryAccountInstructionItem   {
   /**
    * Secondary account instruction status
    **/
-  public SecondaryAccountInstructionItem secondaryAccountInstructionStatus(String secondaryAccountInstructionStatus) {
+  public SecondaryAccountInstructionItem secondaryAccountInstructionStatus(SecondaryAccountInstructionStatusEnum secondaryAccountInstructionStatus) {
     this.secondaryAccountInstructionStatus = secondaryAccountInstructionStatus;
     return this;
   }
@@ -103,12 +151,12 @@ public class SecondaryAccountInstructionItem   {
 
   @ApiModelProperty(example = "inactive", required = true, value = "Secondary account instruction status")
   @JsonProperty(required = true, value = "secondaryAccountInstructionStatus")
-  @NotNull public String getSecondaryAccountInstructionStatus() {
+  @NotNull public SecondaryAccountInstructionStatusEnum getSecondaryAccountInstructionStatus() {
     return secondaryAccountInstructionStatus;
   }
 
   @JsonProperty(required = true, value = "secondaryAccountInstructionStatus")
-  public void setSecondaryAccountInstructionStatus(String secondaryAccountInstructionStatus) {
+  public void setSecondaryAccountInstructionStatus(SecondaryAccountInstructionStatusEnum secondaryAccountInstructionStatus) {
     this.secondaryAccountInstructionStatus = secondaryAccountInstructionStatus;
   }
 
@@ -151,10 +199,7 @@ public class SecondaryAccountInstructionItem   {
    * (except the first line).
    */
   private String toIndentedString(Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return o.toString().replace("\n", "\n    ");
+    return o == null ? "null" : o.toString().replace("\n", "\n    ");
   }
 
 
