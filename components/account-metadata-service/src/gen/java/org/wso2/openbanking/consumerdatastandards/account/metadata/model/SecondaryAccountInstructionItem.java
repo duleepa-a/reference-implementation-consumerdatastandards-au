@@ -17,7 +17,8 @@ public class SecondaryAccountInstructionItem   {
   private Boolean otherAccountsAvailability;
   public enum SecondaryAccountInstructionStatusEnum {
 
-    ACTIVE(String.valueOf("active")), INACTIVE(String.valueOf("inactive"));
+    @JsonProperty("active") ACTIVE(String.valueOf("active")),
+    @JsonProperty("inactive") INACTIVE(String.valueOf("inactive"));
 
 
     private String value;

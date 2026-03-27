@@ -312,7 +312,7 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(resultSet.getString("USER_ID"))
             .thenReturn("user-1").thenReturn("user-2");
         Mockito.when(resultSet.getString("INSTRUCTION_STATUS"))
-            .thenReturn("ACTIVE").thenReturn("inactive");
+            .thenReturn("active").thenReturn("inactive");
         Mockito.when(resultSet.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"))
             .thenReturn(true).thenReturn(false);
 
@@ -327,7 +327,8 @@ public class AccountMetadataDAOImplTest {
         Assert.assertEquals(result.get(0).getAccountId(), "acc-900");
         Assert.assertEquals(result.get(0).getSecondaryUserId(), "user-1");
         Assert.assertTrue(result.get(0).getOtherAccountsAvailability());
-        Assert.assertEquals(result.get(0).getSecondaryAccountInstructionStatus(), "ACTIVE");
+        Assert.assertEquals(result.get(0).getSecondaryAccountInstructionStatus(),
+                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.ACTIVE);
     }
 
     /**
@@ -539,7 +540,8 @@ public class AccountMetadataDAOImplTest {
         item.setAccountId(accountId);
         item.setSecondaryUserId(userId);
         item.setOtherAccountsAvailability(otherAccountsAvailable);
-        item.setSecondaryAccountInstructionStatus(status);
+        item.setSecondaryAccountInstructionStatus(
+                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(status));
         return item;
     }
 }

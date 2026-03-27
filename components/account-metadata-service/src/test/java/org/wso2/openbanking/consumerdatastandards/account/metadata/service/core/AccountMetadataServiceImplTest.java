@@ -330,7 +330,8 @@ public class AccountMetadataServiceImplTest {
         item.setAccountId(accountId);
         item.setSecondaryUserId(userId);
         item.setOtherAccountsAvailability(otherAccountsAvailable);
-        item.setSecondaryAccountInstructionStatus(status);
+        item.setSecondaryAccountInstructionStatus(
+                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(status));
         return item;
     }
 

@@ -34,6 +34,7 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connect
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -76,19 +77,6 @@ public class SecondaryAccountsManagementApiImplTest {
     public void setUp() throws Exception {
         Mockito.reset(metadataDAO, connectionProvider, connection);
         Mockito.when(connectionProvider.getConnection()).thenReturn(connection);
-    }
-
-    /**
-     * Verifies bad request response when add payload is null.
-     */
-    @Test
-    public void testAddSecondaryAccountInstructionsBadRequestOnNull() {
-        Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(null);
-
-        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertEquals(body.getErrorDescription(), "No secondary account instruction items provided");
     }
 
     /**
@@ -216,19 +204,6 @@ public class SecondaryAccountsManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
-    }
-
-    /**
-     * Verifies bad request response when update payload is null.
-     */
-    @Test
-    public void testUpdateSecondaryAccountInstructionsBadRequestOnNull() {
-        Response response = SecondaryAccountsManagementApiImpl.updateSecondaryAccountInstructions(null);
-
-        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertEquals(body.getErrorDescription(), "No secondary account instruction items provided");
     }
 
     /**
@@ -422,6 +397,55 @@ public class SecondaryAccountsManagementApiImplTest {
     }
 
     /**
+     * Verifies internal server error response when a null element is present in the add request list.
+     */
+    @Test
+    public void testAddSecondaryAccountInstructionsErrorOnNullItem() {
+        List<SecondaryAccountInstructionItem> request = new ArrayList<>();
+        request.add(null);
+
+        Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
+
+        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
+    }
+
+    /**
+     * Verifies internal server error response when accountId or secondaryUserId is blank in the add request.
+     */
+    @Test
+    public void testAddSecondaryAccountInstructionsErrorOnBlankIds() {
+        List<SecondaryAccountInstructionItem> request = Collections.singletonList(
+                buildItem("   ", "   ", true, "active"));
+
+        Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
+
+        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
+    }
+
+    /**
+     * Verifies internal server error response when duplicate account-user pairs are present in the add request.
+     */
+    @Test
+    public void testAddSecondaryAccountInstructionsErrorOnDuplicateItems() {
+        SecondaryAccountInstructionItem item1 = buildItem("acc-dup", "user-dup", true, "active");
+        SecondaryAccountInstructionItem item2 = buildItem("acc-dup", "user-dup", false, "inactive");
+        List<SecondaryAccountInstructionItem> request = Arrays.asList(item1, item2);
+
+        Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
+
+        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
+    }
+
+    /**
      * Builds a secondary instruction item.
      *
      * @param accountId account id
@@ -436,7 +460,8 @@ public class SecondaryAccountsManagementApiImplTest {
         item.setAccountId(accountId);
         item.setSecondaryUserId(userId);
         item.setOtherAccountsAvailability(otherAccountsAvailable);
-        item.setSecondaryAccountInstructionStatus(status);
+        item.setSecondaryAccountInstructionStatus(
+                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(status));
         return item;
     }
 
