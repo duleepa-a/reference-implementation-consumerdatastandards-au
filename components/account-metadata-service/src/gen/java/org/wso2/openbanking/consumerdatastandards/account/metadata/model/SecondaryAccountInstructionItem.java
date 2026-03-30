@@ -10,14 +10,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 @JsonTypeName("SecondaryAccountInstructionItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-26T15:09:37.936151200+05:30[Asia/Colombo]", comments = "Generator version: 7.21.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-30T10:36:24.937476800+05:30[Asia/Colombo]", comments = "Generator version: 7.21.0")
 public class SecondaryAccountInstructionItem   {
   private String accountId;
   private String secondaryUserId;
   private Boolean otherAccountsAvailability;
   public enum SecondaryAccountInstructionStatusEnum {
 
-    ACTIVE(String.valueOf("active")), INACTIVE(String.valueOf("inactive"));
+    active(String.valueOf("active")), inactive(String.valueOf("inactive"));
 
 
     private String value;
@@ -51,7 +51,7 @@ public class SecondaryAccountInstructionItem   {
       throw new IllegalArgumentException("Unexpected string value '" + s + "'");
     }
 
-    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    @JsonCreator
     public static SecondaryAccountInstructionStatusEnum fromValue(String value) {
       for (SecondaryAccountInstructionStatusEnum b : SecondaryAccountInstructionStatusEnum.values()) {
         if (b.value.equals(value)) {

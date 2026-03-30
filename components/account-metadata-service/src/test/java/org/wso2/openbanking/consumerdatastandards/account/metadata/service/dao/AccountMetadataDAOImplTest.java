@@ -328,7 +328,7 @@ public class AccountMetadataDAOImplTest {
         Assert.assertEquals(result.get(0).getSecondaryUserId(), "user-1");
         Assert.assertTrue(result.get(0).getOtherAccountsAvailability());
         Assert.assertEquals(result.get(0).getSecondaryAccountInstructionStatus(),
-                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.ACTIVE);
+                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.active);
     }
 
     /**

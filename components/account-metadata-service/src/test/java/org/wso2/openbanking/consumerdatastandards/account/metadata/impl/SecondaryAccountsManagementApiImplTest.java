@@ -34,7 +34,6 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connect
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -394,22 +393,6 @@ public class SecondaryAccountsManagementApiImplTest {
         ErrorResponse body = (ErrorResponse) response.getEntity();
         Assert.assertNotNull(body);
         Assert.assertTrue(body.getErrorDescription().startsWith("Failed to retrieve secondary account instructions:"));
-    }
-
-    /**
-     * Verifies internal server error response when a null element is present in the add request list.
-     */
-    @Test
-    public void testAddSecondaryAccountInstructionsErrorOnNullItem() {
-        List<SecondaryAccountInstructionItem> request = new ArrayList<>();
-        request.add(null);
-
-        Response response = SecondaryAccountsManagementApiImpl.addSecondaryAccountInstructions(request);
-
-        Assert.assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertTrue(body.getErrorDescription().startsWith("Failed to add secondary account instructions:"));
     }
 
     /**

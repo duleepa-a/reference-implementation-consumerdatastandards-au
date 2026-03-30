@@ -230,9 +230,6 @@ public class SecondaryAccountsManagementApiImpl {
         Map<String, SecondaryAccountInstructionItem> validatedItemsByCompositeKey = new HashMap<>();
 
         for (SecondaryAccountInstructionItem item : request) {
-            if (item == null) {
-                throw new AccountMetadataException("Request contains null secondary account instruction item");
-            }
             String accountId = StringUtils.trimToEmpty(item.getAccountId());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserId());
 
@@ -280,7 +277,7 @@ public class SecondaryAccountsManagementApiImpl {
      */
     private static boolean isConsentExpiryRequired(SecondaryAccountInstructionItem item) {
         return item != null && Boolean.FALSE.equals(item.getOtherAccountsAvailability())
-                && SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.INACTIVE
+                && SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.inactive
                         .equals(item.getSecondaryAccountInstructionStatus());
     }
 }

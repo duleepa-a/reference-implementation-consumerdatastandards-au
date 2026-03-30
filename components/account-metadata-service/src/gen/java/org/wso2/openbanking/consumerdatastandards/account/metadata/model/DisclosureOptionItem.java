@@ -9,58 +9,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+
 @JsonTypeName("DisclosureOptionItem")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-26T15:09:37.936151200+05:30[Asia/Colombo]", comments = "Generator version: 7.21.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-30T12:21:39.036572300+05:30[Asia/Colombo]", comments = "Generator version: 7.21.0")
 public class DisclosureOptionItem   {
     private String accountId;
-    public enum DisclosureOptionEnum {
-
-        NO_SHARING(String.valueOf("no-sharing")), PRE_APPROVAL(String.valueOf("pre-approval"));
-
-
-        private String value;
-
-        DisclosureOptionEnum (String v) {
-            value = v;
-        }
-
-        public String value() {
-            return value;
-        }
-
-        @Override
-        @JsonValue
-        public String toString() {
-            return String.valueOf(value);
-        }
-
-        /**
-         * Convert a String into String, as specified in the
-         * <a href="https://download.oracle.com/otndocs/jcp/jaxrs-2_0-fr-eval-spec/index.html">See JAX RS 2.0 Specification, section 3.2, p. 12</a>
-         */
-        public static DisclosureOptionEnum fromString(String s) {
-            for (DisclosureOptionEnum b : DisclosureOptionEnum.values()) {
-                // using Objects.toString() to be safe if value type non-object type
-                // because types like 'int' etc. will be auto-boxed
-                if (java.util.Objects.toString(b.value).equals(s)) {
-                    return b;
-                }
-            }
-            throw new IllegalArgumentException("Unexpected string value '" + s + "'");
-        }
-
-        @JsonCreator
-        public static DisclosureOptionEnum fromValue(String value) {
-            for (DisclosureOptionEnum b : DisclosureOptionEnum.values()) {
-                if (b.value.equals(value)) {
-                    return b;
-                }
-            }
-            throw new IllegalArgumentException("Unexpected value '" + value + "'");
-        }
-    }
-
-    private DisclosureOptionEnum disclosureOption;
+    private String disclosureOption;
 
     public DisclosureOptionItem() {
     }
@@ -68,7 +22,7 @@ public class DisclosureOptionItem   {
     @JsonCreator
     public DisclosureOptionItem(
             @JsonProperty(required = true, value = "accountId") String accountId,
-            @JsonProperty(required = true, value = "disclosureOption") DisclosureOptionEnum disclosureOption
+            @JsonProperty(required = true, value = "disclosureOption") String disclosureOption
     ) {
         this.accountId = accountId;
         this.disclosureOption = disclosureOption;
@@ -83,7 +37,7 @@ public class DisclosureOptionItem   {
     }
 
 
-    @ApiModelProperty(example = "143-000-B1234", required = true, value = "Account ID")
+    @ApiModelProperty(required = true, value = "Account ID")
     @JsonProperty(required = true, value = "accountId")
     @NotNull public String getAccountId() {
         return accountId;
@@ -97,7 +51,7 @@ public class DisclosureOptionItem   {
     /**
      * Disclosure option status
      **/
-    public DisclosureOptionItem disclosureOption(DisclosureOptionEnum disclosureOption) {
+    public DisclosureOptionItem disclosureOption(String disclosureOption) {
         this.disclosureOption = disclosureOption;
         return this;
     }
@@ -105,12 +59,12 @@ public class DisclosureOptionItem   {
 
     @ApiModelProperty(example = "no-sharing", required = true, value = "Disclosure option status")
     @JsonProperty(required = true, value = "disclosureOption")
-    @NotNull public DisclosureOptionEnum getDisclosureOption() {
+    @NotNull public String getDisclosureOption() {
         return disclosureOption;
     }
 
     @JsonProperty(required = true, value = "disclosureOption")
-    public void setDisclosureOption(DisclosureOptionEnum disclosureOption) {
+    public void setDisclosureOption(String disclosureOption) {
         this.disclosureOption = disclosureOption;
     }
 

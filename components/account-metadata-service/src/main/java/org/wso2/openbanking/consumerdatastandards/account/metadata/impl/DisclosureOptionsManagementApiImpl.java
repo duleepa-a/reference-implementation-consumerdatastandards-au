@@ -21,6 +21,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.DisclosureOptionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
@@ -62,8 +63,17 @@ public class DisclosureOptionsManagementApiImpl {
             List<String> accountIdsToCheck = new ArrayList<>();
 
             for (DisclosureOptionItem item : request) {
-                accountDisclosureMap.put(item.getAccountId(), item.getDisclosureOption().value());
-                accountIdsToCheck.add(item.getAccountId());
+                String disclosureOptionStatus = item.getDisclosureOption();
+                if (isValidDOMSStatus(disclosureOptionStatus)) {
+                    accountDisclosureMap.put(item.getAccountId(), disclosureOptionStatus);
+                    accountIdsToCheck.add(item.getAccountId());
+                } else {
+                    log.error("[DOMS] Invalid disclosure option status for account: " +
+                            item.getAccountId() + " - " + disclosureOptionStatus);
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status. " +
+                                    "Allowed values: no-sharing, pre-approval")).build();
+                }
             }
 
             Map<String, String> existingStatuses =
@@ -80,8 +90,7 @@ public class DisclosureOptionsManagementApiImpl {
             if (!existingAccountsToUpdate.isEmpty()) {
                 accountMetadataService.updateBatchDisclosureOptions(existingAccountsToUpdate);
                 for (Map.Entry<String, String> entry : existingAccountsToUpdate.entrySet()) {
-                    updatedItems.add(new DisclosureOptionItem(entry.getKey(),
-                            DisclosureOptionItem.DisclosureOptionEnum.fromValue(entry.getValue())));
+                    updatedItems.add(new DisclosureOptionItem(entry.getKey(), entry.getValue()));
                 }
             }
 
@@ -131,8 +140,7 @@ public class DisclosureOptionsManagementApiImpl {
             Map<String, String> result = accountMetadataService.getBatchDisclosureOptions(accountIdList);
 
             List<DisclosureOptionItem> responseList = result.entrySet().stream()
-                    .map(entry -> new DisclosureOptionItem(entry.getKey(),
-                            DisclosureOptionItem.DisclosureOptionEnum.fromValue(entry.getValue())))
+                    .map(entry -> new DisclosureOptionItem(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
 
             return Response.ok().entity(responseList).build();
@@ -159,8 +167,17 @@ public class DisclosureOptionsManagementApiImpl {
             List<String> accountIdsToCheck = new ArrayList<>();
 
             for (DisclosureOptionItem item : request) {
-                accountDisclosureMap.put(item.getAccountId(), item.getDisclosureOption().value());
-                accountIdsToCheck.add(item.getAccountId());
+                String disclosureOptionStatus = item.getDisclosureOption();
+                if (isValidDOMSStatus(disclosureOptionStatus)) {
+                    accountDisclosureMap.put(item.getAccountId(), disclosureOptionStatus);
+                    accountIdsToCheck.add(item.getAccountId());
+                } else {
+                    log.error("[DOMS] Invalid disclosure option status for account: " +
+                            item.getAccountId() + " - " + disclosureOptionStatus);
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status" +
+                                    " provided for acc-1, Allowed values: pre-approval, no-sharing")).build();
+                }
             }
 
             Map<String, String> existingStatuses = accountMetadataService.getBatchDisclosureOptions(accountIdsToCheck);
@@ -176,8 +193,7 @@ public class DisclosureOptionsManagementApiImpl {
             if (!newAccounts.isEmpty()) {
                 accountMetadataService.addBatchDisclosureOptions(newAccounts);
                 for (Map.Entry<String, String> entry : newAccounts.entrySet()) {
-                    addedItems.add(new DisclosureOptionItem(entry.getKey(),
-                            DisclosureOptionItem.DisclosureOptionEnum.fromValue(entry.getValue())));
+                    addedItems.add(new DisclosureOptionItem(entry.getKey(), entry.getValue()));
                 }
             }
 
@@ -196,5 +212,17 @@ public class DisclosureOptionsManagementApiImpl {
                     .entity(new ErrorResponse().errorDescription("Failed to add disclosure options: " + e.getMessage()))
                     .build();
         }
+    }
+
+    /**
+     * Validates if the disclosure option status is a valid DOMS status.
+     * Valid values are: no-sharing, pre-approval
+     *
+     * @param status the status to validate
+     * @return true if the status is valid, false otherwise
+     */
+    private static boolean isValidDOMSStatus(String status) {
+        return status != null && (status.equalsIgnoreCase(CommonConstants.DOMS_STATUS_PRE_APPROVAL) ||
+                status.equalsIgnoreCase(CommonConstants.DOMS_STATUS_NO_SHARING));
     }
 }
