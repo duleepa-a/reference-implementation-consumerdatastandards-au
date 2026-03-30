@@ -17,8 +17,7 @@ public class SecondaryAccountInstructionItem   {
   private Boolean otherAccountsAvailability;
   public enum SecondaryAccountInstructionStatusEnum {
 
-    @JsonProperty("active") ACTIVE(String.valueOf("active")),
-    @JsonProperty("inactive") INACTIVE(String.valueOf("inactive"));
+    ACTIVE(String.valueOf("active")), INACTIVE(String.valueOf("inactive"));
 
 
     private String value;
@@ -52,7 +51,7 @@ public class SecondaryAccountInstructionItem   {
       throw new IllegalArgumentException("Unexpected string value '" + s + "'");
     }
 
-    @JsonCreator
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
     public static SecondaryAccountInstructionStatusEnum fromValue(String value) {
       for (SecondaryAccountInstructionStatusEnum b : SecondaryAccountInstructionStatusEnum.values()) {
         if (b.value.equals(value)) {
