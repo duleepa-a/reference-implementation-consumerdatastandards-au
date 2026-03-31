@@ -18,7 +18,7 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries;
 
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 
@@ -75,6 +75,7 @@ public interface AccountMetadataDbQueries {
      */
     String getBatchUpdateSecondaryAccountInstructionQuery();
 
+    // DB Queries related to BNR Feature.
     /**
      * Get the SQL query for retrieving blocked entity strings for multiple account-user pairs.
      *
@@ -101,10 +102,10 @@ public interface AccountMetadataDbQueries {
      * Get the SQL query for retrieving business stakeholder permission records for
      * multiple account-user pairs.
      *
-     * @param items list of account-user permission records with accountId and userId
+     * @param accountUserPairs list of (accountId, userId) pairs to generate placeholders for
      * @return the SQL query with placeholders
      */
-    String getBatchGetBusinessStakeholderPermissionQuery(List<BusinessStakeholderPermissionItem> items);
+    String getBatchGetBusinessStakeholderPermissionQuery(List<Pair<String, String>> accountUserPairs);
 
     /**
      * Get the SQL query for retrieving business stakeholder permission records for

@@ -168,8 +168,7 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
      */
     @Override
     public List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(
-            List<Pair<String, String>> accountUserPairs)
-            throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
         try (Connection conn = connectionProvider.getConnection()) {
             return metadataDAO.getBatchSecondaryAccountInstructions(conn, accountUserPairs);
@@ -276,16 +275,16 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
     /**
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.
      *
-     * @param items list of account-user permission records with accountId and userId
+     * @param accountUserPairs list of (accountId, userId) pairs to query
      * @return list of existing business stakeholder permission records
      * @throws AccountMetadataException if an error occurs
      */
     @Override
         public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
-            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
         try (Connection conn = connectionProvider.getConnection()) {
-            return metadataDAO.getBatchBusinessStakeholderPermissions(conn, items);
+            return metadataDAO.getBatchBusinessStakeholderPermissions(conn, accountUserPairs);
         } catch (SQLException e) {
             log.error("Error batch retrieving business stakeholder permissions", e);
             throw new AccountMetadataException("Failed to batch retrieve business stakeholder permissions", e);

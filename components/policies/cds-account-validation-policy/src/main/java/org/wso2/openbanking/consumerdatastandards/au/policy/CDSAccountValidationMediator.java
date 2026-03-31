@@ -102,6 +102,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                         continue;
                     }
 
+                    // Extracting the primary userID
                     if (CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG.equalsIgnoreCase(authType)) {
                         userId = authResource.optString(CDSAccountValidationConstants.USER_ID_TAG);
                     }
@@ -124,7 +125,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 JSONObject mappingResource = consentMappingResources.getJSONObject(i);
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
-                // Exclude linked-member and secondary-user accounts in account validation call.(deduplicating accounts)
+                // Removing duplicates of linked-member,secondary-user,business accounts in account validation calls.
                 if (excludedAuthIds.contains(authId)) {
                     continue;
                 }
@@ -140,14 +141,14 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 JSONObject mappingResource = consentMappingResources.getJSONObject(i);
                 String authId = mappingResource.optString(CDSAccountValidationConstants.AUTH_ID_TAG);
 
-                // Removing consentMappingResources of joint account owners and secondary account owners
+                // Removing consentMappingResources of other users.
                 if (excludedAuthIds.contains(authId)) {
                     continue;
                 }
 
                 String accountId = mappingResource.optString(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG);
                 if (!blockedAccounts.contains(accountId)) {
-                    // Normalize the account id field from Accelerator format (account_id) to CDS format (accountId).
+                    // Changing the Account id field from Accelerator format (account_id) to CDS format (accountId).
                     mappingResource.put(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, accountId);
                     mappingResource.remove(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG);
                     filteredConsentMappings.put(mappingResource);

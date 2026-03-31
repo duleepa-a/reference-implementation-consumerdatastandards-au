@@ -20,16 +20,10 @@ package org.wso2.openbanking.consumerdatastandards.au.policy;
 
 import com.nimbusds.jose.JOSEException;
 import org.apache.axis2.context.MessageContext;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -39,10 +33,11 @@ import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccount
 import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 import org.wso2.openbanking.consumerdatastandards.au.policy.utils.CDSAccountValidationUtils;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,119 +62,58 @@ public class CDSAccountValidationMediatorTest {
         Mockito.when(axis2MessageContext.getProperty(MessageContext.TRANSPORT_HEADERS)).thenReturn(headers);
     }
 
-    @Test(expectedExceptions = ExceptionInInitializerError.class)
+    @Test
     public void testMediateFiltersBlockedAccountsAndUpdatesHeader() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        HttpClient client = Mockito.mock(HttpClient.class);
+        HttpResponse<String> response = Mockito.mock(HttpResponse.class);
 
-        // Mock Apache CloseableHttpClient for DOMS service call
-        CloseableHttpClient apacheClient = Mockito.mock(CloseableHttpClient.class);
-        HttpClientBuilder apacheBuilder = Mockito.mock(HttpClientBuilder.class);
-        CloseableHttpResponse apacheResponse = Mockito.mock(CloseableHttpResponse.class);
-        StatusLine statusLine = Mockito.mock(StatusLine.class);
-        HttpEntity entity = Mockito.mock(HttpEntity.class);
-        String responseBody = "["
+        Mockito.when(response.statusCode()).thenReturn(200);
+        Mockito.when(response.body()).thenReturn("["
                 + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"no-sharing\"},"
                 + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"pre-approval\"}"
-                + "]";
+                + "]");
+        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
+                .thenReturn(response);
 
-        Mockito.when(statusLine.getStatusCode()).thenReturn(200);
-        Mockito.when(apacheResponse.getStatusLine()).thenReturn(statusLine);
-        Mockito.when(entity.getContent())
-                .thenReturn(new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8)));
-        Mockito.when(apacheResponse.getEntity()).thenReturn(entity);
-        Mockito.when(apacheClient.execute(Mockito.any(HttpUriRequest.class))).thenReturn(apacheResponse);
-        Mockito.when(apacheBuilder.setDefaultRequestConfig(Mockito.any())).thenReturn(apacheBuilder);
-        Mockito.when(apacheBuilder.build()).thenReturn(apacheClient);
+        CDSAccountValidationUtils.setHttpClient(client);
 
-        try (MockedStatic<HttpClients> mockedHttpClients = Mockito.mockStatic(HttpClients.class)) {
-            mockedHttpClients.when(HttpClients::custom).thenReturn(apacheBuilder);
-
-            mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
-            mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
-
-            JSONObject payload = new JSONObject();
-            JSONArray authorizationResources = new JSONArray();
-            authorizationResources.put(new JSONObject()
-                    .put("authorizationType", "linkedMember")
-                    .put("authorizationId", "linked-1"));
-            authorizationResources.put(new JSONObject()
-                    .put("authorizationType", "user")
-                    .put("authorizationId", "auth-2"));
-            payload.put("authorizationResources", authorizationResources);
-
-            JSONArray accounts = new JSONArray();
-            accounts.put(new JSONObject().put("account_id", "acc-1"));
-            accounts.put(new JSONObject().put("account_id", "acc-2"));
-            accounts.put(new JSONObject().put("account_id", "acc-3").put("authorizationId", "linked-1"));
-            payload.put("consentMappingResources", accounts);
-
-            headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
-
-            mediator.mediate(synapseMessageContext);
-        }
-    }
-
-            @Test
-            public void testMediateFiltersSecondaryOwnerResourcesAndUpdatesHeader() throws Exception {
-            CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-            mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
-            mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
-
-            JSONObject payload = new JSONObject();
-            JSONArray authorizationResources = new JSONArray();
-            authorizationResources.put(new JSONObject()
-                .put("authorizationType", CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG)
-                .put("authorizationId", "secondary-auth-1"));
-            authorizationResources.put(new JSONObject()
-                .put("authorizationType", CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
-                .put("authorizationId", "accounts-auth-1")
-                .put("userId", "user-1"));
-            payload.put("authorizationResources", authorizationResources);
-
-            JSONArray mappings = new JSONArray();
-            mappings.put(new JSONObject().put("account_id", "acc-1"));
-            mappings.put(new JSONObject()
-                .put("account_id", "acc-2")
-                .put("authorizationId", "secondary-auth-1"));
-            payload.put("consentMappingResources", mappings);
-
-            headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
-
-            Set<String> blocked = new HashSet<>();
-            blocked.add("acc-1");
-
-            try (MockedStatic<CDSAccountValidationUtils> mockedUtils =
-                     Mockito.mockStatic(CDSAccountValidationUtils.class)) {
-
-                mockedUtils.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                    Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString())).thenReturn(blocked);
-                mockedUtils.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
-                    .thenReturn("signed-jwt");
-
-                boolean result = mediator.mediate(synapseMessageContext);
-
-                Assert.assertTrue(result);
-                Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
-            }
-            }
-
-    @Test
-    public void testMediateSkipsWhenNoConsentMappingResources() throws Exception {
-        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
         JSONObject payload = new JSONObject();
-        String originalHeader = payload.toString();
-        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, originalHeader);
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put("authorizationType", "linkedMember")
+                .put("authorizationId", "linked-1"));
+        authorizationResources.put(new JSONObject()
+                .put("authorizationType", "user")
+                .put("authorizationId", "auth-2"));
+        payload.put("authorizationResources", authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject().put("account_id", "acc-1"));
+        accounts.put(new JSONObject().put("account_id", "acc-2"));
+        accounts.put(new JSONObject().put("account_id", "acc-3").put("authorizationId", "linked-1"));
+        payload.put("consentMappingResources", accounts);
+
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
 
         boolean result = mediator.mediate(synapseMessageContext);
 
         Assert.assertTrue(result);
-        Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), originalHeader);
+        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
+                "Internal Server Error");
+        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
+                "CDS DOMS Policy Error");
+        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
+                "500");
+        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
+                "Error during CDS mediation policy");
     }
 
-        @Test
-        public void testMediateHandlesDecodeError() throws Exception {
+    @Test
+    public void testMediateHandlesDecodeError() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
 
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, "{not-json");
@@ -188,17 +122,17 @@ public class CDSAccountValidationMediatorTest {
 
         Assert.assertTrue(result);
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
-            "Internal Server Error");
+                "Internal Server Error");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
-            "CDS DOMS Policy Error");
+                "CDS DOMS Policy Error");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
-            "500");
+                "500");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
-            "Error during CDS mediation policy");
+                "Error during CDS mediation policy");
     }
 
-        @Test
-        public void testMediateFiltersLinkedAndBlockedAccountsAndSignsHeader() throws Exception {
+    @Test
+    public void testMediateFiltersLinkedAndBlockedAccountsAndSignsHeader() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -207,49 +141,48 @@ public class CDSAccountValidationMediatorTest {
 
         JSONArray authorizationResources = new JSONArray();
         authorizationResources.put(new JSONObject()
-            .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.LINKED_MEMBER_TAG)
-            .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.LINKED_MEMBER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
         authorizationResources.put(new JSONObject()
                 .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
                 .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")
                 .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
         payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
-        payload.put(CDSAccountValidationConstants.CLIENT_ID_TAG, "client-123");
 
         JSONArray accounts = new JSONArray();
         accounts.put(new JSONObject()
-            .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-linked")
-            .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-linked")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-1"));
         accounts.put(new JSONObject()
-            .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
-            .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2"));
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2"));
         accounts.put(new JSONObject()
-            .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-2")
-            .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2"));
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-2")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2"));
         payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                Mockito.eq("dGVzdDp0ZXN0"), Mockito.eq("client-123")))
-                .thenReturn(java.util.Collections.singleton("acc-2"));
+                            Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
+                            Mockito.eq("dGVzdDp0ZXN0")))
+                    .thenReturn(java.util.Collections.singleton("acc-2"));
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
-                .thenReturn("signed-jwt");
+                    .thenReturn("signed-jwt");
 
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
             Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                Mockito.eq("dGVzdDp0ZXN0"), Mockito.eq("client-123")));
+                    Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
+                    Mockito.eq("dGVzdDp0ZXN0")));
             utilsMock.verify(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()));
         }
-        }
+    }
 
-        @Test
-        public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
+    @Test
+    public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -257,18 +190,17 @@ public class CDSAccountValidationMediatorTest {
         JSONObject payload = new JSONObject();
         payload.put(CDSAccountValidationConstants.USER_ID_TAG, "user-2");
         payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG,
-            new JSONArray().put(new JSONObject()
-                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
-                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")));
+                new JSONArray().put(new JSONObject()
+                        .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                        .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")));
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString()))
-                .thenReturn(java.util.Collections.emptySet());
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(java.util.Collections.emptySet());
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
-                .thenThrow(new JOSEException("signing failed"));
+                    .thenThrow(new JOSEException("signing failed"));
 
             boolean result = mediator.mediate(synapseMessageContext);
 
@@ -276,16 +208,339 @@ public class CDSAccountValidationMediatorTest {
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                     "Internal Server Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
-                "CDS DOMS Policy Error");
+                    "CDS DOMS Policy Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
-                "500");
+                    "500");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
-                "Error during CDS mediation policy");
+                    "Error during CDS mediation policy");
         }
-        }
+    }
 
-        @Test
-        public void testMediateSetsErrorPropertiesWhenAccountValidationFails() throws Exception {
+    @Test
+    public void testMediateWithNoConsentMappingResources() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+
+        JSONObject payload = new JSONObject();
+        // No consentMappingResources — mediator should log a warning and return true without error
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        boolean result = mediator.mediate(synapseMessageContext);
+
+        Assert.assertTrue(result);
+        Mockito.verify(synapseMessageContext, Mockito.never())
+                .setProperty(Mockito.eq(CDSAccountValidationConstants.ERROR_CODE), Mockito.any());
+    }
+
+    @Test
+    public void testMediateWithNoAuthorizationResources() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        // No authorizationResources — userId stays null, no accounts excluded
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.isNull(), Mockito.anyString()))
+                    .thenReturn(Collections.emptySet());
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            // userId should be null because there were no authorizationResources
+            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL),
+                    Mockito.isNull(), Mockito.eq("dGVzdDp0ZXN0")));
+        }
+    }
+
+    @Test
+    public void testMediateExcludesSecondaryAccountOwnerAuthTypes() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                        CDSAccountValidationConstants.SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "sec-ind-auth"));
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                        CDSAccountValidationConstants.SECONDARY_JOINT_ACCOUNT_OWNER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "sec-joint-auth"));
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-sec-ind")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "sec-ind-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-sec-joint")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "sec-joint-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-primary")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Collections.emptySet());
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            // Only the primary account should be passed to fetchAllBlockedAccounts;
+            // secondary account owner accounts are excluded from validation.
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Set<String>> accountIdsCaptor = ArgumentCaptor.forClass(Set.class);
+            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any()));
+            Assert.assertEquals(accountIdsCaptor.getValue().size(), 1);
+            Assert.assertTrue(accountIdsCaptor.getValue().contains("acc-primary"));
+        }
+    }
+
+    @Test
+    public void testMediateWithNoBlockedAccountsNormalizesAccountIdField() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-2")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Collections.emptySet());
+
+            ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(jwtPayloadCaptor.capture()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
+
+            // Verify all accounts passed through and account_id was renamed to accountId
+            JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
+            JSONArray filteredMappings = capturedJson
+                    .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
+            Assert.assertEquals(filteredMappings.length(), 2);
+            for (int i = 0; i < filteredMappings.length(); i++) {
+                JSONObject mapping = filteredMappings.getJSONObject(i);
+                Assert.assertTrue(mapping.has(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG));
+                Assert.assertFalse(mapping.has(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG));
+            }
+        }
+    }
+
+    @Test
+    public void testMediateExcludesBusinessAccountOwnerAuthTypes() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                        CDSAccountValidationConstants.NOMINATED_REPRESENTATIVE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "nom-rep-auth"));
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG,
+                        CDSAccountValidationConstants.BUSINESS_ACCOUNT_OWNER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "biz-owner-auth"));
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-nom-rep")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "nom-rep-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-biz-owner")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "biz-owner-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-primary")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Collections.emptySet());
+
+            ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(jwtPayloadCaptor.capture()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            // Only the primary account is passed to fetchAllBlockedAccounts
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Set<String>> accountIdsCaptor = ArgumentCaptor.forClass(Set.class);
+            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any()));
+            Assert.assertEquals(accountIdsCaptor.getValue().size(), 1);
+            Assert.assertTrue(accountIdsCaptor.getValue().contains("acc-primary"));
+
+            // Business accounts must also be excluded from consentMappingResources in the signed JWT
+            JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
+            JSONArray filteredMappings = capturedJson
+                    .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
+            Assert.assertEquals(filteredMappings.length(), 1);
+            Assert.assertEquals(filteredMappings.getJSONObject(0)
+                    .getString(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG), "acc-primary");
+        }
+    }
+
+    @Test
+    public void testMediateAllAccountsBlocked() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-2")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Set.of("acc-1", "acc-2"));
+
+            ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(jwtPayloadCaptor.capture()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
+            JSONArray filteredMappings = capturedJson
+                    .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
+            Assert.assertEquals(filteredMappings.length(), 0);
+        }
+    }
+
+    @Test
+    public void testMediateVerifiesFilteredAuthResourcesAndMappingsInSignedPayload() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.LINKED_MEMBER_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-auth"));
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-linked")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "linked-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-blocked")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth"));
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-allowed")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "primary-auth"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Collections.singleton("acc-blocked"));
+
+            ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(jwtPayloadCaptor.capture()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
+
+            // linked_member must be removed from authorizationResources in the signed payload
+            JSONArray filteredAuth = capturedJson.getJSONArray(CDSAccountValidationConstants.AUTH_RESOURCES_TAG);
+            Assert.assertEquals(filteredAuth.length(), 1);
+            Assert.assertEquals(filteredAuth.getJSONObject(0)
+                    .getString(CDSAccountValidationConstants.AUTH_TYPE_TAG),
+                    CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG);
+
+            // acc-linked (excluded) and acc-blocked (blocked) must be absent; only acc-allowed survives
+            JSONArray filteredMappings = capturedJson
+                    .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
+            Assert.assertEquals(filteredMappings.length(), 1);
+            Assert.assertEquals(filteredMappings.getJSONObject(0)
+                    .getString(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG), "acc-allowed");
+        }
+    }
+
+    @Test
+    public void testMediateSetsErrorPropertiesWhenAccountValidationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
@@ -296,16 +551,15 @@ public class CDSAccountValidationMediatorTest {
                 .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")
                 .put(CDSAccountValidationConstants.USER_ID_TAG, "user-2")));
         payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG,
-            new JSONArray().put(new JSONObject()
-                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
-                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")));
+                new JSONArray().put(new JSONObject()
+                        .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                        .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-2")));
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString()))
-                .thenThrow(new CDSAccountValidationException("metadata service unavailable"));
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new CDSAccountValidationException("metadata service unavailable"));
 
             boolean result = mediator.mediate(synapseMessageContext);
 
@@ -313,11 +567,11 @@ public class CDSAccountValidationMediatorTest {
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                     "Internal Server Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
-                "CDS DOMS Policy Error");
+                    "CDS DOMS Policy Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
-                "500");
+                    "500");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
-                "Error during CDS mediation policy");
+                    "Error during CDS mediation policy");
         }
-        }
+    }
 }

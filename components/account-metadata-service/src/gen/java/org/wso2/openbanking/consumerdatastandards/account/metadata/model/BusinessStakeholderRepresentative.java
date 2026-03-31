@@ -14,19 +14,67 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 
 
+
 @JsonTypeName("BusinessStakeholderRepresentative")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-09T16:20:09.461136400+05:30[Asia/Colombo]", comments = "Generator version: 7.19.0")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen", date = "2026-03-23T16:02:15.442856200+05:30[Asia/Colombo]", comments = "Generator version: 7.20.0")
 public class BusinessStakeholderRepresentative   {
   private String name;
-  private String permission;
+  public enum PermissionEnum {
+
+    VIEW(String.valueOf("VIEW")), AUTHORIZE(String.valueOf("AUTHORIZE"));
+
+
+    private String value;
+
+    PermissionEnum (String v) {
+      value = v;
+    }
+
+    public String value() {
+      return value;
+    }
+
+    @Override
+    @JsonValue
+    public String toString() {
+      return String.valueOf(value);
+    }
+
+    /**
+     * Convert a String into String, as specified in the
+     * <a href="https://download.oracle.com/otndocs/jcp/jaxrs-2_0-fr-eval-spec/index.html">See JAX RS 2.0 Specification, section 3.2, p. 12</a>
+     */
+    public static PermissionEnum fromString(String s) {
+      for (PermissionEnum b : PermissionEnum.values()) {
+        // using Objects.toString() to be safe if value type non-object type
+        // because types like 'int' etc. will be auto-boxed
+        if (java.util.Objects.toString(b.value).equals(s)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected string value '" + s + "'");
+    }
+
+    @JsonCreator
+    public static PermissionEnum fromValue(String value) {
+      for (PermissionEnum b : PermissionEnum.values()) {
+        if (b.value.equals(value)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    }
+  }
+
+  private PermissionEnum permission;
 
   public BusinessStakeholderRepresentative() {
   }
 
   @JsonCreator
   public BusinessStakeholderRepresentative(
-    @JsonProperty(required = true, value = "name") String name,
-    @JsonProperty(required = true, value = "permission") String permission
+          @JsonProperty(required = true, value = "name") String name,
+          @JsonProperty(required = true, value = "permission") PermissionEnum permission
   ) {
     this.name = name;
     this.permission = permission;
@@ -40,10 +88,10 @@ public class BusinessStakeholderRepresentative   {
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "nominatedUser1@wso2.com@carbon.super", required = true, value = "Nominated representative user identifier")
   @JsonProperty(required = true, value = "name")
-  @NotNull public String getName() {
+  @NotNull  @Size(min=1)public String getName() {
     return name;
   }
 
@@ -55,20 +103,20 @@ public class BusinessStakeholderRepresentative   {
   /**
    * Permission assigned to the nominated representative
    **/
-  public BusinessStakeholderRepresentative permission(String permission) {
+  public BusinessStakeholderRepresentative permission(PermissionEnum permission) {
     this.permission = permission;
     return this;
   }
 
-  
+
   @ApiModelProperty(example = "AUTHORIZE", required = true, value = "Permission assigned to the nominated representative")
   @JsonProperty(required = true, value = "permission")
-  @NotNull public String getPermission() {
+  @NotNull public PermissionEnum getPermission() {
     return permission;
   }
 
   @JsonProperty(required = true, value = "permission")
-  public void setPermission(String permission) {
+  public void setPermission(PermissionEnum permission) {
     this.permission = permission;
   }
 
@@ -83,7 +131,7 @@ public class BusinessStakeholderRepresentative   {
     }
     BusinessStakeholderRepresentative businessStakeholderRepresentative = (BusinessStakeholderRepresentative) o;
     return Objects.equals(this.name, businessStakeholderRepresentative.name) &&
-        Objects.equals(this.permission, businessStakeholderRepresentative.permission);
+            Objects.equals(this.permission, businessStakeholderRepresentative.permission);
   }
 
   @Override
@@ -95,7 +143,7 @@ public class BusinessStakeholderRepresentative   {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class BusinessStakeholderRepresentative {\n");
-    
+
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    permission: ").append(toIndentedString(permission)).append("\n");
     sb.append("}");

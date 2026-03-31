@@ -2,7 +2,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.api;
 
 import org.wso2.openbanking.consumerdatastandards.account.metadata.impl.BusinessStakeholdersManagementApiImpl;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderDeleteItem;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderUpsertItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 
@@ -37,8 +37,8 @@ public class BusinessStakeholdersApi {
         @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
         @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
-    public Response addBusinessStakeholdersPost(@Valid @NotNull List<@Valid BusinessStakeholderUpsertItem> businessStakeholderUpsertItem) {
-        return BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(businessStakeholderUpsertItem);
+    public Response addBusinessStakeholdersPost(@Valid @NotNull List<@Valid BusinessStakeholderItem> businessStakeholderItem) {
+        return BusinessStakeholdersManagementApiImpl.addBusinessStakeholders(businessStakeholderItem);
     }
 
     @GET
@@ -90,7 +90,7 @@ public class BusinessStakeholdersApi {
         @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
         @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
-    public Response updateBusinessStakeholdersPut(@Valid @NotNull List<@Valid BusinessStakeholderUpsertItem> businessStakeholderUpsertItem) {
-        return BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(businessStakeholderUpsertItem);
+    public Response updateBusinessStakeholdersPut(@Valid @NotNull List<@Valid BusinessStakeholderItem> businessStakeholderItem) {
+        return BusinessStakeholdersManagementApiImpl.updateBusinessStakeholders(businessStakeholderItem);
     }
 }

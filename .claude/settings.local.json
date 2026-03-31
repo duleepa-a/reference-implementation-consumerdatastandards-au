@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn test:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/wso2/financial-services-accelerator/main/financial-services-accelerator/internal-webapps/org.wso2.financial.services.accelerator.consent.mgt.endpoint/src/main/java/org/wso2/financial/services/accelerator/consent/mgt/endpoint/error/ConsentThrowableMapper.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/wso2/financial-services-accelerator/main/financial-services-accelerator/internal-webapps/org.wso2.financial.services.accelerator.consent.mgt.endpoint/src/main/webapp/WEB-INF/web.xml\")"
+    ]
+  }
+}

@@ -55,7 +55,14 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
         "OTHER_ACCOUNTS_AVAILABILITY";
+<<<<<<< HEAD
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES = "BLOCK_LEGAL_ENTITIES";
+=======
+    // Column names for business stakeholder permissions table.
+    private static final String BNR_PERMISSIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_USER_ID = "USER_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_PERMISSION = "PERMISSION";
+>>>>>>> 7b8982ec358f3788db2d7db3ee49cd7a7d38a552
 
     private final AccountMetadataDbQueries dbQueries;
 
@@ -211,7 +218,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                     instructionItem.setAccountId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID));
                     instructionItem.setSecondaryUserId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_USER_ID));
                     instructionItem.setSecondaryAccountInstructionStatus(
-                        rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_STATUS));
+                            SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(
+                                    rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_STATUS)));
                     instructionItem.setOtherAccountsAvailability(
                         rs.getBoolean(SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY));
                     resultItems.add(instructionItem);
@@ -248,7 +256,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             for (SecondaryAccountInstructionItem item : instructionItems) {
                 stmt.setString(1, item.getAccountId());
                 stmt.setString(2, item.getSecondaryUserId());
-                stmt.setString(3, item.getSecondaryAccountInstructionStatus());
+                stmt.setString(3, String.valueOf(item.getSecondaryAccountInstructionStatus()));
                 stmt.setObject(4, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(5, currentTimestamp);
                 stmt.addBatch();
@@ -282,7 +290,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
 
             for (SecondaryAccountInstructionItem item : instructionItems) {
-                stmt.setString(1, item.getSecondaryAccountInstructionStatus());
+                stmt.setString(1, String.valueOf(item.getSecondaryAccountInstructionStatus()));
                 stmt.setObject(2, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(3, currentTimestamp);
                 stmt.setString(4, item.getAccountId());
@@ -433,28 +441,29 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      */
     @Override
         public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(Connection conn,
-            List<BusinessStakeholderPermissionItem> items) throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
-        if (items == null) {
+        if (accountUserPairs == null) {
             return Collections.emptyList();
         }
 
-        String sql = dbQueries.getBatchGetBusinessStakeholderPermissionQuery(items);
+        String sql = dbQueries.getBatchGetBusinessStakeholderPermissionQuery(accountUserPairs);
         List<BusinessStakeholderPermissionItem> resultItems = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int parameterIndex = 1;
-            for (BusinessStakeholderPermissionItem item : items) {
-                stmt.setString(parameterIndex++, item.getAccountId());
-                stmt.setString(parameterIndex++, item.getUserId());
+            for (Pair<String, String> pair : accountUserPairs) {
+                stmt.setString(parameterIndex++, pair.getLeft());
+                stmt.setString(parameterIndex++, pair.getRight());
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
-                    permissionItem.setAccountId(rs.getString("ACCOUNT_ID"));
-                    permissionItem.setUserId(rs.getString("USER_ID"));
-                    permissionItem.setPermission(rs.getString("PERMISSION"));
+                    permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
+                    permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
+                    permissionItem.setPermission(BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                            rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION)));
                     resultItems.add(permissionItem);
                 }
             }
@@ -492,9 +501,10 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem();
-                    permissionItem.setAccountId(rs.getString("ACCOUNT_ID"));
-                    permissionItem.setUserId(rs.getString("USER_ID"));
-                    permissionItem.setPermission(rs.getString("PERMISSION"));
+                    permissionItem.setAccountId(rs.getString(BNR_PERMISSIONS_COLUMN_ACCOUNT_ID));
+                    permissionItem.setUserId(rs.getString(BNR_PERMISSIONS_COLUMN_USER_ID));
+                    permissionItem.setPermission(BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                            rs.getString(BNR_PERMISSIONS_COLUMN_PERMISSION)));
                     resultItems.add(permissionItem);
                 }
             }
@@ -531,7 +541,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             for (BusinessStakeholderPermissionItem item : permissionItems) {
                 stmt.setString(1, item.getAccountId());
                 stmt.setString(2, item.getUserId());
-                stmt.setString(3, item.getPermission());
+                stmt.setString(3, item.getPermission().value());
                 stmt.setTimestamp(4, currentTimestamp);
                 stmt.addBatch();
             }
@@ -564,7 +574,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
 
             for (BusinessStakeholderPermissionItem item : permissionItems) {
-                stmt.setString(1, item.getPermission());
+                stmt.setString(1, item.getPermission().value());
                 stmt.setTimestamp(2, currentTimestamp);
                 stmt.setString(3, item.getAccountId());
                 stmt.setString(4, item.getUserId());

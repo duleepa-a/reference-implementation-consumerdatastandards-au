@@ -124,7 +124,17 @@
       <version>${jackson.annotations.version}</version>
       <scope>compile</scope>
     </dependency>
-
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>2.21.1</version>
+        <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.13.4.2</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -222,6 +232,6 @@
     <org.json.version>20231013</org.json.version>
     <testng.version>7.7.0</testng.version>
     <commons.codec.version>1.21.0</commons.codec.version>
-    <jackson.annotations.version>2.19.2</jackson.annotations.version>
+    <jackson.annotations.version>2.13.4</jackson.annotations.version>
   </properties>
 </project>

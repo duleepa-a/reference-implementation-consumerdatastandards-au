@@ -261,6 +261,7 @@ public class CdsConsentAuthPersistUtil {
                                                Map<String, Set<String>> businessAccountOwnersByAccountMap,
                                                Map<String, Set<String>> businessNominatedRepresentativesByAccountMap,
                                                Map<String, String> jointAccountDisclosureMap, String primaryUserId) {
+
         boolean otherAccountsAvailability = false;
         boolean secondaryAvailabilityResolved = false;
 
@@ -279,8 +280,7 @@ public class CdsConsentAuthPersistUtil {
                 }
 
                 String accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(
-                        ConfigurableProperties.SHARABLE_ENDPOINT, displayName.split("<br>")[0]
-                );
+                        ConfigurableProperties.SHARABLE_ENDPOINT, displayName.split("<br>")[0]);
 
                 if (StringUtils.isEmpty(accountId)) {
                     log.warn("Could not resolve accountId for displayName: " + displayName.split("<br>")[0]);

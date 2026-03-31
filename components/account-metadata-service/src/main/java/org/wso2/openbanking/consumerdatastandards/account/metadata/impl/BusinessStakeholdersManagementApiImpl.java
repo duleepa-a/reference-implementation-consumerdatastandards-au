@@ -19,14 +19,14 @@
 package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderDeleteItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderRepresentative;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderUpsertItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataService;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
@@ -60,23 +60,22 @@ public class BusinessStakeholdersManagementApiImpl {
      * @param request list of business stakeholder upsert records
      * @return response with list of account IDs where records were added
      */
-    public static Response addBusinessStakeholders(List<BusinessStakeholderUpsertItem> request) {
+    public static Response addBusinessStakeholders(List<BusinessStakeholderItem> request) {
 
-        if (request == null) {
-            log.error("[Business Stakeholders] No business stakeholder items provided");
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(new ErrorResponse().errorDescription("No business stakeholder items provided"))
-                    .build();
+        List<BusinessStakeholderPermissionItem> validItems;
+        try {
+            validItems = validateRequest(request);
+        } catch (AccountMetadataException e) {
+            return sendBadRequest(e.getMessage());
+        }
+
+        if (validItems.isEmpty()) {
+            return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
         }
 
         try {
-            List<BusinessStakeholderPermissionItem> validItems = validateAndFlattenUpsertRequest(request);
-            if (validItems.isEmpty()) {
-                return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
-            }
-
             List<BusinessStakeholderPermissionItem> existingItems =
-                    accountMetadataService.getBatchBusinessStakeholderPermissions(validItems);
+                    accountMetadataService.getBatchBusinessStakeholderPermissions(toAccountUserPairs(validItems));
             Set<String> existingKeys = existingItems.stream().map(BusinessStakeholdersManagementApiImpl::buildKey)
                     .collect(Collectors.toSet());
 
@@ -88,12 +87,18 @@ public class BusinessStakeholdersManagementApiImpl {
                 accountMetadataService.addBatchBusinessStakeholderPermissions(itemsToAdd);
             }
 
+            Set<String> addedAccountIds = itemsToAdd.stream()
+                    .map(BusinessStakeholderPermissionItem::getAccountId)
+                    .collect(Collectors.toSet());
+            List<BusinessStakeholderItem> addedRequestItems = request.stream()
+                    .filter(item ->
+                            addedAccountIds.contains(StringUtils.trimToEmpty(item.getAccountID())))
+                    .collect(Collectors.toList());
+
             Response.ResponseBuilder responseBuilder = itemsToAdd.isEmpty() ?
                     Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
-            return responseBuilder.entity(getDistinctAccountIds(itemsToAdd)).build();
+            return responseBuilder.entity(addedRequestItems).build();
 
-            } catch (IllegalArgumentException e) {
-                return badRequest(e.getMessage());
         } catch (AccountMetadataException e) {
             log.error("[Business Stakeholders] Failed to add business stakeholder records", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -113,24 +118,22 @@ public class BusinessStakeholdersManagementApiImpl {
     public static Response getBusinessStakeholders(String accountIds, String userId) {
 
         if (StringUtils.isBlank(accountIds) || StringUtils.isBlank(userId)) {
-            return badRequest("At least one accountId and userId are required");
+            return sendBadRequest("At least one accountId and userId are required");
         }
 
         List<String> accountIdList = Arrays.stream(accountIds.split(","))
-                .map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toList());
+                .map(StringUtils::trimToEmpty).filter(StringUtils::isNotBlank).collect(Collectors.toList());
 
         if (accountIdList.isEmpty()) {
-            return badRequest("At least one accountId and userId are required");
+            return sendBadRequest("At least one accountId and userId are required");
         }
 
         try {
-            List<BusinessStakeholderPermissionItem> queryItems =
+            List<Pair<String, String>> queryPairs =
                     getBusinessStakeholderPermissionItems(userId, accountIdList);
 
             List<BusinessStakeholderPermissionItem> result =
-                    accountMetadataService.getBatchBusinessStakeholderPermissions(queryItems);
+                    accountMetadataService.getBatchBusinessStakeholderPermissions(queryPairs);
 
             return Response.status(Response.Status.OK).entity(result).build();
 
@@ -149,20 +152,22 @@ public class BusinessStakeholdersManagementApiImpl {
      * @param request list of business stakeholder upsert records
      * @return response with list of account IDs where records were updated
      */
-    public static Response updateBusinessStakeholders(List<BusinessStakeholderUpsertItem> request) {
+    public static Response updateBusinessStakeholders(List<BusinessStakeholderItem> request) {
 
-        if (request == null) {
-            return badRequest("No business stakeholder items provided");
+        List<BusinessStakeholderPermissionItem> validItems;
+        try {
+            validItems = validateRequest(request);
+        } catch (AccountMetadataException e) {
+            return sendBadRequest(e.getMessage());
+        }
+
+        if (validItems.isEmpty()) {
+            return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
         }
 
         try {
-            List<BusinessStakeholderPermissionItem> validItems = validateAndFlattenUpsertRequest(request);
-            if (validItems.isEmpty()) {
-                return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
-            }
-
             List<BusinessStakeholderPermissionItem> existingItems =
-                    accountMetadataService.getBatchBusinessStakeholderPermissions(validItems);
+                    accountMetadataService.getBatchBusinessStakeholderPermissions(toAccountUserPairs(validItems));
             Set<String> existingKeys = existingItems.stream().map(BusinessStakeholdersManagementApiImpl::buildKey)
                     .collect(Collectors.toSet());
 
@@ -174,10 +179,15 @@ public class BusinessStakeholdersManagementApiImpl {
                 accountMetadataService.updateBatchBusinessStakeholderPermissions(itemsToUpdate);
             }
 
-            return Response.status(Response.Status.OK).entity(getDistinctAccountIds(itemsToUpdate)).build();
+            Set<String> updatedAccountIds = itemsToUpdate.stream()
+                    .map(BusinessStakeholderPermissionItem::getAccountId)
+                    .collect(Collectors.toSet());
+            List<BusinessStakeholderItem> updatedRequestItems = request.stream()
+                    .filter(item -> updatedAccountIds.contains(StringUtils.trimToEmpty(item.getAccountID())))
+                    .collect(Collectors.toList());
 
-        } catch (IllegalArgumentException e) {
-            return badRequest(e.getMessage());
+            return Response.status(Response.Status.OK).entity(updatedRequestItems).build();
+
         } catch (AccountMetadataException e) {
             log.error("[Business Stakeholders] Failed to update business stakeholder records", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -195,45 +205,50 @@ public class BusinessStakeholdersManagementApiImpl {
      */
     public static Response deleteBusinessStakeholders(List<BusinessStakeholderDeleteItem> request) {
 
-        if (request == null) {
-            return badRequest("No business stakeholder items provided");
+        List<BusinessStakeholderPermissionItem> validItems;
+        try {
+            validItems = validateDeleteRequest(request);
+        } catch (AccountMetadataException e) {
+            return sendBadRequest(e.getMessage());
+        }
+
+        if (validItems.isEmpty()) {
+            return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
         }
 
         try {
-            List<BusinessStakeholderPermissionItem> validItems = validateAndFlattenDeleteRequest(request);
-            if (validItems.isEmpty()) {
-                return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
-            }
 
             List<BusinessStakeholderPermissionItem> existingItems =
-                    accountMetadataService.getBatchBusinessStakeholderPermissions(validItems);
+                    accountMetadataService.getBatchBusinessStakeholderPermissions(toAccountUserPairs(validItems));
             Set<String> existingKeys = existingItems.stream().map(BusinessStakeholdersManagementApiImpl::buildKey)
                     .collect(Collectors.toSet());
 
-                List<BusinessStakeholderPermissionItem> itemsToRevoke = validItems.stream()
-                    .filter(item -> existingKeys.contains(buildKey(item)))
-                    .map(item -> new BusinessStakeholderPermissionItem(
-                            item.getAccountId(), item.getUserId(), CommonConstants.BNR_PERMISSION_REVOKE))
-                    .collect(Collectors.toList());
+            List<BusinessStakeholderPermissionItem> itemsToRevoke = validItems.stream()
+                .filter(item -> existingKeys.contains(buildKey(item)))
+                .map(item -> new BusinessStakeholderPermissionItem(
+                        item.getAccountId(), item.getUserId(), BusinessStakeholderPermissionItem.PermissionEnum.REVOKE))
+                .collect(Collectors.toList());
 
-                if (!itemsToRevoke.isEmpty()) {
+            if (!itemsToRevoke.isEmpty()) {
                 accountMetadataService.updateBatchBusinessStakeholderPermissions(itemsToRevoke);
-                }
+            }
 
-                List<String> affectedAccountIds = getDistinctAccountIds(itemsToRevoke);
-                if (affectedAccountIds.isEmpty()) {
+            // After Revoking the permissions Checking whether any AUTHORIZE permission BNRs are left,
+            // if none are there Deleting all the permissions records to that account.
+            List<String> affectedAccountIds = getAccountIds(itemsToRevoke);
+            if (affectedAccountIds.isEmpty()) {
                 return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
-                }
+            }
 
-                List<BusinessStakeholderPermissionItem> accountPermissions =
-                    accountMetadataService.getBatchBusinessStakeholderPermissionsByAccountIds(affectedAccountIds);
+            List<BusinessStakeholderPermissionItem> accountPermissions =
+                accountMetadataService.getBatchBusinessStakeholderPermissionsByAccountIds(affectedAccountIds);
 
-                Set<String> accountsWithAuthorizePermission = accountPermissions.stream()
+            Set<String> accountsWithAuthorizePermission = accountPermissions.stream()
                     .filter(BusinessStakeholdersManagementApiImpl::isAuthorizePermission)
                     .map(BusinessStakeholderPermissionItem::getAccountId)
                     .collect(Collectors.toSet());
 
-                List<BusinessStakeholderPermissionItem> itemsToDelete = accountPermissions.stream()
+            List<BusinessStakeholderPermissionItem> itemsToDelete = accountPermissions.stream()
                     .filter(item ->
                             !accountsWithAuthorizePermission.contains(item.getAccountId()))
                     .collect(Collectors.toList());
@@ -242,10 +257,15 @@ public class BusinessStakeholdersManagementApiImpl {
                 accountMetadataService.deleteBatchBusinessStakeholderPermissions(itemsToDelete);
             }
 
-            return Response.status(Response.Status.OK).entity(getDistinctAccountIds(itemsToDelete)).build();
+            Set<String> revokedAccountIds = itemsToRevoke.stream().map(BusinessStakeholderPermissionItem::getAccountId)
+                    .collect(Collectors.toSet());
+            List<BusinessStakeholderDeleteItem> revokedRequestItems = request.stream()
+                    .filter(item ->
+                            revokedAccountIds.contains(StringUtils.trimToEmpty(item.getAccountID())))
+                    .collect(Collectors.toList());
 
-        } catch (IllegalArgumentException e) {
-            return badRequest(e.getMessage());
+            return Response.status(Response.Status.OK).entity(revokedRequestItems).build();
+
         } catch (AccountMetadataException e) {
             log.error("[Business Stakeholders] Failed to delete business stakeholder records", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -255,160 +275,206 @@ public class BusinessStakeholdersManagementApiImpl {
         }
     }
 
+    /**
+     * Returns true if the permission on the given item is AUTHORIZE.
+     *
+     * @param permissionItem the permission item to check
+     * @return true if permission is AUTHORIZE, false otherwise
+     */
     private static boolean isAuthorizePermission(BusinessStakeholderPermissionItem permissionItem) {
-        return CommonConstants.BNR_PERMISSION_AUTHORIZE
-                .equalsIgnoreCase(StringUtils.trimToEmpty(permissionItem.getPermission()));
+        return BusinessStakeholderPermissionItem.PermissionEnum.AUTHORIZE.equals(permissionItem.getPermission());
     }
 
     /**
-     * Validates and flattens upsert payload into account-user-permission records.
+     * Validates and flattens the add/update request payload into account-user-permission records.
+     * Throws an exception on missing required fields, invalid permissions, or duplicate account-user pairs.
+     *
+     * @param request list of business stakeholder upsert items
+     * @return flat list of validated permission items
+     * @throws AccountMetadataException if any item is invalid or a duplicate pair is found
      */
-    private static List<BusinessStakeholderPermissionItem> validateAndFlattenUpsertRequest(
-            List<BusinessStakeholderUpsertItem> request) {
+    private static List<BusinessStakeholderPermissionItem> validateRequest(
+            List<BusinessStakeholderItem> request) throws AccountMetadataException {
 
-        Map<String, BusinessStakeholderPermissionItem> deduplicatedItems = new LinkedHashMap<>();
+        Map<String, BusinessStakeholderPermissionItem> validatedItems = new LinkedHashMap<>();
 
-        for (BusinessStakeholderUpsertItem requestItem : request) {
+        for (BusinessStakeholderItem requestItem : request) {
+
             if (requestItem == null) {
-                throw new IllegalArgumentException("Request contains null business stakeholder item");
+                throw new AccountMetadataException("Request contains null business stakeholder item");
             }
 
             String accountId = StringUtils.trimToEmpty(requestItem.getAccountID());
             if (StringUtils.isBlank(accountId)) {
-                throw new IllegalArgumentException("accountID is required");
+                throw new AccountMetadataException("accountID is required");
             }
 
             List<String> accountOwners = requestItem.getAccountOwners();
+            // Add account owners with VIEW permission
             if (accountOwners != null) {
-                // Add account owners with VIEW permission first so representative permissions can override them.
                 for (String owner : accountOwners) {
                     String ownerId = StringUtils.trimToEmpty(owner);
-                    if (StringUtils.isNotBlank(ownerId)) {
-                        BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem(
-                                accountId, ownerId, CommonConstants.BNR_PERMISSION_VIEW);
-                        deduplicatedItems.put(buildKey(permissionItem), permissionItem);
+                    BusinessStakeholderPermissionItem permissionItem = new BusinessStakeholderPermissionItem(
+                            accountId, ownerId, BusinessStakeholderPermissionItem.PermissionEnum.VIEW);
+                    String key = buildKey(permissionItem);
+                    if (validatedItems.containsKey(key)) {
+                        throw new AccountMetadataException(
+                                "Duplicate entry for accountID " + accountId + " and user " + ownerId);
                     }
+                    validatedItems.put(key, permissionItem);
                 }
             }
 
-            // Add nominated representatives (may override owner VIEW with AUTHORIZE if same user)
+            // Add nominated representatives
             List<BusinessStakeholderRepresentative> nominatedRepresentatives =
                     requestItem.getNominatedRepresentatives();
-            if (nominatedRepresentatives == null) {
-                throw new IllegalArgumentException("nominatedRepresentatives is required for accountID " + accountId);
-            }
 
             for (BusinessStakeholderRepresentative representative : nominatedRepresentatives) {
-                if (representative == null) {
-                    throw new IllegalArgumentException(
-                            "nominatedRepresentatives contains null item for accountID " + accountId);
-                }
 
                 String userId = StringUtils.trimToEmpty(representative.getName());
-                String permission = StringUtils.trimToEmpty(representative.getPermission());
-
                 if (StringUtils.isBlank(userId)) {
-                    throw new IllegalArgumentException("Representative name is required for accountID " + accountId);
+                    throw new AccountMetadataException(
+                            "Representative name is required for accountID " + accountId);
                 }
-                if (StringUtils.isBlank(permission)) {
-                    throw new IllegalArgumentException(
-                            "Representative permission is required for accountID " + accountId +
-                                    " and user " + userId);
-                }
+                BusinessStakeholderPermissionItem.PermissionEnum permission =
+                        BusinessStakeholderPermissionItem.PermissionEnum.fromValue(
+                                representative.getPermission().value());
 
                 BusinessStakeholderPermissionItem permissionItem =
                     new BusinessStakeholderPermissionItem(accountId, userId, permission);
-                deduplicatedItems.put(buildKey(permissionItem), permissionItem);
+                String key = buildKey(permissionItem);
+                if (validatedItems.containsKey(key)) {
+                    throw new AccountMetadataException(
+                            "Duplicate entry for accountID " + accountId + " and user " + userId);
+                }
+                validatedItems.put(key, permissionItem);
             }
         }
 
-        return new ArrayList<>(deduplicatedItems.values());
+        return new ArrayList<>(validatedItems.values());
     }
 
     /**
-     * Validates and flattens delete payload into account-user records.
+     * Validates and flattens the delete request payload into account-user records.
+     * Throws an exception on missing required fields or duplicate account-user pairs.
+     *
+     * @param request list of business stakeholder delete items
+     * @return flat list of validated permission items (without permission value)
+     * @throws AccountMetadataException if any item is invalid or a duplicate pair is found
      */
-    private static List<BusinessStakeholderPermissionItem> validateAndFlattenDeleteRequest(
-            List<BusinessStakeholderDeleteItem> request) {
+    private static List<BusinessStakeholderPermissionItem> validateDeleteRequest(
+            List<BusinessStakeholderDeleteItem> request) throws AccountMetadataException {
 
-        Map<String, BusinessStakeholderPermissionItem> deduplicatedItems = new LinkedHashMap<>();
+        Map<String, BusinessStakeholderPermissionItem> validatedItems = new LinkedHashMap<>();
 
         for (BusinessStakeholderDeleteItem requestItem : request) {
+
             if (requestItem == null) {
-                throw new IllegalArgumentException("Request contains null business stakeholder item");
+                throw new AccountMetadataException("Request contains null business stakeholder item");
             }
 
             String accountId = StringUtils.trimToEmpty(requestItem.getAccountID());
             if (StringUtils.isBlank(accountId)) {
-                throw new IllegalArgumentException("accountID is required");
+                throw new AccountMetadataException("accountID is required");
             }
 
             List<String> accountOwners = requestItem.getAccountOwners();
             if (accountOwners != null) {
                 for (String owner : accountOwners) {
                     String ownerId = StringUtils.trimToEmpty(owner);
-                    if (StringUtils.isBlank(ownerId)) {
-                        throw new IllegalArgumentException(
-                                "Account owner name is required for accountID " + accountId);
-                    }
-
                     BusinessStakeholderPermissionItem permissionItem =
                             new BusinessStakeholderPermissionItem(accountId, ownerId, null);
-                    deduplicatedItems.put(buildKey(permissionItem), permissionItem);
+                    String key = buildKey(permissionItem);
+                    if (validatedItems.containsKey(key)) {
+                        throw new AccountMetadataException(
+                                "Duplicate entry for accountID " + accountId + " and user " + ownerId);
+                    }
+                    validatedItems.put(key, permissionItem);
                 }
             }
 
             List<String> nominatedRepresentatives = requestItem.getNominatedRepresentatives();
-            if (nominatedRepresentatives == null) {
-                throw new IllegalArgumentException("nominatedRepresentatives is required for accountID " + accountId);
-            }
-
             for (String representative : nominatedRepresentatives) {
                 String userId = StringUtils.trimToEmpty(representative);
                 if (StringUtils.isBlank(userId)) {
-                    throw new IllegalArgumentException(
+                    throw new AccountMetadataException(
                             "Representative name is required for accountID " + accountId);
                 }
-
                 BusinessStakeholderPermissionItem permissionItem =
                     new BusinessStakeholderPermissionItem(accountId, userId, null);
-                deduplicatedItems.put(buildKey(permissionItem), permissionItem);
+                String key = buildKey(permissionItem);
+                if (validatedItems.containsKey(key)) {
+                    throw new AccountMetadataException(
+                            "Duplicate entry for accountID " + accountId + " and user " + userId);
+                }
+                validatedItems.put(key, permissionItem);
             }
         }
 
-        return new ArrayList<>(deduplicatedItems.values());
+        return new ArrayList<>(validatedItems.values());
     }
 
     /**
-     * Builds query items for batch retrieval using a single user ID and a list of account IDs.
+     * Builds account-user pairs for batch retrieval using a single user ID and a list of account IDs.
+     *
+     * @param userId user ID to pair with each account ID
+     * @param accountIdList list of account IDs
+     * @return list of (accountId, userId) pairs
      */
-    private static List<BusinessStakeholderPermissionItem> getBusinessStakeholderPermissionItems(
+    private static List<Pair<String, String>> getBusinessStakeholderPermissionItems(
             String userId, List<String> accountIdList) {
 
         String normalizedUserId = StringUtils.trimToEmpty(userId);
-        List<BusinessStakeholderPermissionItem> queryItems = new ArrayList<>();
+        List<Pair<String, String>> queryPairs = new ArrayList<>();
         for (String accountId : accountIdList) {
-            BusinessStakeholderPermissionItem queryItem = new BusinessStakeholderPermissionItem();
-            queryItem.setAccountId(accountId);
-            queryItem.setUserId(normalizedUserId);
-            queryItems.add(queryItem);
+            queryPairs.add(Pair.of(accountId, normalizedUserId));
         }
-        return queryItems;
+        return queryPairs;
     }
 
+    /**
+     * Converts a list of permission items into (accountId, userId) pairs for use in batch queries.
+     *
+     * @param items list of business stakeholder permission items
+     * @return list of (accountId, userId) pairs
+     */
+    private static List<Pair<String, String>> toAccountUserPairs(List<BusinessStakeholderPermissionItem> items) {
+        List<Pair<String, String>> pairs = new ArrayList<>();
+        for (BusinessStakeholderPermissionItem item : items) {
+            pairs.add(Pair.of(item.getAccountId(), item.getUserId()));
+        }
+        return pairs;
+    }
+
+    /**
+     * Builds a composite deduplication key in the format {@code accountId::userId}.
+     *
+     * @param item the permission item
+     * @return composite key string
+     */
     private static String buildKey(BusinessStakeholderPermissionItem item) {
         return item.getAccountId() + "::" + item.getUserId();
     }
 
-    private static List<String> getDistinctAccountIds(List<BusinessStakeholderPermissionItem> items) {
-        return items.stream().map(BusinessStakeholderPermissionItem::getAccountId).distinct()
-                .collect(Collectors.toList());
+    /**
+     * Returns a distinct list of account IDs from the given permission items.
+     *
+     * @param items list of permission items
+     * @return distinct list of account IDs
+     */
+    private static List<String> getAccountIds(List<BusinessStakeholderPermissionItem> items) {
+        return items.stream().map(BusinessStakeholderPermissionItem::getAccountId).collect(Collectors.toList());
     }
 
-    private static Response badRequest(String message) {
+    /**
+     * Logs and returns a 400 Bad Request response with the given error message.
+     *
+     * @param message the error description
+     * @return 400 Bad Request response
+     */
+    private static Response sendBadRequest(String message) {
         log.error("[Business Stakeholders] " + message);
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponse().errorDescription(message))
+        return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse().errorDescription(message))
                 .build();
     }
 }
