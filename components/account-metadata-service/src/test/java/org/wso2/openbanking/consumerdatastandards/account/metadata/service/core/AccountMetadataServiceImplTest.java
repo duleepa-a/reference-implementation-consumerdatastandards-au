@@ -330,7 +330,6 @@ public class AccountMetadataServiceImplTest {
                 buildBusinessItem("acc-131", "user-2", "VIEW")));
             Mockito.when(metadataDAO.getBatchBusinessStakeholderPermissions(connection, queryPairs))
                 .thenReturn(expected);
-
             AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(
                     metadataDAO, connectionProvider);
             List<BusinessStakeholderPermissionItem> result =
@@ -573,7 +572,8 @@ public class AccountMetadataServiceImplTest {
             item.setAccountId(accountId);
             item.setSecondaryUserId(userId);
             item.setOtherAccountsAvailability(otherAccountsAvailable);
-            item.setSecondaryAccountInstructionStatus(status);
+            item.setSecondaryAccountInstructionStatus(
+                    SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.valueOf(status));
 
             return item;
         }

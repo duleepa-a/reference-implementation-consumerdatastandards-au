@@ -214,7 +214,8 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
                     instructionItem.setAccountId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID));
                     instructionItem.setSecondaryUserId(rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_USER_ID));
                     instructionItem.setSecondaryAccountInstructionStatus(
-                        rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_STATUS));
+                            SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(
+                                    rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_STATUS)));
                     instructionItem.setOtherAccountsAvailability(
                         rs.getBoolean(SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY));
                     resultItems.add(instructionItem);
@@ -251,7 +252,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             for (SecondaryAccountInstructionItem item : instructionItems) {
                 stmt.setString(1, item.getAccountId());
                 stmt.setString(2, item.getSecondaryUserId());
-                stmt.setString(3, item.getSecondaryAccountInstructionStatus());
+                stmt.setString(3, String.valueOf(item.getSecondaryAccountInstructionStatus()));
                 stmt.setObject(4, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(5, currentTimestamp);
                 stmt.addBatch();
@@ -285,7 +286,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
 
             for (SecondaryAccountInstructionItem item : instructionItems) {
-                stmt.setString(1, item.getSecondaryAccountInstructionStatus());
+                stmt.setString(1, String.valueOf(item.getSecondaryAccountInstructionStatus()));
                 stmt.setObject(2, item.getOtherAccountsAvailability(), Types.BOOLEAN);
                 stmt.setTimestamp(3, currentTimestamp);
                 stmt.setString(4, item.getAccountId());

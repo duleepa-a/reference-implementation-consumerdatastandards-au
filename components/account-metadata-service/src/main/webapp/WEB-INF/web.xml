@@ -75,7 +75,7 @@
       </param-value>
     </init-param>
 
-    <!-- JSON Provider -->
+    <!-- JSON Provider + Exception Mapper -->
     <init-param>
       <param-name>jaxrs.providers</param-name>
       <param-value>
