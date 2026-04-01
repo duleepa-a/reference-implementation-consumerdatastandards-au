@@ -280,8 +280,8 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
      * @throws AccountMetadataException if an error occurs
      */
     @Override
-        public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
-            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
+    public List<BusinessStakeholderPermissionItem> getBatchBusinessStakeholderPermissions(
+        List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
         try (Connection conn = connectionProvider.getConnection()) {
             return metadataDAO.getBatchBusinessStakeholderPermissions(conn, accountUserPairs);

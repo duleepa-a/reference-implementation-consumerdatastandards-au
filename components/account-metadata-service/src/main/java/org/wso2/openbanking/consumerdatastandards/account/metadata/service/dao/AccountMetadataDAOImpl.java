@@ -45,9 +45,12 @@ import java.util.Map;
 public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
     private static final Log log = LogFactory.getLog(AccountMetadataDAOImpl.class);
+    private final AccountMetadataDbQueries dbQueries;
+
     // Column names for DOMS table.
     private static final String DISCLOSURE_OPTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
     private static final String DISCLOSURE_OPTIONS_COLUMN_STATUS = "DISCLOSURE_OPTION_STATUS";
+
     // Column names for secondary user instructions table.
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_USER_ID = "USER_ID";
@@ -55,16 +58,12 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
         "OTHER_ACCOUNTS_AVAILABILITY";
-<<<<<<< HEAD
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES = "BLOCK_LEGAL_ENTITIES";
-=======
+
     // Column names for business stakeholder permissions table.
     private static final String BNR_PERMISSIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
     private static final String BNR_PERMISSIONS_COLUMN_USER_ID = "USER_ID";
     private static final String BNR_PERMISSIONS_COLUMN_PERMISSION = "PERMISSION";
->>>>>>> 7b8982ec358f3788db2d7db3ee49cd7a7d38a552
-
-    private final AccountMetadataDbQueries dbQueries;
 
     /**
      * Constructs a new DAO with the specified query provider.

@@ -1122,6 +1122,9 @@ public class AccountMetadataDAOImplTest {
         Map<Pair<String, String>, String> inserts = Collections.singletonMap(
                 Pair.of("acc-208", "user-208"), "le-021");
         dao.addBatchSecondaryUserBlockedEntities(connection, inserts);
+    }
+
+    /**
      * Verifies that a single account-user pair produces the correct SELECT query with one tuple placeholder.
      */
     @Test

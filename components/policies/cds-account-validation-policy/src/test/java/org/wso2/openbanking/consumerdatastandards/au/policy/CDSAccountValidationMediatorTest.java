@@ -33,9 +33,6 @@ import org.wso2.openbanking.consumerdatastandards.au.policy.constants.CDSAccount
 import org.wso2.openbanking.consumerdatastandards.au.policy.exceptions.CDSAccountValidationException;
 import org.wso2.openbanking.consumerdatastandards.au.policy.utils.CDSAccountValidationUtils;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,56 +57,6 @@ public class CDSAccountValidationMediatorTest {
 
         Mockito.when(synapseMessageContext.getAxis2MessageContext()).thenReturn(axis2MessageContext);
         Mockito.when(axis2MessageContext.getProperty(MessageContext.TRANSPORT_HEADERS)).thenReturn(headers);
-    }
-
-    @Test
-    public void testMediateFiltersBlockedAccountsAndUpdatesHeader() throws Exception {
-        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-        HttpClient client = Mockito.mock(HttpClient.class);
-        HttpResponse<String> response = Mockito.mock(HttpResponse.class);
-
-        Mockito.when(response.statusCode()).thenReturn(200);
-        Mockito.when(response.body()).thenReturn("["
-                + "{\"accountId\":\"acc-2\",\"disclosureOption\":\"no-sharing\"},"
-                + "{\"accountId\":\"acc-1\",\"disclosureOption\":\"pre-approval\"}"
-                + "]");
-        Mockito.when(client.send(Mockito.any(HttpRequest.class), Mockito.<HttpResponse.BodyHandler<String>>any()))
-                .thenReturn(response);
-
-        CDSAccountValidationUtils.setHttpClient(client);
-
-        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
-        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
-
-        JSONObject payload = new JSONObject();
-        JSONArray authorizationResources = new JSONArray();
-        authorizationResources.put(new JSONObject()
-                .put("authorizationType", "linkedMember")
-                .put("authorizationId", "linked-1"));
-        authorizationResources.put(new JSONObject()
-                .put("authorizationType", "user")
-                .put("authorizationId", "auth-2"));
-        payload.put("authorizationResources", authorizationResources);
-
-        JSONArray accounts = new JSONArray();
-        accounts.put(new JSONObject().put("account_id", "acc-1"));
-        accounts.put(new JSONObject().put("account_id", "acc-2"));
-        accounts.put(new JSONObject().put("account_id", "acc-3").put("authorizationId", "linked-1"));
-        payload.put("consentMappingResources", accounts);
-
-        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
-
-        boolean result = mediator.mediate(synapseMessageContext);
-
-        Assert.assertTrue(result);
-        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
-                "Internal Server Error");
-        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
-                "CDS DOMS Policy Error");
-        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
-                "500");
-        Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
-                "Error during CDS mediation policy");
     }
 
     @Test
@@ -165,8 +112,8 @@ public class CDSAccountValidationMediatorTest {
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                             Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                            Mockito.eq("dGVzdDp0ZXN0")))
-                    .thenReturn(java.util.Collections.singleton("acc-2"));
+                            Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString()))
+                    .thenReturn(Collections.singleton("acc-2"));
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenReturn("signed-jwt");
 
@@ -176,7 +123,7 @@ public class CDSAccountValidationMediatorTest {
             Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                     Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL), Mockito.eq("user-1"),
-                    Mockito.eq("dGVzdDp0ZXN0")));
+                    Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString()));
             utilsMock.verify(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()));
         }
     }
@@ -197,8 +144,9 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                    .thenReturn(java.util.Collections.emptySet());
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(Collections.emptySet());
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenThrow(new JOSEException("signing failed"));
 
@@ -222,7 +170,6 @@ public class CDSAccountValidationMediatorTest {
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
 
         JSONObject payload = new JSONObject();
-        // No consentMappingResources — mediator should log a warning and return true without error
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
 
         boolean result = mediator.mediate(synapseMessageContext);
@@ -239,7 +186,6 @@ public class CDSAccountValidationMediatorTest {
         mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
 
         JSONObject payload = new JSONObject();
-        // No authorizationResources — userId stays null, no accounts excluded
         JSONArray accounts = new JSONArray();
         accounts.put(new JSONObject()
                 .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
@@ -249,7 +195,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.isNull(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.isNull(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Collections.emptySet());
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenReturn("signed-jwt");
@@ -257,10 +204,9 @@ public class CDSAccountValidationMediatorTest {
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
-            // userId should be null because there were no authorizationResources
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
                     Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL),
-                    Mockito.isNull(), Mockito.eq("dGVzdDp0ZXN0")));
+                    Mockito.isNull(), Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString()));
         }
     }
 
@@ -301,7 +247,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Collections.emptySet());
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenReturn("signed-jwt");
@@ -309,12 +256,10 @@ public class CDSAccountValidationMediatorTest {
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
-            // Only the primary account should be passed to fetchAllBlockedAccounts;
-            // secondary account owner accounts are excluded from validation.
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Set<String>> accountIdsCaptor = ArgumentCaptor.forClass(Set.class);
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any()));
+                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()));
             Assert.assertEquals(accountIdsCaptor.getValue().size(), 1);
             Assert.assertTrue(accountIdsCaptor.getValue().contains("acc-primary"));
         }
@@ -346,7 +291,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Collections.emptySet());
 
             ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
@@ -358,7 +304,6 @@ public class CDSAccountValidationMediatorTest {
             Assert.assertTrue(result);
             Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
 
-            // Verify all accounts passed through and account_id was renamed to accountId
             JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
             JSONArray filteredMappings = capturedJson
                     .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
@@ -408,7 +353,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Collections.emptySet());
 
             ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
@@ -418,15 +364,13 @@ public class CDSAccountValidationMediatorTest {
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
-            // Only the primary account is passed to fetchAllBlockedAccounts
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Set<String>> accountIdsCaptor = ArgumentCaptor.forClass(Set.class);
             utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any()));
+                    accountIdsCaptor.capture(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()));
             Assert.assertEquals(accountIdsCaptor.getValue().size(), 1);
             Assert.assertTrue(accountIdsCaptor.getValue().contains("acc-primary"));
 
-            // Business accounts must also be excluded from consentMappingResources in the signed JWT
             JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
             JSONArray filteredMappings = capturedJson
                     .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
@@ -462,7 +406,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Set.of("acc-1", "acc-2"));
 
             ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
@@ -511,7 +456,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(Collections.singleton("acc-blocked"));
 
             ArgumentCaptor<String> jwtPayloadCaptor = ArgumentCaptor.forClass(String.class);
@@ -523,14 +469,12 @@ public class CDSAccountValidationMediatorTest {
             Assert.assertTrue(result);
             JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
 
-            // linked_member must be removed from authorizationResources in the signed payload
             JSONArray filteredAuth = capturedJson.getJSONArray(CDSAccountValidationConstants.AUTH_RESOURCES_TAG);
             Assert.assertEquals(filteredAuth.length(), 1);
             Assert.assertEquals(filteredAuth.getJSONObject(0)
                     .getString(CDSAccountValidationConstants.AUTH_TYPE_TAG),
                     CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG);
 
-            // acc-linked (excluded) and acc-blocked (blocked) must be absent; only acc-allowed survives
             JSONArray filteredMappings = capturedJson
                     .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
             Assert.assertEquals(filteredMappings.length(), 1);
@@ -558,7 +502,8 @@ public class CDSAccountValidationMediatorTest {
 
         try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
             utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenThrow(new CDSAccountValidationException("metadata service unavailable"));
 
             boolean result = mediator.mediate(synapseMessageContext);
@@ -572,6 +517,82 @@ public class CDSAccountValidationMediatorTest {
                     "500");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
                     "Error during CDS mediation policy");
+        }
+    }
+
+    @Test
+    public void testMediatePassesClientIdFromPayload() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        payload.put(CDSAccountValidationConstants.CLIENT_ID_TAG, "my-client-id");
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.eq("my-client-id")))
+                    .thenReturn(Collections.emptySet());
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                    Mockito.anyString(), Mockito.eq("my-client-id")));
+        }
+    }
+
+    @Test
+    public void testMediatePassesSnakeCaseClientIdFromPayload() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
+
+        JSONObject payload = new JSONObject();
+        payload.put(CDSAccountValidationConstants.CLIENT_ID_SNAKE_CASE_TAG, "snake-client-id");
+        JSONArray authorizationResources = new JSONArray();
+        authorizationResources.put(new JSONObject()
+                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1")
+                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
+        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
+        JSONArray accounts = new JSONArray();
+        accounts.put(new JSONObject()
+                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
+                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
+        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
+            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                            Mockito.anyString(), Mockito.eq("snake-client-id")))
+                    .thenReturn(Collections.emptySet());
+            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
+                    .thenReturn("signed-jwt");
+
+            boolean result = mediator.mediate(synapseMessageContext);
+
+            Assert.assertTrue(result);
+            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
+                    Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
+                    Mockito.anyString(), Mockito.eq("snake-client-id")));
         }
     }
 }
