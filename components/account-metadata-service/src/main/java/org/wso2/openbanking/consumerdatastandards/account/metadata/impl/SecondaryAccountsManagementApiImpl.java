@@ -27,6 +27,7 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorRe
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataService;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.ConsentExpiryUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,7 +79,7 @@ public class SecondaryAccountsManagementApiImpl {
                         .collect(Collectors.toList());
 
                 if (!itemsRequiringConsentExpiry.isEmpty()) {
-                    // TODO: Call Accelerator once with itemsRequiringConsentExpiry.
+                    ConsentExpiryUtil.fetchAndExpireConsents(itemsRequiringConsentExpiry);
                 }
                 accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }

@@ -31,4 +31,44 @@ public class CommonConstants {
     public static final String SUI_ACTIVE_STATUS = "active";
     public static final String SUI_INACTIVE_STATUS = "inactive";
 
+    // HTTP headers
+    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String CONTENT_TYPE_HEADER = "Content-Type";
+    public static final String ACCEPT_HEADER = "Accept";
+    public static final String BEARER_PREFIX = "Bearer ";
+    public static final String BASIC_PREFIX = "Basic ";
+    public static final String CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
+    public static final String CONTENT_TYPE_JSON = "application/json";
+
+    // OAuth2 form parameter names
+    public static final String PARAM_GRANT_TYPE = "grant_type";
+    public static final String PARAM_USERNAME = "username";
+    public static final String PARAM_PASSWORD = "password";
+    public static final String PARAM_SCOPE = "scope";
+    public static final String GRANT_TYPE_PASSWORD = "password";
+
+    // Token response JSON field
+    public static final String TOKEN_RESPONSE_ACCESS_TOKEN = "access_token";
+
+    // Consent search query parameter names
+    public static final String CONSENT_SEARCH_PARAM_CONSENT_TYPES = "consentTypes";
+    public static final String CONSENT_SEARCH_PARAM_USER_IDS = "userIds";
+    public static final String CONSENT_TYPE_ACCOUNTS = "accounts";
+
+    // Consent search response JSON field names
+    // Verify these against the live API response and adjust constants if the shape differs.
+    public static final String CONSENT_RESPONSE_DATA = "data";
+    public static final String CONSENT_RESPONSE_CONSENT_ID = "consentId";
+    public static final String CONSENT_RESPONSE_CLIENT_ID  = "clientId";
+
+    // Consent update (expire) request headers
+    public static final String HEADER_WSO2_CLIENT_ID = "x-wso2-client-id";
+    public static final String HEADER_WSO2_INTERNAL_REQUEST = "x-wso2-internal-request";
+    public static final String HEADER_FAPI_INTERACTION_ID  = "x-fapi-interaction-id";
+    public static final String WSO2_INTERNAL_REQUEST_VALUE = "true";
+
+    // Consent update request body field names
+    public static final String CONSENT_UPDATE_STATUS = "status";
+    public static final String CONSENT_EXPIRE_STATUS = "Expired";
+
 }
