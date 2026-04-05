@@ -134,7 +134,7 @@ public class CeasingSecondaryUserSharingApiImplTest {
         Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
                 Collections.singletonList(blockRequest));
 
-        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+        Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<Pair<String, String>, String>> insertsCaptor =
