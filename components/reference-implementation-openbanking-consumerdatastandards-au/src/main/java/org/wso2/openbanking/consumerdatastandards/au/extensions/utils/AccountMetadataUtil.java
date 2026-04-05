@@ -121,8 +121,8 @@ public class AccountMetadataUtil {
      * @param secondaryUserId secondary user ID
      * @return map of accountId to instruction status, or empty map when retrieval fails
      */
-    public static Map<String, String> getSecondaryAccountInstructionStatusesForAccounts(List<String> accountIds,
-                                                                                         String secondaryUserId) throws CdsConsentException {
+    public static Map<String, String> getSecondaryAccountInstructionStatusesForAccounts(
+            List<String> accountIds, String secondaryUserId) throws CdsConsentException {
 
         Map<String, String> instructionStatusMap = new HashMap<>();
 

@@ -226,6 +226,7 @@ public class AccountMetadataDAOImplTest {
 
         dao.addBatchDisclosureOptions(connection, new HashMap<>());
 
+        assertNoInteractions(connection);
         Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
     }
 
@@ -308,20 +309,20 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(statement.executeQuery()).thenReturn(resultSet);
         Mockito.when(resultSet.next()).thenReturn(true).thenReturn(true).thenReturn(false);
         Mockito.when(resultSet.getString("ACCOUNT_ID"))
-            .thenReturn("acc-900").thenReturn("acc-901");
+                .thenReturn("acc-900").thenReturn("acc-901");
         Mockito.when(resultSet.getString("USER_ID"))
-            .thenReturn("user-1").thenReturn("user-2");
+                .thenReturn("user-1").thenReturn("user-2");
         Mockito.when(resultSet.getString("INSTRUCTION_STATUS"))
-            .thenReturn("active").thenReturn("inactive");
+                .thenReturn("active").thenReturn("inactive");
         Mockito.when(resultSet.getBoolean("OTHER_ACCOUNTS_AVAILABILITY"))
-            .thenReturn(true).thenReturn(false);
+                .thenReturn(true).thenReturn(false);
 
         List<Pair<String, String>> accountUserPairs = Arrays.asList(
                 Pair.of("acc-900", "user-1"),
                 Pair.of("acc-901", "user-2"));
 
         List<SecondaryAccountInstructionItem> result = dao.getBatchSecondaryAccountInstructions(connection,
-            accountUserPairs);
+                accountUserPairs);
 
         Assert.assertEquals(result.size(), 2);
         Assert.assertEquals(result.get(0).getAccountId(), "acc-900");
@@ -350,7 +351,7 @@ public class AccountMetadataDAOImplTest {
         List<Pair<String, String>> accountUserPairs = Collections.singletonList(Pair.of("acc-902", "user-1"));
 
         List<SecondaryAccountInstructionItem> result = dao.getBatchSecondaryAccountInstructions(connection,
-            accountUserPairs);
+                accountUserPairs);
 
         Assert.assertTrue(result.isEmpty());
     }
@@ -435,7 +436,7 @@ public class AccountMetadataDAOImplTest {
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
 
-    
+
         Map<String, String> accountMap = new HashMap<>();
         accountMap.put("acc-901", "no-sharing");
 
@@ -534,7 +535,7 @@ public class AccountMetadataDAOImplTest {
      * @return populated test item
      */
     private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-                                                                boolean otherAccountsAvailable, String status) {
+                                                               boolean otherAccountsAvailable, String status) {
 
         SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
         item.setAccountId(accountId);
@@ -544,4 +545,14 @@ public class AccountMetadataDAOImplTest {
                 SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(status));
         return item;
     }
+
+    /**
+     * Asserts that the given mock object has no interactions (no method calls).
+     *
+     * @param mock the mock object to check
+     */
+    private void assertNoInteractions(Object mock) {
+        Assert.assertTrue(Mockito.mockingDetails(mock).getInvocations().isEmpty());
+    }
+
 }
