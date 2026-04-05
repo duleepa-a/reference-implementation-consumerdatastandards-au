@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
@@ -60,10 +59,6 @@ public class CeasingSecondaryUserSharingApiImpl {
      * @return response with list of processed records
      */
     public static Response updateLegalEntitySharingStatus(List<LegalEntitySharingItem> request) {
-
-        if (request == null) {
-            return badRequest("No legal entity sharing items provided");
-        }
 
         try {
             List<LegalEntitySharingItem> validItems = validateRequest(request);
@@ -173,7 +168,7 @@ public class CeasingSecondaryUserSharingApiImpl {
                     activeItem.setSecondaryUserID(accountUserPair.getRight());
                     activeItem.setAccountID(accountUserPair.getLeft());
                     activeItem.setLegalEntityID("");
-                    activeItem.setLegalEntitySharingStatus(CommonConstants.LEGAL_ENTITY_SHARING_STATUS_ACTIVE);
+                    activeItem.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
                     responseItems.add(activeItem);
                 } else {
                     for (String blockedEntityId : blockedEntityIds) {
@@ -181,7 +176,8 @@ public class CeasingSecondaryUserSharingApiImpl {
                         blockedItem.setSecondaryUserID(accountUserPair.getRight());
                         blockedItem.setAccountID(accountUserPair.getLeft());
                         blockedItem.setLegalEntityID(blockedEntityId);
-                        blockedItem.setLegalEntitySharingStatus(CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED);
+                        blockedItem.setLegalEntitySharingStatus(
+                                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
                         responseItems.add(blockedItem);
                     }
                 }
@@ -201,9 +197,9 @@ public class CeasingSecondaryUserSharingApiImpl {
     private static String getUpdatedBlockedEntities(String blockedEntitiesCsv, LegalEntitySharingItem item) {
         Set<String> blockedEntities = parseBlockedEntities(blockedEntitiesCsv);
         String legalEntityId = item.getLegalEntityID();
-        String sharingStatus = StringUtils.trimToEmpty(item.getLegalEntitySharingStatus());
+        LegalEntitySharingItem.LegalEntitySharingStatusEnum sharingStatus = item.getLegalEntitySharingStatus();
 
-        if (CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED.equalsIgnoreCase(sharingStatus)) {
+        if (LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked.equals(sharingStatus)) {
             blockedEntities.add(legalEntityId);
         } else {
             blockedEntities.remove(legalEntityId);
@@ -223,42 +219,22 @@ public class CeasingSecondaryUserSharingApiImpl {
             String accountId = StringUtils.trimToEmpty(item.getAccountID());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserID());
             String legalEntityId = StringUtils.trimToEmpty(item.getLegalEntityID());
-            String sharingStatus = StringUtils.trimToEmpty(item.getLegalEntitySharingStatus());
+            LegalEntitySharingItem.LegalEntitySharingStatusEnum sharingStatus = item.getLegalEntitySharingStatus();
 
             if (StringUtils.isBlank(accountId) || StringUtils.isBlank(secondaryUserId)
                     || StringUtils.isBlank(legalEntityId)) {
                 throw new IllegalArgumentException("secondaryUserID, accountID and legalEntityID are required");
             }
 
-            if (StringUtils.isBlank(sharingStatus)) {
-                throw new IllegalArgumentException("legalEntitySharingStatus is required");
-            }
-
-            if (!isValidSharingStatus(sharingStatus)) {
-                throw new IllegalArgumentException(
-                        "Invalid legalEntitySharingStatus for accountID " + accountId +
-                                " and secondaryUserID " + secondaryUserId + ": " + sharingStatus);
-            }
-
             item.setAccountID(accountId);
             item.setSecondaryUserID(secondaryUserId);
             item.setLegalEntityID(legalEntityId);
-            if (CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED.equalsIgnoreCase(sharingStatus)) {
-                item.setLegalEntitySharingStatus(CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED);
-            } else {
-                item.setLegalEntitySharingStatus(CommonConstants.LEGAL_ENTITY_SHARING_STATUS_ACTIVE);
-            }
 
             String dedupeKey = accountId + "::" + secondaryUserId + "::" + legalEntityId;
             deduplicatedItems.put(dedupeKey, item);
         }
 
         return new ArrayList<>(deduplicatedItems.values());
-    }
-
-    private static boolean isValidSharingStatus(String sharingStatus) {
-        return CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED.equalsIgnoreCase(sharingStatus)
-                || CommonConstants.LEGAL_ENTITY_SHARING_STATUS_ACTIVE.equalsIgnoreCase(sharingStatus);
     }
 
     private static List<Pair<String, String>> buildAccountUserPairs(List<LegalEntitySharingItem> items) {

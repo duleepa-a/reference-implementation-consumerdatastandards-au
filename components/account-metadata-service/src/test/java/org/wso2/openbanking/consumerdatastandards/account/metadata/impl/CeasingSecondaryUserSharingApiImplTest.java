@@ -25,7 +25,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
@@ -81,19 +80,6 @@ public class CeasingSecondaryUserSharingApiImplTest {
     }
 
     /**
-     * Verifies bad request response when update payload is null.
-     */
-    @Test
-    public void testUpdateLegalEntitySharingStatusBadRequestOnNull() {
-        Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(null);
-
-        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertEquals(body.getErrorDescription(), "No legal entity sharing items provided");
-    }
-
-    /**
      * Verifies blocked entity add/remove logic for existing records.
      *
      * @throws Exception if setup or invocation fails
@@ -101,9 +87,9 @@ public class CeasingSecondaryUserSharingApiImplTest {
     @Test
     public void testUpdateLegalEntitySharingStatusUpdatesBlockedEntities() throws Exception {
         LegalEntitySharingItem blockRequest = buildItem("user-1", "acc-1", "le-003",
-                CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED);
+                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
         LegalEntitySharingItem activeRequest = buildItem("user-1", "acc-2", "le-001",
-                CommonConstants.LEGAL_ENTITY_SHARING_STATUS_ACTIVE);
+                LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
 
         Map<Pair<String, String>, String> existing = new HashMap<>();
         existing.put(Pair.of("acc-1", "user-1"), "le-001,le-002");
@@ -140,7 +126,7 @@ public class CeasingSecondaryUserSharingApiImplTest {
     @Test
     public void testUpdateLegalEntitySharingStatusAddsMissingRecord() throws Exception {
         LegalEntitySharingItem blockRequest = buildItem("user-10", "acc-10", "le-010",
-                CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED);
+                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
 
         Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(Mockito.eq(connection), Mockito.anyList()))
                 .thenReturn(Collections.emptyMap());
@@ -188,18 +174,18 @@ public class CeasingSecondaryUserSharingApiImplTest {
         Assert.assertTrue(body.stream().anyMatch(item ->
                 "acc-1".equals(item.getAccountID())
                         && "le-001".equals(item.getLegalEntityID())
-                        && CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED
-                        .equalsIgnoreCase(item.getLegalEntitySharingStatus())));
+                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked
+                                .equals(item.getLegalEntitySharingStatus())));
         Assert.assertTrue(body.stream().anyMatch(item ->
                 "acc-1".equals(item.getAccountID())
                         && "le-002".equals(item.getLegalEntityID())
-                        && CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED
-                        .equalsIgnoreCase(item.getLegalEntitySharingStatus())));
+                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked
+                                .equals(item.getLegalEntitySharingStatus())));
         Assert.assertTrue(body.stream().anyMatch(item ->
                 "acc-2".equals(item.getAccountID())
                         && "".equals(item.getLegalEntityID())
-                        && CommonConstants.LEGAL_ENTITY_SHARING_STATUS_ACTIVE
-                        .equalsIgnoreCase(item.getLegalEntitySharingStatus())));
+                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.active
+                                .equals(item.getLegalEntitySharingStatus())));
     }
 
     /**
@@ -215,10 +201,31 @@ public class CeasingSecondaryUserSharingApiImplTest {
         Assert.assertEquals(body.getErrorDescription(), "At least one accountId and userId are required");
     }
 
+    /**
+     * Verifies bad request when required fields (secondaryUserID, accountID, legalEntityID) are blank.
+     */
+    @Test
+    public void testUpdateLegalEntitySharingStatusBadRequestOnBlankRequiredFields() {
+        LegalEntitySharingItem item = new LegalEntitySharingItem();
+        item.setSecondaryUserID("   ");
+        item.setAccountID("   ");
+        item.setLegalEntityID("   ");
+        item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
+
+        Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
+                Collections.singletonList(item));
+
+        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
+        ErrorResponse body = (ErrorResponse) response.getEntity();
+        Assert.assertNotNull(body);
+        Assert.assertEquals(body.getErrorDescription(),
+                "secondaryUserID, accountID and legalEntityID are required");
+    }
+
     private LegalEntitySharingItem buildItem(String secondaryUserId,
                                              String accountId,
                                              String legalEntityId,
-                                             String status) {
+                                             LegalEntitySharingItem.LegalEntitySharingStatusEnum status) {
         LegalEntitySharingItem item = new LegalEntitySharingItem();
         item.setSecondaryUserID(secondaryUserId);
         item.setAccountID(accountId);
