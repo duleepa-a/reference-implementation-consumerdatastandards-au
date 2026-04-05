@@ -218,6 +218,24 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
+     * Checks whether the secondary account instruction status is active.
+     * If no record exists in the map the account is allowed through by default —
+     * absence of an instruction record means no override has been set.
+     *
+     * @param accountId              the account ID to check
+     * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
+     * @return true if the instruction status is active or absent, false if explicitly inactive
+     */
+    private static boolean isSecondaryAccountInstructionActive(String accountId,
+            Map<String, String> instructionStatusMap) {
+        if (instructionStatusMap == null || !instructionStatusMap.containsKey(accountId)) {
+            return true;
+        }
+        return CommonConstants.SECONDARY_INSTRUCTION_STATUS_ACTIVE
+                .equalsIgnoreCase(instructionStatusMap.get(accountId));
+    }
+
+    /**
      * Checks if a joint account is electable based on its election status.
      * @param accountJson The account JSON object containing joint account election status
      * @return true if the account is electable (not in NOT_ELECTED status), false otherwise
@@ -397,11 +415,14 @@ public class ConsentAuthorizeUtil {
      * @param blockedAccountsList The list of blocked accounts
      * @param userId authenticated user id
      * @param hasMultipleAccounts hasMultipleAccounts Whether the authenticated user has multiple accounts
+     * @param secondaryInstructionStatusMap map of accountId to secondary account instruction status,
+     *                                      fetched once before the loop
      * */
     private static void processAccount(
             JSONObject accountJson, SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
             List<DisplayListItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
+            Map<String, String> secondaryInstructionStatusMap,
             Map<String, Boolean> blockedSecondaryAccountsByLegalEntity) {
 
         String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
@@ -415,6 +436,7 @@ public class ConsentAuthorizeUtil {
         // Check eligibility for each account and block account if any eligibility check fails
         if (blockedByLegalEntity
             || !isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId)) {
+            // Block account if any eligibility check fails
             DisplayListItem blockedItem = new DisplayListItem();
             blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
                     accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
@@ -570,6 +592,19 @@ public class ConsentAuthorizeUtil {
 
                 jsonRequestBody.put(CommonConstants.ACCOUNTS, accountsJSON);
 
+                // Collect all secondary account IDs in one pass for a single batch lookup
+                List<String> secondaryAccountIds = new ArrayList<>();
+                for (int i = 0; i < accountsJSON.length(); i++) {
+                    JSONObject accountJson = accountsJSON.getJSONObject(i);
+                    if (accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false)) {
+                        secondaryAccountIds.add(accountJson.getString(CommonConstants.ACCOUNT_ID));
+                    }
+                }
+
+                Map<String, String> secondaryInstructionStatusMap =
+                        AccountMetadataUtil.getSecondaryAccountInstructionStatusesForAccounts(
+                                secondaryAccountIds, userId);
+
                 List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList =
                     new ArrayList<>();
 
@@ -583,9 +618,8 @@ public class ConsentAuthorizeUtil {
                     SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account =
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
-
-                    processAccount(accountJson, account, accountList, blockedAccountsList, userId,
-                        hasMultipleAccounts, blockedSecondaryAccountsByLegalEntity);
+                    processAccount(accountJson, account, accountList, blockedAccountsList, userId, hasMultipleAccounts,
+                            secondaryInstructionStatusMap, blockedSecondaryAccountsByLegalEntity);
                 }
 
                 List<AdditionalDisplayDataSection> resolvedDisplayData = setDisplayData(blockedAccountsList);
