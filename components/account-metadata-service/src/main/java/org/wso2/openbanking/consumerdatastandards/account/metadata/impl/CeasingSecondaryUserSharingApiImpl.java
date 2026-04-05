@@ -60,25 +60,38 @@ public class CeasingSecondaryUserSharingApiImpl {
      */
     public static Response updateLegalEntitySharingStatus(List<LegalEntitySharingItem> request) {
 
+        List<LegalEntitySharingItem> validItems;
         try {
-            List<LegalEntitySharingItem> validItems = validateRequest(request);
+            validItems = validateRequest(request);
+        } catch (AccountMetadataException e) {
+            return sendBadRequest(e.getMessage());
+        }
+
+        try {
             if (validItems.isEmpty()) {
                 return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
             }
 
+            // Extract unique (accountId, userId) pairs 
             List<Pair<String, String>> accountUserPairs = buildAccountUserPairs(validItems);
             Map<Pair<String, String>, String> existingBlockedEntities =
                     accountMetadataService.getBatchSecondaryUserBlockedEntities(accountUserPairs);
 
+
             Map<Pair<String, String>, String> finalBlockedEntitiesByAccountUser = new LinkedHashMap<>();
             List<LegalEntitySharingItem> processedItems = new ArrayList<>();
 
+            // Accumulate the final blocked entity CSV per account-user pair across all items in the request.
+            // Using getOrDefault ensures that multiple items targeting the same pair are applied incrementally
+            // on top of each other
             for (LegalEntitySharingItem item : validItems) {
                 Pair<String, String> accountUserPair = Pair.of(item.getAccountID(), item.getSecondaryUserID());
-                String originalCsv = normalizeBlockedEntities(existingBlockedEntities.get(accountUserPair));
-                String baseCsv = finalBlockedEntitiesByAccountUser.containsKey(accountUserPair)
-                        ? finalBlockedEntitiesByAccountUser.get(accountUserPair) : originalCsv;
+                String originalCsv = existingBlockedEntities.get(accountUserPair);
+                // Use the in-progress accumulated value 
+                String baseCsv = finalBlockedEntitiesByAccountUser.getOrDefault(accountUserPair, originalCsv);
                 String updatedCsv = getUpdatedBlockedEntities(baseCsv, item);
+
+                // Update the accumulated value for this account-user pair
                 finalBlockedEntitiesByAccountUser.put(accountUserPair, updatedCsv);
 
                 processedItems.add(item);
@@ -87,12 +100,14 @@ public class CeasingSecondaryUserSharingApiImpl {
             Map<Pair<String, String>, String> updates = new LinkedHashMap<>();
             Map<Pair<String, String>, String> inserts = new LinkedHashMap<>();
 
+            // Separate the final state into inserts (new records) and updates (existing records that changed)
             for (Map.Entry<Pair<String, String>, String> entry : finalBlockedEntitiesByAccountUser.entrySet()) {
                 Pair<String, String> accountUserPair = entry.getKey();
                 String finalCsv = entry.getValue();
 
                 if (existingBlockedEntities.containsKey(accountUserPair)) {
-                    String originalCsv = normalizeBlockedEntities(existingBlockedEntities.get(accountUserPair));
+                    // Only update if the blocked entity list actually changed
+                    String originalCsv = existingBlockedEntities.get(accountUserPair);
                     if (!StringUtils.equals(finalCsv, originalCsv)) {
                         updates.put(accountUserPair, finalCsv);
                     }
@@ -109,10 +124,12 @@ public class CeasingSecondaryUserSharingApiImpl {
                 accountMetadataService.updateBatchSecondaryUserBlockedEntities(updates);
             }
 
-            return Response.status(Response.Status.OK).entity(processedItems).build();
+            // Combine results and return 201 Created if any new items added, 200 OK otherwise
+            Response.ResponseBuilder responseBuilder = inserts.isEmpty() ?
+                    Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
 
-        } catch (IllegalArgumentException e) {
-            return badRequest(e.getMessage());
+            return responseBuilder.entity(processedItems).build();
+
         } catch (AccountMetadataException e) {
             log.error("[Legal Entity Sharing] Failed to update legal entity sharing statuses", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -132,21 +149,18 @@ public class CeasingSecondaryUserSharingApiImpl {
     public static Response getLegalEntitySharingStatus(String accountIds, String userId) {
 
         if (StringUtils.isBlank(accountIds) || StringUtils.isBlank(userId)) {
-            return badRequest("At least one accountId and userId are required");
+            return sendBadRequest("At least one accountId and userId are required");
         }
 
-        List<String> accountIdList = Arrays.stream(accountIds.split(","))
-                .map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toList());
-
-        if (accountIdList.isEmpty()) {
-            return badRequest("At least one accountId and userId are required");
-        }
+        // Split the comma-separated accountIds and strip whitespace from each token
+        List<String> accountIdList = Arrays.stream(accountIds.split(",")).map(StringUtils::trimToEmpty)
+                .filter(StringUtils::isNotBlank).collect(Collectors.toList());
 
         try {
             List<Pair<String, String>> accountUserPairs = new ArrayList<>();
             String normalizedUserId = StringUtils.trimToEmpty(userId);
+
+            // Build (accountId, userId) pairs for each requested account
             for (String accountId : accountIdList) {
                 accountUserPairs.add(Pair.of(accountId, normalizedUserId));
             }
@@ -156,14 +170,15 @@ public class CeasingSecondaryUserSharingApiImpl {
 
             List<LegalEntitySharingItem> responseItems = new ArrayList<>();
             for (Pair<String, String> accountUserPair : accountUserPairs) {
+                // Skip accounts that have no stored record
                 if (!blockedEntitiesByAccountUser.containsKey(accountUserPair)) {
                     continue;
                 }
 
-                Set<String> blockedEntityIds = parseBlockedEntities(
-                        blockedEntitiesByAccountUser.get(accountUserPair));
+                Set<String> blockedEntityIds = parseBlockedEntities(blockedEntitiesByAccountUser.get(accountUserPair));
 
                 if (blockedEntityIds.isEmpty()) {
+                    // A record exists but the blocked list is empty, meaning all entities are currently active
                     LegalEntitySharingItem activeItem = new LegalEntitySharingItem();
                     activeItem.setSecondaryUserID(accountUserPair.getRight());
                     activeItem.setAccountID(accountUserPair.getLeft());
@@ -171,6 +186,7 @@ public class CeasingSecondaryUserSharingApiImpl {
                     activeItem.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
                     responseItems.add(activeItem);
                 } else {
+                    // Return one response item per blocked legal entity
                     for (String blockedEntityId : blockedEntityIds) {
                         LegalEntitySharingItem blockedItem = new LegalEntitySharingItem();
                         blockedItem.setSecondaryUserID(accountUserPair.getRight());
@@ -194,6 +210,14 @@ public class CeasingSecondaryUserSharingApiImpl {
         }
     }
 
+    /**
+     * Applies a single legal entity sharing item to the current blocked entities CSV, adding or removing
+     * the legal entity ID depending on the requested sharing status.
+     *
+     * @param blockedEntitiesCsv current comma-separated list of blocked legal entity IDs (may be null or empty)
+     * @param item               the sharing item describing the desired status change
+     * @return updated comma-separated list of blocked legal entity IDs
+     */
     private static String getUpdatedBlockedEntities(String blockedEntitiesCsv, LegalEntitySharingItem item) {
         Set<String> blockedEntities = parseBlockedEntities(blockedEntitiesCsv);
         String legalEntityId = item.getLegalEntityID();
@@ -208,22 +232,28 @@ public class CeasingSecondaryUserSharingApiImpl {
         return String.join(",", blockedEntities);
     }
 
-    private static List<LegalEntitySharingItem> validateRequest(List<LegalEntitySharingItem> request) {
-        Map<String, LegalEntitySharingItem> deduplicatedItems = new LinkedHashMap<>();
+    /**
+     * Validates and normalises the incoming request items, ensuring all required fields are present
+     * and that there are no duplicate (accountID, secondaryUserID, legalEntityID) combinations.
+     *
+     * @param request raw list of legal entity sharing items from the caller
+     * @return list of validated and trimmed items ready for processing
+     * @throws AccountMetadataException if any item is missing required fields or a duplicate entry is detected
+     */
+    private static List<LegalEntitySharingItem> validateRequest(List<LegalEntitySharingItem> request)
+            throws AccountMetadataException {
+        Set<String> seenKeys = new LinkedHashSet<>();
+        List<LegalEntitySharingItem> validatedItems = new ArrayList<>();
 
         for (LegalEntitySharingItem item : request) {
-            if (item == null) {
-                throw new IllegalArgumentException("Request contains null legal entity sharing item");
-            }
 
             String accountId = StringUtils.trimToEmpty(item.getAccountID());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserID());
             String legalEntityId = StringUtils.trimToEmpty(item.getLegalEntityID());
-            LegalEntitySharingItem.LegalEntitySharingStatusEnum sharingStatus = item.getLegalEntitySharingStatus();
 
             if (StringUtils.isBlank(accountId) || StringUtils.isBlank(secondaryUserId)
                     || StringUtils.isBlank(legalEntityId)) {
-                throw new IllegalArgumentException("secondaryUserID, accountID and legalEntityID are required");
+                throw new AccountMetadataException("secondaryUserID, accountID and legalEntityID are required");
             }
 
             item.setAccountID(accountId);
@@ -231,12 +261,23 @@ public class CeasingSecondaryUserSharingApiImpl {
             item.setLegalEntityID(legalEntityId);
 
             String dedupeKey = accountId + "::" + secondaryUserId + "::" + legalEntityId;
-            deduplicatedItems.put(dedupeKey, item);
+            if (!seenKeys.add(dedupeKey)) {
+                throw new AccountMetadataException("Duplicate entry for accountID=" + accountId
+                        + ", secondaryUserID=" + secondaryUserId + ", legalEntityID=" + legalEntityId);
+            }
+            validatedItems.add(item);
         }
 
-        return new ArrayList<>(deduplicatedItems.values());
+        return validatedItems;
     }
 
+    /**
+     * Extracts unique (accountID, secondaryUserID) pairs from the given items, preserving insertion order.
+     * Deduplication ensures each pair appears only once in the resulting batch service call.
+     *
+     * @param items list of legal entity sharing items
+     * @return deduplicated list of account-user pairs
+     */
     private static List<Pair<String, String>> buildAccountUserPairs(List<LegalEntitySharingItem> items) {
         Map<String, Pair<String, String>> uniquePairs = new LinkedHashMap<>();
         for (LegalEntitySharingItem item : items) {
@@ -246,22 +287,29 @@ public class CeasingSecondaryUserSharingApiImpl {
         return new ArrayList<>(uniquePairs.values());
     }
 
+    /**
+     * Parses a comma-separated list of blocked legal entity IDs into an ordered set.
+     * Blank tokens are ignored and each remaining value is trimmed of whitespace.
+     *
+     * @param blockedEntitiesCsv comma-separated string of blocked entity IDs (may be null or empty)
+     * @return ordered set of non-blank entity IDs; empty set if input is blank
+     */
     private static Set<String> parseBlockedEntities(String blockedEntitiesCsv) {
         if (StringUtils.isBlank(blockedEntitiesCsv)) {
             return new LinkedHashSet<>();
         }
 
-        return Arrays.stream(blockedEntitiesCsv.split(","))
-                .map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return Arrays.stream(blockedEntitiesCsv.split(",")).map(StringUtils::trimToEmpty)
+                .filter(StringUtils::isNotBlank).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private static String normalizeBlockedEntities(String blockedEntitiesCsv) {
-        return String.join(",", parseBlockedEntities(blockedEntitiesCsv));
-    }
-
-    private static Response badRequest(String message) {
+    /**
+     * Logs the given message at error level and returns a 400 Bad Request response.
+     *
+     * @param message human-readable description of the validation error
+     * @return 400 Bad Request response containing the error description
+     */
+    private static Response sendBadRequest(String message) {
         log.error("[Legal Entity Sharing] " + message);
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new ErrorResponse().errorDescription(message))

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.annotations.ApiModelProperty;
 
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
@@ -92,7 +93,7 @@ public class LegalEntitySharingItem   {
 
   @ApiModelProperty(example = "secondary.user@example.com", required = true, value = "Secondary user identifier. Together with accountID, this uniquely identifies a record in fs_secondary_user.")
   @JsonProperty(required = true, value = "secondaryUserID")
-  @NotNull public String getSecondaryUserID() {
+  @NotBlank public String getSecondaryUserID() {
     return secondaryUserID;
   }
 
@@ -112,7 +113,7 @@ public class LegalEntitySharingItem   {
 
   @ApiModelProperty(example = "acc-12345", required = true, value = "Account ID")
   @JsonProperty(required = true, value = "accountID")
-  @NotNull public String getAccountID() {
+  @NotBlank public String getAccountID() {
     return accountID;
   }
 
@@ -132,7 +133,7 @@ public class LegalEntitySharingItem   {
 
   @ApiModelProperty(example = "le-001", required = true, value = "Legal entity identifier")
   @JsonProperty(required = true, value = "legalEntityID")
-  @NotNull public String getLegalEntityID() {
+  @NotBlank public String getLegalEntityID() {
     return legalEntityID;
   }
 

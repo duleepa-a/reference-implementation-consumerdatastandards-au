@@ -404,12 +404,9 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        String legalEntityId = fetchLegalEntityIdByClientId(clientId, basicAuthBase64);
-        if (StringUtils.isBlank(legalEntityId)) {
-            return blockedAccounts;
-        }
-
         try {
+            String legalEntityId = fetchLegalEntityIdByClientId(clientId, basicAuthBase64);
+
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
             String requestUrl = legalEntitySharingApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
