@@ -181,7 +181,7 @@ public class ConsentAuthorizeUtil {
 
             return consentData;
         } catch (JSONException e) {
-            log.error("Consent data retrieval failed: " + e.getMessage(), e);
+            log.error("Consent data retrieval failed", e);
 
             throw new CdsConsentException(CdsErrorEnum.BAD_REQUEST, "Consent data retrieval failed");
         }
@@ -234,13 +234,28 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
+     * Checks whether a secondary account is eligible for consent authorization.
+     * An account is eligible only if it is both privileged and has an active instruction status.
+     *
+     * @param accountJson            the account JSON containing privilege status
+     * @param accountId              the account ID to look up in the instruction map
+     * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
+     * @return true if the account is privileged and its instruction status is active or absent
+     */
+    private static boolean isSecondaryAccountEligible(JSONObject accountJson, String accountId,
+            Map<String, String> instructionStatusMap) {
+        return isSecondaryAccountPrivileged(accountJson)
+                && isSecondaryAccountInstructionActive(accountId, instructionStatusMap);
+    }
+
+    /**
      * Checks if a joint account is electable based on its election status.
      * @param accountJson The account JSON object containing joint account election status
      * @return true if the account is electable (not in NOT_ELECTED status), false otherwise
      */
     private static boolean isJointAccountElectable(JSONObject accountJson) {
         return !CommonConstants.JOINT_ACCOUNT_ELECTION_STATUS_NOT_ELECTED
-                .equalsIgnoreCase(accountJson.optString(CommonConstants.JOINT_ACCOUNT_CONSENT_ELECTION_STATUS, ""));
+            .equalsIgnoreCase(accountJson.optString(CommonConstants.JOINT_ACCOUNT_CONSENT_ELECTION_STATUS, ""));
     }
 
     /**
@@ -315,9 +330,8 @@ public class ConsentAuthorizeUtil {
         boolean isSecondaryAccount = accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
 
         // Check eligibility for each account.
-        if (!(!isJointAccount || isJointAccountElectable(accountJson)) ||
-                !(!isSecondaryAccount || (isSecondaryAccountPrivileged(accountJson)
-                        && isSecondaryAccountInstructionActive(accountId, secondaryInstructionStatusMap)))) {
+        if (!(!isJointAccount || isJointAccountElectable(accountJson)) || !(!isSecondaryAccount
+                || isSecondaryAccountEligible(accountJson, accountId, secondaryInstructionStatusMap))) {
             // Block account if any eligibility check fails
             DisplayListItem blockedItem = new DisplayListItem();
             blockedItem.setDisplayText(getDisplayNameWithAccountNumber(

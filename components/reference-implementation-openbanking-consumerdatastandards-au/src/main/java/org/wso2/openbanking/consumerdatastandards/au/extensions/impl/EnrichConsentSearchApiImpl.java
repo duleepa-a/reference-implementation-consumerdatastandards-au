@@ -66,7 +66,7 @@ public class EnrichConsentSearchApiImpl {
             return Response.status(Response.Status.OK).entity(new JSONObject(response).toString()).build();
 
         } catch (CdsConsentException e) {
-            log.error("Unexpected error during consent search enrichment: " + e.getMessage(), e);
+            log.error("Unexpected error during consent search enrichment", e);
 
             CdsConsentException cdsException = new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
                     "Consent search enrichment failed. An unexpected error occurred: " + e.getMessage());
