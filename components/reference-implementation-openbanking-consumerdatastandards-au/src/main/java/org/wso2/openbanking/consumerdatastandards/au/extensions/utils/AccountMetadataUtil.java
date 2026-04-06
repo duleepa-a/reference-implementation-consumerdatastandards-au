@@ -99,8 +99,8 @@ public class AccountMetadataUtil {
             HttpResponse response = client.execute(request);
 
             if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-                log.error("Failed to retrieve DOMS statuses for accounts, HTTP Status: " +
-                        response.getStatusLine().getStatusCode());
+                int statusCode = response.getStatusLine().getStatusCode();
+                log.error("Failed to retrieve DOMS statuses for accounts, HTTP Status: " + statusCode);
                 return null;
             }
 
@@ -148,12 +148,11 @@ public class AccountMetadataUtil {
 
             HttpResponse response = client.execute(request);
 
-            if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-                log.error("Failed to retrieve secondary account instruction statuses, HTTP Status: " +
-                        response.getStatusLine().getStatusCode());
+                    if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
+                    int statusCode = response.getStatusLine().getStatusCode();
+                    log.error("Failed to retrieve secondary account instruction statuses, HTTP Status: " + statusCode);
                 throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
-                        "Failed to retrieve secondary account instruction statuses, HTTP Status: " +
-                                response.getStatusLine().getStatusCode());
+                        "Failed to retrieve secondary account instruction statuses, HTTP Status: " + statusCode);
             }
 
             InputStream in = response.getEntity().getContent();

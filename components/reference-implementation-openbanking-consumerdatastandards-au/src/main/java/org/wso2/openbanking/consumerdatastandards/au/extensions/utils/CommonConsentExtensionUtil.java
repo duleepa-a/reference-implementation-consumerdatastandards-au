@@ -118,14 +118,20 @@ public class CommonConsentExtensionUtil {
     public static String getAccountsFromEndpoint(String sharableAccountsRetrieveUrl, Map<String, String> parameters,
                                                  Map<String, String> headers) {
 
-        String retrieveUrl = "";
-        if (!sharableAccountsRetrieveUrl.endsWith(CommonConstants.SERVICE_URL_SLASH)) {
-            retrieveUrl = sharableAccountsRetrieveUrl + CommonConstants.SERVICE_URL_SLASH;
-        } else {
-            retrieveUrl = sharableAccountsRetrieveUrl;
-        }
-        if (!parameters.isEmpty()) {
-            retrieveUrl = buildRequestURL(retrieveUrl, parameters);
+        String retrieveUrl;
+        try {
+            URIBuilder uriBuilder = new URIBuilder(sharableAccountsRetrieveUrl);
+            uriBuilder.removeQuery();
+            retrieveUrl = uriBuilder.build().toString();
+            if (!retrieveUrl.endsWith(CommonConstants.SERVICE_URL_SLASH)) {
+                retrieveUrl = retrieveUrl + CommonConstants.SERVICE_URL_SLASH;
+            }
+            if (!parameters.isEmpty()) {
+                retrieveUrl = buildRequestURL(retrieveUrl, parameters);
+            }
+        } catch (URISyntaxException e) {
+            log.error("Invalid sharable accounts retrieve endpoint URL", e);
+            return null;
         }
 
         if (log.isDebugEnabled()) {
@@ -167,16 +173,23 @@ public class CommonConsentExtensionUtil {
      * @return the output URL
      */
     public static String buildRequestURL(String baseURL, Map<String, String> parameters) {
+        try {
+            URIBuilder uriBuilder = new URIBuilder(baseURL);
+            List<NameValuePair> pairs = new ArrayList<>();
 
-        List<NameValuePair> pairs = new ArrayList<>();
-
-        for (Map.Entry<String, String> key : parameters.entrySet()) {
-            if (key.getKey() != null && key.getValue() != null) {
-                pairs.add(new BasicNameValuePair(key.getKey(), key.getValue()));
+            for (Map.Entry<String, String> key : parameters.entrySet()) {
+                if (key.getKey() != null && key.getValue() != null) {
+                    pairs.add(new BasicNameValuePair(key.getKey(), key.getValue()));
+                }
             }
+
+            // Keep encoded output semantics aligned with previous implementation.
+            String queries = URLEncodedUtils.format(pairs, CommonConstants.CHAR_SET);
+            uriBuilder.setCustomQuery(queries);
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid URL while building request", e);
         }
-        String queries = URLEncodedUtils.format(pairs, CommonConstants.CHAR_SET);
-        return baseURL + "?" + queries;
     }
 
     /**

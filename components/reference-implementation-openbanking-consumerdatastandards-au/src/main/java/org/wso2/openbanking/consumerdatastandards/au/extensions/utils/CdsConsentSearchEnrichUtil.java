@@ -388,7 +388,7 @@ public class CdsConsentSearchEnrichUtil {
      */
     private static boolean isSecondaryAccountOwner(String authType) {
         return CommonConstants.AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER.equalsIgnoreCase(authType)
-                || CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER.equalsIgnoreCase(authType);
+            || CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER.equalsIgnoreCase(authType);
     }
 
     /**
