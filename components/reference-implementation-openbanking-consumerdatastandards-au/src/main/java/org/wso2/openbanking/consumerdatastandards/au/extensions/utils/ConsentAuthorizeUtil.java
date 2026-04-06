@@ -238,12 +238,12 @@ public class ConsentAuthorizeUtil {
      * An account is eligible only if it is both privileged and has an active instruction status.
      *
      * @param accountJson            the account JSON containing privilege status
-     * @param accountId              the account ID to look up in the instruction map
      * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
      * @return true if the account is privileged and its instruction status is active or absent
      */
-    private static boolean isSecondaryAccountEligible(JSONObject accountJson, String accountId,
-            Map<String, String> instructionStatusMap) {
+    private static boolean isSecondaryAccountEligible(JSONObject accountJson,
+                                                      Map<String, String> instructionStatusMap) {
+        String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
         return isSecondaryAccountPrivileged(accountJson)
                 && isSecondaryAccountInstructionActive(accountId, instructionStatusMap);
     }
@@ -330,8 +330,8 @@ public class ConsentAuthorizeUtil {
         boolean isSecondaryAccount = accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false);
 
         // Check eligibility for each account.
-        if (!(!isJointAccount || isJointAccountElectable(accountJson)) || !(!isSecondaryAccount
-                || isSecondaryAccountEligible(accountJson, accountId, secondaryInstructionStatusMap))) {
+        if (!(!isJointAccount || isJointAccountElectable(accountJson)) ||
+                !(!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))) {
             // Block account if any eligibility check fails
             DisplayListItem blockedItem = new DisplayListItem();
             blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
