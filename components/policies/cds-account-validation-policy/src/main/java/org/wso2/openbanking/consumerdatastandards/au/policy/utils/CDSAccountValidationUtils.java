@@ -391,7 +391,7 @@ public class CDSAccountValidationUtils {
      * @return set of blocked account IDs by legal entity
      */
     static Set<String> fetchBlockedLegalEntityAccountsFromService(Set<String> accountIds,
-            String legalEntitySharingApi, String userId, String basicAuthBase64, String clientId)
+                                                                  String legalEntitySharingApi, String userId, String basicAuthBase64, String clientId)
             throws CDSAccountValidationException {
 
         Set<String> blockedAccounts = new HashSet<>();
@@ -451,11 +451,9 @@ public class CDSAccountValidationUtils {
                                         CDSAccountValidationConstants.LEGAL_ENTITY_ID_CAMEL_CASE_TAG, null));
 
                         if (CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED
-                                .equalsIgnoreCase(sharingStatus)
-                                && itemLegalEntityId.equalsIgnoreCase(legalEntityId)) {
+                                .equalsIgnoreCase(sharingStatus) && itemLegalEntityId.equalsIgnoreCase(legalEntityId)) {
                             String accountId = sharingItem.optString(
-                                    CDSAccountValidationConstants.ACCOUNT_ID_UPPER_CASE_TAG,
-                                    sharingItem.optString(
+                                    CDSAccountValidationConstants.ACCOUNT_ID_UPPER_CASE_TAG, sharingItem.optString(
                                             CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, null));
                             if (StringUtils.isNotBlank(accountId)) {
                                 blockedAccounts.add(accountId);
@@ -537,7 +535,7 @@ public class CDSAccountValidationUtils {
         try {
             responseJson = new JSONObject(responseBody);
         } catch (JSONException e) {
-            String errorMessage = "Invalid IS applications service response";
+            String errorMessage = "Invalid IS applications service response for retrieving legal entity Id.";
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         }
@@ -548,20 +546,16 @@ public class CDSAccountValidationUtils {
         }
 
         JSONObject application = applications.optJSONObject(0);
-        if (application == null) {
-            return StringUtils.EMPTY;
-        }
 
-        JSONObject advancedConfigurations = application
-                .optJSONObject(CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG);
-        if (advancedConfigurations == null) {
-            return StringUtils.EMPTY;
-        }
+        JSONObject advancedConfigurations = application.optJSONObject(
+                CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG);
 
         JSONArray additionalSpProperties = advancedConfigurations
                 .optJSONArray(CDSAccountValidationConstants.ADDITIONAL_SP_PROPERTIES_TAG);
         if (additionalSpProperties == null) {
-            return StringUtils.EMPTY;
+            String errorMessage = "No additional SP properties found in IS applications response";
+            log.error(errorMessage);
+            throw new CDSAccountValidationException(errorMessage);
         }
 
         for (int i = 0; i < additionalSpProperties.length(); i++) {
@@ -576,7 +570,9 @@ public class CDSAccountValidationUtils {
             }
         }
 
-        return StringUtils.EMPTY;
+        String errorMessage = "legal_entity_id is not available in IS application additional SP properties";
+        log.error(errorMessage);
+        throw new CDSAccountValidationException(errorMessage);
     }
 
 }
