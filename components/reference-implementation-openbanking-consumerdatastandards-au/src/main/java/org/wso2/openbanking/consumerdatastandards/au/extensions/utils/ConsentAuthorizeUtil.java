@@ -240,12 +240,12 @@ public class ConsentAuthorizeUtil {
      * An account is eligible only if it is both privileged and has an active instruction status.
      *
      * @param accountJson            the account JSON containing privilege status
-     * @param accountId              the account ID to look up in the instruction map
      * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
      * @return true if the account is privileged and its instruction status is active or absent
      */
-    private static boolean isSecondaryAccountEligible(JSONObject accountJson, String accountId,
-            Map<String, String> instructionStatusMap) {
+    private static boolean isSecondaryAccountEligible(JSONObject accountJson,
+                                                      Map<String, String> instructionStatusMap) {
+        String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
         return isSecondaryAccountPrivileged(accountJson)
                 && isSecondaryAccountInstructionActive(accountId, instructionStatusMap);
     }
@@ -363,12 +363,14 @@ public class ConsentAuthorizeUtil {
      * @param isSecondaryAccount whether account is secondary
      * @param isBusinessAccount whether account is business
      * @param userId authenticated user id
+     * @param secondaryInstructionStatusMap map of accountId to secondary account instruction status,
      * @return true if account passes all eligibility checks
      */
     private static boolean isAccountEligible(JSONObject accountJson, boolean isJointAccount, boolean isSecondaryAccount,
-                                             boolean isBusinessAccount, String userId) {
+                                             boolean isBusinessAccount, String userId,
+                                             Map<String, String> secondaryInstructionStatusMap ) {
         return (!isJointAccount || isJointAccountElectable(accountJson))
-                && (!isSecondaryAccount || isSecondaryAccountPrivileged(accountJson))
+                && (!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))
                 && (!isBusinessAccount || isBusinessAccountEligible(accountJson, userId));
     }
 
@@ -450,7 +452,8 @@ public class ConsentAuthorizeUtil {
 
         // Check eligibility for each account and block account if any eligibility check fails
         if (blockedByLegalEntity
-            || !isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId)) {
+            || !isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId,
+                secondaryInstructionStatusMap)) {
             // Block account if any eligibility check fails
             DisplayListItem blockedItem = new DisplayListItem();
             blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
