@@ -233,8 +233,8 @@ public class CeasingSecondaryUserSharingApiImpl {
     }
 
     /**
-     * Validates and normalises the incoming request items, ensuring all required fields are present
-     * and that there are no duplicate (accountID, secondaryUserID, legalEntityID) combinations.
+     * Validates the incoming request items, ensuring that there are no duplicate
+     * (accountID, secondaryUserID, legalEntityID) combinations.
      *
      * @param request raw list of legal entity sharing items from the caller
      * @return list of validated and trimmed items ready for processing
@@ -250,11 +250,6 @@ public class CeasingSecondaryUserSharingApiImpl {
             String accountId = StringUtils.trimToEmpty(item.getAccountID());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserID());
             String legalEntityId = StringUtils.trimToEmpty(item.getLegalEntityID());
-
-            if (StringUtils.isBlank(accountId) || StringUtils.isBlank(secondaryUserId)
-                    || StringUtils.isBlank(legalEntityId)) {
-                throw new AccountMetadataException("secondaryUserID, accountID and legalEntityID are required");
-            }
 
             item.setAccountID(accountId);
             item.setSecondaryUserID(secondaryUserId);
