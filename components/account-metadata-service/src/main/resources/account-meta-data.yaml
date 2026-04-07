@@ -431,6 +431,7 @@ paths:
           description: User ID
           schema:
             type: string
+            minLength: 1
             example: secondary.user@example.com
         - name: accountIds
           in: query
@@ -438,6 +439,7 @@ paths:
           description: Comma-separated account IDs
           schema:
             type: string
+            minLength: 1
             example: "acc-12345,acc-67890"
       responses:
         '200':
@@ -529,11 +531,9 @@ components:
         accountId:
           type: string
           description: Account ID
-          example: 143-000-B1234
         disclosureOption:
           type: string
           description: Disclosure option status
-          enum: [no-sharing, pre-approval]
           example: no-sharing
           x-enum-description: |
             Allowed values:
@@ -572,36 +572,12 @@ components:
           type: string
           description: Secondary account instruction status
           enum: [active, inactive]
+          x-enum-varnames: [active, inactive]
           example: inactive
           x-enum-description: |
             Allowed values:
               - active: Instruction is active
               - inactive: Instruction is inactive
-
-    LegalEntitySharingItem:
-      type: object
-      required:
-        - secondaryUserID
-        - accountID
-        - legalEntityID
-        - legalEntitySharingStatus
-      properties:
-        secondaryUserID:
-          type: string
-          description: Secondary user identifier. Together with accountID, this uniquely identifies a record in fs_secondary_user.
-          example: secondary.user@example.com
-        accountID:
-          type: string
-          description: Account ID
-          example: acc-12345
-        legalEntityID:
-          type: string
-          description: Legal entity identifier
-          example: le-001
-        legalEntitySharingStatus:
-          type: string
-          description: Legal entity sharing status. blocked adds legalEntityID to BLOCKED_ENTITIES, active removes legalEntityID from BLOCKED_ENTITIES.
-          example: blocked
 
     BusinessStakeholderRepresentative:
       type: object
@@ -708,4 +684,37 @@ components:
             minLength: 1
           example:
             - psu@gold.com@carbon.super
-            
+
+    LegalEntitySharingItem:
+      type: object
+      required:
+        - secondaryUserID
+        - accountID
+        - legalEntityID
+        - legalEntitySharingStatus
+      properties:
+        secondaryUserID:
+          type: string
+          minLength: 1
+          description: Secondary user identifier. Together with accountID, this uniquely identifies a record in fs_secondary_user.
+          example: secondary.user@example.com
+        accountID:
+          type: string
+          minLength: 1
+          description: Account ID
+          example: acc-12345
+        legalEntityID:
+          type: string
+          minLength: 1
+          description: Legal entity identifier
+          example: le-001
+        legalEntitySharingStatus:
+          type: string
+          description: Legal entity sharing status. blocked adds legalEntityID to BLOCKED_ENTITIES, active removes legalEntityID from BLOCKED_ENTITIES.
+          enum: [blocked, active]
+          x-enum-varnames: [blocked, active]
+          example: active
+          x-enum-description: |
+            Allowed values:
+              - active: Legal entity is not blocked
+              - blocked: Legal Entity is blocked

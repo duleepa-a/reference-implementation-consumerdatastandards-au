@@ -25,7 +25,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
@@ -186,40 +185,6 @@ public class CeasingSecondaryUserSharingApiImplTest {
                         && "".equals(item.getLegalEntityID())
                         && LegalEntitySharingItem.LegalEntitySharingStatusEnum.active
                                 .equals(item.getLegalEntitySharingStatus())));
-    }
-
-    /**
-     * Verifies bad request for missing query parameters.
-     */
-    @Test
-    public void testGetLegalEntitySharingStatusBadRequest() {
-        Response response = CeasingSecondaryUserSharingApiImpl.getLegalEntitySharingStatus("  ", " ");
-
-        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertEquals(body.getErrorDescription(), "At least one accountId and userId are required");
-    }
-
-    /**
-     * Verifies bad request when required fields (secondaryUserID, accountID, legalEntityID) are blank.
-     */
-    @Test
-    public void testUpdateLegalEntitySharingStatusBadRequestOnBlankRequiredFields() {
-        LegalEntitySharingItem item = new LegalEntitySharingItem();
-        item.setSecondaryUserID("   ");
-        item.setAccountID("   ");
-        item.setLegalEntityID("   ");
-        item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
-
-        Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
-                Collections.singletonList(item));
-
-        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
-        ErrorResponse body = (ErrorResponse) response.getEntity();
-        Assert.assertNotNull(body);
-        Assert.assertEquals(body.getErrorDescription(),
-                "secondaryUserID, accountID and legalEntityID are required");
     }
 
     private LegalEntitySharingItem buildItem(String secondaryUserId,

@@ -34,7 +34,7 @@ public class CeasingSecondaryUserSharing {
             @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
             @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
-    public Response getLegalEntitySharingStatusGet(@QueryParam("userId") @NotNull @ApiParam("User ID")  String userId, @QueryParam("accountIds") @NotNull  @ApiParam("Comma-separated account IDs")  String accountIds) {
+    public Response getLegalEntitySharingStatusGet(@QueryParam("userId") @NotBlank @ApiParam("User ID")  String userId, @QueryParam("accountIds") @NotBlank  @ApiParam("Comma-separated account IDs")  String accountIds) {
                 return CeasingSecondaryUserSharingApiImpl.getLegalEntitySharingStatus(accountIds, userId);
     }
 

@@ -86,13 +86,13 @@ public class CeasingSecondaryUserSharingApiImpl {
             // on top of each other
             for (LegalEntitySharingItem item : validItems) {
                 Pair<String, String> accountUserPair = Pair.of(item.getAccountID(), item.getSecondaryUserID());
-                String originalCsv = existingBlockedEntities.get(accountUserPair);
+                String originalCSV = existingBlockedEntities.get(accountUserPair);
                 // Use the in-progress accumulated value 
-                String baseCsv = finalBlockedEntitiesByAccountUser.getOrDefault(accountUserPair, originalCsv);
-                String updatedCsv = getUpdatedBlockedEntities(baseCsv, item);
+                String baseCSV = finalBlockedEntitiesByAccountUser.getOrDefault(accountUserPair, originalCSV);
+                String updatedCSV = getUpdatedBlockedEntities(baseCSV, item);
 
                 // Update the accumulated value for this account-user pair
-                finalBlockedEntitiesByAccountUser.put(accountUserPair, updatedCsv);
+                finalBlockedEntitiesByAccountUser.put(accountUserPair, updatedCSV);
 
                 processedItems.add(item);
             }
@@ -103,16 +103,16 @@ public class CeasingSecondaryUserSharingApiImpl {
             // Separate the final state into inserts (new records) and updates (existing records that changed)
             for (Map.Entry<Pair<String, String>, String> entry : finalBlockedEntitiesByAccountUser.entrySet()) {
                 Pair<String, String> accountUserPair = entry.getKey();
-                String finalCsv = entry.getValue();
+                String finalCSV = entry.getValue();
 
                 if (existingBlockedEntities.containsKey(accountUserPair)) {
                     // Only update if the blocked entity list actually changed
-                    String originalCsv = existingBlockedEntities.get(accountUserPair);
-                    if (!StringUtils.equals(finalCsv, originalCsv)) {
-                        updates.put(accountUserPair, finalCsv);
+                    String originalCSV = existingBlockedEntities.get(accountUserPair);
+                    if (!StringUtils.equals(finalCSV, originalCSV)) {
+                        updates.put(accountUserPair, finalCSV);
                     }
                 } else {
-                    inserts.put(accountUserPair, finalCsv);
+                    inserts.put(accountUserPair, finalCSV);
                 }
             }
 
@@ -147,10 +147,6 @@ public class CeasingSecondaryUserSharingApiImpl {
      * @return response with legal entity sharing status records
      */
     public static Response getLegalEntitySharingStatus(String accountIds, String userId) {
-
-        if (StringUtils.isBlank(accountIds) || StringUtils.isBlank(userId)) {
-            return sendBadRequest("At least one accountId and userId are required");
-        }
 
         // Split the comma-separated accountIds and strip whitespace from each token
         List<String> accountIdList = Arrays.stream(accountIds.split(",")).map(StringUtils::trimToEmpty)
@@ -214,12 +210,12 @@ public class CeasingSecondaryUserSharingApiImpl {
      * Applies a single legal entity sharing item to the current blocked entities CSV, adding or removing
      * the legal entity ID depending on the requested sharing status.
      *
-     * @param blockedEntitiesCsv current comma-separated list of blocked legal entity IDs (may be null or empty)
+     * @param blockedEntitiesCSV current comma-separated list of blocked legal entity IDs (may be null or empty)
      * @param item               the sharing item describing the desired status change
      * @return updated comma-separated list of blocked legal entity IDs
      */
-    private static String getUpdatedBlockedEntities(String blockedEntitiesCsv, LegalEntitySharingItem item) {
-        Set<String> blockedEntities = parseBlockedEntities(blockedEntitiesCsv);
+    private static String getUpdatedBlockedEntities(String blockedEntitiesCSV, LegalEntitySharingItem item) {
+        Set<String> blockedEntities = parseBlockedEntities(blockedEntitiesCSV);
         String legalEntityId = item.getLegalEntityID();
         LegalEntitySharingItem.LegalEntitySharingStatusEnum sharingStatus = item.getLegalEntitySharingStatus();
 
@@ -286,15 +282,15 @@ public class CeasingSecondaryUserSharingApiImpl {
      * Parses a comma-separated list of blocked legal entity IDs into an ordered set.
      * Blank tokens are ignored and each remaining value is trimmed of whitespace.
      *
-     * @param blockedEntitiesCsv comma-separated string of blocked entity IDs (may be null or empty)
+     * @param blockedEntitiesCSV comma-separated string of blocked entity IDs (may be null or empty)
      * @return ordered set of non-blank entity IDs; empty set if input is blank
      */
-    private static Set<String> parseBlockedEntities(String blockedEntitiesCsv) {
-        if (StringUtils.isBlank(blockedEntitiesCsv)) {
+    private static Set<String> parseBlockedEntities(String blockedEntitiesCSV) {
+        if (StringUtils.isBlank(blockedEntitiesCSV)) {
             return new LinkedHashSet<>();
         }
 
-        return Arrays.stream(blockedEntitiesCsv.split(",")).map(StringUtils::trimToEmpty)
+        return Arrays.stream(blockedEntitiesCSV.split(",")).map(StringUtils::trimToEmpty)
                 .filter(StringUtils::isNotBlank).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
