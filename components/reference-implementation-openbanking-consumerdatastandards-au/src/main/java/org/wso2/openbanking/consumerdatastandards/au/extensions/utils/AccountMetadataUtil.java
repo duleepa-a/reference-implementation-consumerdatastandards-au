@@ -161,7 +161,8 @@ public class AccountMetadataUtil {
 
         } catch (IOException | URISyntaxException | CdsConsentException e) {
             log.error("Failed to retrieve secondary account instruction statuses", e);
-            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, "");
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                    "Failed to retrieve secondary account instruction statuses");
         }
     }
 
@@ -175,25 +176,14 @@ public class AccountMetadataUtil {
      * @return map of accountId to blocking status (true when blocked for given legal entity)
      */
     public static Map<String, Boolean> getSecondaryAccountBlockedByLegalEntityMap(List<String> accountIds,
-            String secondaryUserId, String legalEntityId) {
+            String secondaryUserId, String legalEntityId) throws CdsConsentException {
 
         Map<String, Boolean> blockedMap = new HashMap<>();
 
-        if (accountIds == null || accountIds.isEmpty() || StringUtils.isBlank(secondaryUserId)
-                || StringUtils.isBlank(legalEntityId)) {
-            return blockedMap;
-        }
-
-        List<String> validAccountIds = new ArrayList<>();
         for (String accountId : accountIds) {
             if (StringUtils.isNotBlank(accountId)) {
-                validAccountIds.add(accountId);
                 blockedMap.put(accountId, false);
             }
-        }
-
-        if (validAccountIds.isEmpty()) {
-            return blockedMap;
         }
 
         RequestConfig requestConfig = RequestConfig.custom()
@@ -203,7 +193,7 @@ public class AccountMetadataUtil {
 
         try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
             String baseUrl = buildLegalEntitySharingUrl();
-            String accountIdParam = String.join(",", validAccountIds);
+            String accountIdParam = String.join(",", accountIds);
 
             URIBuilder uriBuilder = new URIBuilder(baseUrl);
             uriBuilder.addParameter(CommonConstants.ACCOUNT_IDS, accountIdParam);
@@ -219,7 +209,8 @@ public class AccountMetadataUtil {
             if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
                 log.error("Failed to retrieve legal entity sharing statuses, HTTP Status: " +
                         response.getStatusLine().getStatusCode());
-                return blockedMap;
+                throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                        "Failed to retrieve legal entity sharing statuses from Account metadata service");
             }
 
             InputStream in = response.getEntity().getContent();
@@ -228,9 +219,9 @@ public class AccountMetadataUtil {
 
         } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve legal entity sharing statuses", e);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                    "Failed to retrieve legal entity sharing statuses");
         }
-
-        return blockedMap;
     }
 
     /**
@@ -733,6 +724,14 @@ public class AccountMetadataUtil {
         }
     }
 
+    /**
+     * Retrieves the first non-null and non-empty string value from the given JsonObject for the provided field names.
+     * Iterates through the fieldNames in order and returns the value of the first field that exists and is not null.
+     *
+     * @param item       the JsonObject to search for the fields
+     * @param fieldNames one or more field names to check in order of priority
+     * @return the string value of the first found field, or an empty string if none are found or all are null
+     */
     private static String getJsonString(JsonObject item, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonElement value = item.get(fieldName);

@@ -528,6 +528,13 @@ public class CDSAccountValidationUtils {
         }
     }
 
+    /**
+     * Parses the legal entity ID from the IS applications service response body.
+     *
+     * @param responseBody the JSON response body as a string
+     * @return the legal entity ID if found, or an empty string if not present
+     * @throws CDSAccountValidationException if the response is invalid or the legal entity ID cannot be found
+     */
     private static String parseLegalEntityIdFromIsResponse(String responseBody)
             throws CDSAccountValidationException {
 

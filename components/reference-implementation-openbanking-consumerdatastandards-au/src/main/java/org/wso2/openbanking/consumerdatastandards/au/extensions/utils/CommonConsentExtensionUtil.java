@@ -38,7 +38,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.configurations.ConfigurableProperties;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CdsErrorEnum;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponse;
 
 import java.io.IOException;
@@ -249,11 +251,7 @@ public class CommonConsentExtensionUtil {
      * @param clientId client identifier from request object
      * @return legal_entity_id if available, empty string otherwise
      */
-    public static String getLegalEntityIdByClientId(String clientId) {
-
-        if (StringUtils.isBlank(clientId)) {
-            return StringUtils.EMPTY;
-        }
+    public static String getLegalEntityIdByClientId(String clientId) throws CdsConsentException {
 
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(ConfigurableProperties.IS_APPLICATION_MGMT_CONNECT_TIMEOUT_MILLIS)
@@ -261,23 +259,16 @@ public class CommonConsentExtensionUtil {
                 .build();
 
         try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
-            URIBuilder uriBuilder = new URIBuilder(ConfigurableProperties.IS_APPLICATIONS_ENDPOINT);
-            uriBuilder.addParameter(CommonConstants.FILTER_QUERY_PARAM,
-                    CommonConstants.CLIENT_ID_FILTER_PREFIX + StringUtils.trimToEmpty(clientId));
-            uriBuilder.addParameter(CommonConstants.ATTRIBUTES_QUERY_PARAM,
-                    CommonConstants.ADVANCED_CONFIGURATIONS);
-
-            HttpGet request = new HttpGet(uriBuilder.build());
-            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
-            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+            HttpGet request = getHttpGetForISApplicationEndpointForRetrievingLegalID(clientId);
             addIsBasicAuthHeader(request);
 
             HttpResponse response = client.execute(request);
 
             if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-                log.error("Failed to retrieve IS application details for clientId: " + clientId
-                        + ", HTTP Status: " + response.getStatusLine().getStatusCode());
-                return StringUtils.EMPTY;
+                String errorMessage = "Failed to retrieve IS application details for clientId: " + clientId
+                        + ", HTTP Status: " + response.getStatusLine().getStatusCode();
+                log.error(errorMessage);
+                throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, errorMessage);
             }
 
             InputStream in = response.getEntity().getContent();
@@ -285,23 +276,48 @@ public class CommonConsentExtensionUtil {
             return extractLegalEntityIdFromIsResponse(responseBody);
 
         } catch (IOException | URISyntaxException e) {
-            log.error("Failed to retrieve legal entity id for clientId: " + clientId, e);
-            return StringUtils.EMPTY;
+            String errorMessage = "Failed to retrieve legal entity id for clientId: " + clientId;
+            log.error(errorMessage, e);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, errorMessage);
         }
     }
 
+    /**
+     * Constructs an HttpGet request for the IS applications endpoint to retrieve legal entity ID for a given clientId.
+     *
+     * @param clientId the client identifier to filter applications
+     * @return HttpGet request configured with necessary query parameters and headers
+     * @throws URISyntaxException if the constructed URI is invalid
+     */
+    private static HttpGet getHttpGetForISApplicationEndpointForRetrievingLegalID(String clientId)
+        throws URISyntaxException {
+        URIBuilder uriBuilder = new URIBuilder(ConfigurableProperties.IS_APPLICATIONS_ENDPOINT);
+        uriBuilder.addParameter(CommonConstants.FILTER_QUERY_PARAM,
+                CommonConstants.CLIENT_ID_FILTER_PREFIX + StringUtils.trimToEmpty(clientId));
+        uriBuilder.addParameter(CommonConstants.ATTRIBUTES_QUERY_PARAM,
+                CommonConstants.ADVANCED_CONFIGURATIONS);
+
+        HttpGet request = new HttpGet(uriBuilder.build());
+        request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
+        request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
+        return request;
+    }
+
+    /**
+     * Extracts the legal entity ID from the IS application management response body.
+     *
+     * @param responseBody the JSON response body as a string
+     * @return the legal entity ID if found, or an empty string otherwise
+     */
     private static String extractLegalEntityIdFromIsResponse(String responseBody) {
         try {
             JSONObject responseJson = new JSONObject(responseBody);
             JSONArray applications = responseJson.optJSONArray(CommonConstants.APPLICATIONS);
-            if (applications == null || applications.length() == 0) {
+            if (applications == null || applications.isEmpty()) {
                 return StringUtils.EMPTY;
             }
 
             JSONObject application = applications.optJSONObject(0);
-            if (application == null) {
-                return StringUtils.EMPTY;
-            }
 
             JSONObject advancedConfigurations = application.optJSONObject(CommonConstants.ADVANCED_CONFIGURATIONS);
             if (advancedConfigurations == null) {
@@ -333,6 +349,11 @@ public class CommonConsentExtensionUtil {
         }
     }
 
+    /**
+     * Adds Basic Authentication header for IS application management requests.
+     *
+     * @param request the HTTP request to add the authentication header to
+     */
     private static void addIsBasicAuthHeader(HttpRequestBase request) {
         String credentials = ConfigurableProperties.IS_APPLICATION_MGMT_USERNAME + ":"
                 + ConfigurableProperties.IS_APPLICATION_MGMT_PASSWORD;

@@ -29,7 +29,7 @@ import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CdsErr
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.AuthorizationFailureException;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
-import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalDisplayDataSection;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.PopulateConsentAuthorizeScreenData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.PopulateConsentAuthorizeScreenRequestBody;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreen;
@@ -83,7 +83,7 @@ public class PopulateConsentAuthorizeScreenApiImpl {
                     new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData();
 
             //CDS Unavailable account list
-            List<AdditionalDisplayDataSection> additionalDisplayData = new ArrayList<>();
+            List<AdditionalData> additionalDisplayData = new ArrayList<>();
 
             //Getting Consumer and Display Data
             ConsentAuthorizeUtil.cdsConsumerDataRetrieval(jsonRequestBody, userId, consumerData, additionalDisplayData);
@@ -93,7 +93,7 @@ public class PopulateConsentAuthorizeScreenApiImpl {
                     new SuccessResponsePopulateConsentAuthorizeScreenData();
             screenData.setConsentData(consentData);
             screenData.setConsumerData(consumerData);
-            screenData.setAdditionalDisplayData(additionalDisplayData);
+            screenData.setAdditionalData(additionalDisplayData);
 
             SuccessResponsePopulateConsentAuthorizeScreen response =
                     new SuccessResponsePopulateConsentAuthorizeScreen();

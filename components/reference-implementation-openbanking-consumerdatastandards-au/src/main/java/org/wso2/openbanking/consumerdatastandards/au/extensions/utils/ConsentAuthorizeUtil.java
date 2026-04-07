@@ -29,8 +29,8 @@ import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CdsErr
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.PermissionsEnum;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
-import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalDisplayDataSection;
-import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.DisplayListItem;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalData;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalDataItem;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsentData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsentDataPermissionsInner;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData;
@@ -198,7 +198,7 @@ public class ConsentAuthorizeUtil {
      */
     public static void cdsConsumerDataRetrieval(JSONObject jsonRequestBody, String userId,
             SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData consumerData,
-            List<AdditionalDisplayDataSection> displayData) throws CdsConsentException {
+            List<AdditionalData> displayData) throws CdsConsentException {
 
         // Append consumer data to response
         try {
@@ -438,7 +438,7 @@ public class ConsentAuthorizeUtil {
     private static void processAccount(
             JSONObject accountJson, SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
-            List<DisplayListItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
+            List<AdditionalDataItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
             Map<String, String> secondaryInstructionStatusMap,
             Map<String, Boolean> blockedSecondaryAccountsByLegalEntity) {
 
@@ -455,8 +455,8 @@ public class ConsentAuthorizeUtil {
             || !isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId,
                 secondaryInstructionStatusMap)) {
             // Block account if any eligibility check fails
-            DisplayListItem blockedItem = new DisplayListItem();
-            blockedItem.setDisplayText(getDisplayNameWithAccountNumber(
+            AdditionalDataItem blockedItem = new AdditionalDataItem();
+            blockedItem.setItem(getDisplayNameWithAccountNumber(
                     accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
             blockedAccountsList.add(blockedItem);
             return;
@@ -513,7 +513,7 @@ public class ConsentAuthorizeUtil {
      * @return map of secondary accountId to blocked status for client's legal entity
      */
     private static Map<String, Boolean> buildSecondaryAccountLegalEntityBlockedMap(JSONArray accountsJSON,
-            String userId, String clientId) {
+            String userId, String clientId) throws CdsConsentException {
 
         if (accountsJSON == null || StringUtils.isBlank(userId) || StringUtils.isBlank(clientId)) {
             return new HashMap<>();
@@ -526,8 +526,9 @@ public class ConsentAuthorizeUtil {
 
         String legalEntityId = CommonConsentExtensionUtil.getLegalEntityIdByClientId(clientId);
         if (StringUtils.isBlank(legalEntityId)) {
-            log.warn("Unable to resolve legal_entity_id for clientId: " + clientId);
-            return new HashMap<>();
+            String error_message = "Unable to resolve legal_entity_id for clientId: " + clientId;
+            log.error(error_message);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, error_message);
         }
 
         return AccountMetadataUtil.getSecondaryAccountBlockedByLegalEntityMap(secondaryAccountIds, userId,
@@ -584,9 +585,10 @@ public class ConsentAuthorizeUtil {
      * @param consumerData Consumer data model to be populated.
      * @param displayData Display data model to be populated.
      */
-    public static void validateAndAppendConsumerObjectToResponse(JSONObject jsonRequestBody, String userId,
-                          SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData consumerData,
-                          List<AdditionalDisplayDataSection> displayData) throws CdsConsentException {
+    public static void validateAndAppendConsumerObjectToResponse(
+            JSONObject jsonRequestBody, String userId,
+            SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData consumerData,
+            List<AdditionalData> displayData) throws CdsConsentException {
         try {
             String accountsURL = ConfigurableProperties.SHARABLE_ENDPOINT;
             if (StringUtils.isNotBlank(accountsURL)) {
@@ -619,14 +621,14 @@ public class ConsentAuthorizeUtil {
                     }
                 }
 
+                // Retrieving Secondary instruction statuses for secondary accounts from the account metadata service.
                 Map<String, String> secondaryInstructionStatusMap =
                         AccountMetadataUtil.getSecondaryAccountInstructionStatusesForAccounts(
                                 secondaryAccountIds, userId);
 
                 List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList =
                     new ArrayList<>();
-
-                List<DisplayListItem> blockedAccountsList = new ArrayList<>();
+                List<AdditionalDataItem> blockedAccountsList = new ArrayList<>();
 
                 String clientId = getClientIdFromRequestBody(jsonRequestBody);
                 Map<String, Boolean> blockedSecondaryAccountsByLegalEntity =
@@ -640,7 +642,7 @@ public class ConsentAuthorizeUtil {
                             secondaryInstructionStatusMap, blockedSecondaryAccountsByLegalEntity);
                 }
 
-                List<AdditionalDisplayDataSection> resolvedDisplayData = setDisplayData(blockedAccountsList);
+                List<AdditionalData> resolvedDisplayData = setDisplayData(blockedAccountsList);
                 displayData.clear();
                 displayData.addAll(resolvedDisplayData);
                 consumerData.setAccounts(accountList);
@@ -700,23 +702,25 @@ public class ConsentAuthorizeUtil {
 
     /**
      * Creates and populates display data for blocked/unavailable accounts.
+     *
      * @param blockedAccountsList List of blocked accounts to be displayed
      * @return List of display data sections
      * containing display information for blocked accounts
      */
-    private static List<AdditionalDisplayDataSection> setDisplayData(List<DisplayListItem> blockedAccountsList) {
-        List<AdditionalDisplayDataSection> displayData = new ArrayList<>();
+    private static List<AdditionalData> setDisplayData(List<AdditionalDataItem> blockedAccountsList) {
+        List<AdditionalData> displayData = new ArrayList<>();
 
-        AdditionalDisplayDataSection item = new AdditionalDisplayDataSection();
+        AdditionalData item = new AdditionalData();
 
         // Always initialize the list to avoid nulls in the UI layer
-        List<DisplayListItem> safeList = (blockedAccountsList != null) ? blockedAccountsList : Collections.emptyList();
+        List<AdditionalDataItem> safeList = (blockedAccountsList != null) ? blockedAccountsList :
+                Collections.emptyList();
 
-        item.setDisplayList(safeList);
+        item.setItems(safeList);
 
         // Set UI metadata
-        item.setHeading(CommonConstants.AUTH_SCREEN_UNAVAILABLE_ACCOUNTS_HEADING);
-        item.setSubHeading(CommonConstants.AUTH_SCREEN_UNAVAILABLE_ACCOUNTS_SUB_HEADING);
+        item.setTitle(CommonConstants.AUTH_SCREEN_UNAVAILABLE_ACCOUNTS_HEADING);
+        item.setSubtitle(CommonConstants.AUTH_SCREEN_UNAVAILABLE_ACCOUNTS_SUB_HEADING);
         item.setDescription(CommonConstants.AUTH_SCREEN_UNAVAILABLE_ACCOUNTS_TOOLTIP_DESCRIPTION);
 
         displayData.add(item);
