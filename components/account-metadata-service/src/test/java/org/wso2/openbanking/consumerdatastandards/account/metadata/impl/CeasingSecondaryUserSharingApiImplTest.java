@@ -18,13 +18,13 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.impl;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
@@ -33,10 +33,7 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connect
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
@@ -79,23 +76,16 @@ public class CeasingSecondaryUserSharingApiImplTest {
     }
 
     /**
-     * Verifies blocked entity add/remove logic for existing records.
+     * Verifies legal entity sharing update delegates to service upsert API and returns the processed payload.
      *
      * @throws Exception if setup or invocation fails
      */
     @Test
-    public void testUpdateLegalEntitySharingStatusUpdatesBlockedEntities() throws Exception {
+    public void testUpdateLegalEntitySharingStatusUpsertsItems() throws Exception {
         LegalEntitySharingItem blockRequest = buildItem("user-1", "acc-1", "le-003",
                 LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
         LegalEntitySharingItem activeRequest = buildItem("user-1", "acc-2", "le-001",
                 LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
-
-        Map<Pair<String, String>, String> existing = new HashMap<>();
-        existing.put(Pair.of("acc-1", "user-1"), "le-001,le-002");
-        existing.put(Pair.of("acc-2", "user-1"), "le-001,le-004");
-
-        Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(Mockito.eq(connection), Mockito.anyList()))
-                .thenReturn(existing);
 
         Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
                 Arrays.asList(blockRequest, activeRequest));
@@ -106,85 +96,25 @@ public class CeasingSecondaryUserSharingApiImplTest {
         Assert.assertEquals(body.size(), 2);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<Pair<String, String>, String>> updatesCaptor =
-                (ArgumentCaptor<Map<Pair<String, String>, String>>) (ArgumentCaptor<?>)
-                        ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(metadataDAO).updateBatchSecondaryUserBlockedEntities(Mockito.eq(connection),
-                updatesCaptor.capture());
-
-        Map<Pair<String, String>, String> updates = updatesCaptor.getValue();
-        Assert.assertEquals(updates.get(Pair.of("acc-1", "user-1")), "le-001,le-002,le-003");
-        Assert.assertEquals(updates.get(Pair.of("acc-2", "user-1")), "le-004");
+        ArgumentCaptor<List<LegalEntitySharingItem>> upsertCaptor =
+                (ArgumentCaptor<List<LegalEntitySharingItem>>) (ArgumentCaptor<?>)
+                        ArgumentCaptor.forClass(List.class);
+        Mockito.verify(metadataDAO).upsertBatchLegalEntitySharingStatuses(Mockito.eq(connection),
+                upsertCaptor.capture());
+        Assert.assertEquals(upsertCaptor.getValue().size(), 2);
     }
 
     /**
-     * Verifies missing account-user records are inserted during legal entity status update.
-     *
-     * @throws Exception if setup or invocation fails
+     * Verifies GET endpoint returns 400 Bad Request when clientId is not provided.
      */
     @Test
-    public void testUpdateLegalEntitySharingStatusAddsMissingRecord() throws Exception {
-        LegalEntitySharingItem blockRequest = buildItem("user-10", "acc-10", "le-010",
-                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
+    public void testGetLegalEntitySharingStatusBadRequestWhenClientIdMissing() throws AccountMetadataException {
+        Response response = CeasingSecondaryUserSharingApiImpl.getLegalEntitySharingStatus("acc-1,acc-2", "user-1",
+                null);
 
-        Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(Mockito.eq(connection), Mockito.anyList()))
-                .thenReturn(Collections.emptyMap());
-
-        Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
-                Collections.singletonList(blockRequest));
-
-        Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<Pair<String, String>, String>> insertsCaptor =
-                (ArgumentCaptor<Map<Pair<String, String>, String>>) (ArgumentCaptor<?>)
-                        ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(metadataDAO).addBatchSecondaryUserBlockedEntities(
-                Mockito.eq(connection), insertsCaptor.capture());
-
-        Map<Pair<String, String>, String> inserts = insertsCaptor.getValue();
-        Assert.assertEquals(inserts.size(), 1);
-        Assert.assertEquals(inserts.get(Pair.of("acc-10", "user-10")), "le-010");
+        Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
         Mockito.verify(metadataDAO, Mockito.never())
-                .updateBatchSecondaryUserBlockedEntities(Mockito.any(Connection.class), Mockito.anyMap());
-    }
-
-    /**
-     * Verifies retrieval response mapping from BLOCKED_ENTITIES to API items.
-     *
-     * @throws Exception if setup or invocation fails
-     */
-    @Test
-    public void testGetLegalEntitySharingStatusSuccess() throws Exception {
-        Map<Pair<String, String>, String> existing = new HashMap<>();
-        existing.put(Pair.of("acc-1", "user-1"), "le-001,le-002");
-        existing.put(Pair.of("acc-2", "user-1"), "");
-
-        Mockito.when(metadataDAO.getBatchSecondaryUserBlockedEntities(Mockito.eq(connection), Mockito.anyList()))
-                .thenReturn(existing);
-
-        Response response = CeasingSecondaryUserSharingApiImpl.getLegalEntitySharingStatus("acc-1,acc-2", "user-1");
-
-        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        @SuppressWarnings("unchecked")
-        List<LegalEntitySharingItem> body = (List<LegalEntitySharingItem>) response.getEntity();
-        Assert.assertEquals(body.size(), 3);
-
-        Assert.assertTrue(body.stream().anyMatch(item ->
-                "acc-1".equals(item.getAccountID())
-                        && "le-001".equals(item.getLegalEntityID())
-                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked
-                                .equals(item.getLegalEntitySharingStatus())));
-        Assert.assertTrue(body.stream().anyMatch(item ->
-                "acc-1".equals(item.getAccountID())
-                        && "le-002".equals(item.getLegalEntityID())
-                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked
-                                .equals(item.getLegalEntitySharingStatus())));
-        Assert.assertTrue(body.stream().anyMatch(item ->
-                "acc-2".equals(item.getAccountID())
-                        && "".equals(item.getLegalEntityID())
-                        && LegalEntitySharingItem.LegalEntitySharingStatusEnum.active
-                                .equals(item.getLegalEntitySharingStatus())));
+                .getBatchLegalEntitySharingStatuses(Mockito.any(Connection.class), Mockito.anyList());
     }
 
     private LegalEntitySharingItem buildItem(String secondaryUserId,

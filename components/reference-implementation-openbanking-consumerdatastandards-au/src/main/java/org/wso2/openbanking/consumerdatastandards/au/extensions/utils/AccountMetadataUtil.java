@@ -167,16 +167,17 @@ public class AccountMetadataUtil {
     }
 
     /**
-     * Retrieve legal-entity blocked status for secondary accounts for a given user and legal entity.
-     * Calls GET /legal-entity with comma-separated account IDs and userId query parameters.
+     * Retrieve legal-entity blocked status for secondary accounts for a given user and client.
+     * Calls GET /legal-entity with comma-separated account IDs, userId, and clientId query parameters.
+     * The account-metadata service resolves the clientId to a legal entity ID internally.
      *
      * @param accountIds list of secondary account IDs
      * @param secondaryUserId secondary user ID
-     * @param legalEntityId legal entity ID to evaluate blocking status against
-     * @return map of accountId to blocking status (true when blocked for given legal entity)
+     * @param clientId software product client ID used to resolve the legal entity ID server-side
+     * @return map of accountId to blocking status (true when blocked for the resolved legal entity)
      */
     public static Map<String, Boolean> getSecondaryAccountBlockedByLegalEntityMap(List<String> accountIds,
-            String secondaryUserId, String legalEntityId) throws CdsConsentException {
+            String secondaryUserId, String clientId) throws CdsConsentException {
 
         Map<String, Boolean> blockedMap = new HashMap<>();
 
@@ -198,6 +199,9 @@ public class AccountMetadataUtil {
             URIBuilder uriBuilder = new URIBuilder(baseUrl);
             uriBuilder.addParameter(CommonConstants.ACCOUNT_IDS, accountIdParam);
             uriBuilder.addParameter(CommonConstants.USER_ID_QUERY_PARAM, secondaryUserId);
+            if (StringUtils.isNotBlank(clientId)) {
+                uriBuilder.addParameter(CommonConstants.CLIENT_ID_QUERY_PARAM, clientId);
+            }
 
             HttpGet request = new HttpGet(uriBuilder.build());
             request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
@@ -215,7 +219,7 @@ public class AccountMetadataUtil {
 
             InputStream in = response.getEntity().getContent();
             String responseBody = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
-            return extractLegalEntityBlockedStatusFromBatchResponse(responseBody, blockedMap, legalEntityId);
+            return extractLegalEntityBlockedStatusFromBatchResponse(responseBody, blockedMap);
 
         } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve legal entity sharing statuses", e);
@@ -677,14 +681,15 @@ public class AccountMetadataUtil {
 
     /**
      * Extract legal-entity blocked statuses from batch API response body.
+     * The server has already filtered results by the resolved legal entity (via clientId),
+     * so only items matching that legal entity are present in the response.
      *
      * @param responseBody the JSON response body as a string
      * @param defaultStatusMap account-level default statuses
-     * @param legalEntityId legal entity to compare against
      * @return map of accountId to blocked status
      */
     private static Map<String, Boolean> extractLegalEntityBlockedStatusFromBatchResponse(String responseBody,
-            Map<String, Boolean> defaultStatusMap, String legalEntityId) {
+            Map<String, Boolean> defaultStatusMap) {
 
         Map<String, Boolean> blockedStatusMap = new HashMap<>(defaultStatusMap);
 
@@ -701,7 +706,6 @@ public class AccountMetadataUtil {
 
                     JsonObject item = itemElement.getAsJsonObject();
                     String accountId = getJsonString(item, "accountID", CommonConstants.ACCOUNT_ID);
-                    String itemLegalEntityId = getJsonString(item, CommonConstants.LEGAL_ENTITY_ID, "legalEntityId");
                     String sharingStatus = getJsonString(item, CommonConstants.LEGAL_ENTITY_SHARING_STATUS,
                             "legalEntitySharingStatus");
 
@@ -709,9 +713,7 @@ public class AccountMetadataUtil {
                         continue;
                     }
 
-                    if (StringUtils.equalsIgnoreCase(itemLegalEntityId, legalEntityId)
-                            && StringUtils.equalsIgnoreCase(sharingStatus,
-                            CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED)) {
+                    if (CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED.equalsIgnoreCase(sharingStatus)) {
                         blockedStatusMap.put(accountId, true);
                     }
                 }

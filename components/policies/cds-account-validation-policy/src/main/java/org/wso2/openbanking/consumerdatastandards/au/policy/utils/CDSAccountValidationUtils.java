@@ -123,6 +123,11 @@ public class CDSAccountValidationUtils {
             Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64, String clientId)
             throws CDSAccountValidationException {
 
+        if (StringUtils.isBlank(userId)) {
+            log.warn("[CDS-policy] no primary userId, skipping cds account validation.");
+            return new HashSet<>();
+        }
+
         String disclosureOptionsApi = baseUrl + CDSAccountValidationConstants.DISCLOSURE_OPTIONS_PATH;
         String secondaryAccountsApi = baseUrl + CDSAccountValidationConstants.SECONDARY_ACCOUNTS_PATH;
         String businessStakeholdersApi = baseUrl + CDSAccountValidationConstants.BUSINESS_STAKEHOLDERS_PATH;
@@ -237,11 +242,6 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        if (StringUtils.isBlank(userId)) {
-            log.warn("[SecondaryAccounts] userId is blank, skipping secondary accounts check");
-            return blockedAccounts;
-        }
-
         try {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
@@ -319,11 +319,6 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        if (StringUtils.isBlank(userId)) {
-            log.warn("[BusinessStakeholders] userId is blank, skipping business stakeholders check");
-            return blockedAccounts;
-        }
-
         try {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
@@ -382,6 +377,8 @@ public class CDSAccountValidationUtils {
 
     /**
      * Call legal-entity GET endpoint and return blocked account IDs for the requesting client's legal entity.
+     * The {@code clientId} is forwarded to the account-metadata service, which resolves it to a legal entity ID
+     * via the IS server and filters the response accordingly.
      *
      * @param accountIds set of account IDs to check
      * @param legalEntitySharingApi legal-entity API endpoint
@@ -390,27 +387,23 @@ public class CDSAccountValidationUtils {
      * @param clientId software product client ID
      * @return set of blocked account IDs by legal entity
      */
-    static Set<String> fetchBlockedLegalEntityAccountsFromService(Set<String> accountIds,
-                                                                  String legalEntitySharingApi, String userId, String basicAuthBase64, String clientId)
+    static Set<String> fetchBlockedLegalEntityAccountsFromService
+    (Set<String> accountIds, String legalEntitySharingApi, String userId, String basicAuthBase64, String clientId)
             throws CDSAccountValidationException {
 
         Set<String> blockedAccounts = new HashSet<>();
 
-        if (accountIds == null || accountIds.isEmpty()) {
-            return blockedAccounts;
-        }
-
-        if (StringUtils.isBlank(userId) || StringUtils.isBlank(clientId)) {
+        if (accountIds == null || accountIds.isEmpty() || StringUtils.isBlank(clientId)) {
             return blockedAccounts;
         }
 
         try {
-            String legalEntityId = fetchLegalEntityIdByClientId(clientId, basicAuthBase64);
-
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+            String clientIdParam = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
             String requestUrl = legalEntitySharingApi + "?" + CDSAccountValidationConstants.ACCOUNT_IDS_TAG + "="
-                    + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam;
+                    + accountIdsParam + "&" + CDSAccountValidationConstants.USER_ID_TAG + "=" + userIdParam
+                    + "&" + CDSAccountValidationConstants.CLIENT_ID_TAG + "=" + clientIdParam;
 
             HttpGet request = new HttpGet(requestUrl);
             request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
@@ -445,13 +438,9 @@ public class CDSAccountValidationUtils {
 
                         String sharingStatus = sharingItem.optString(
                                 CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_STATUS_TAG, null);
-                        String itemLegalEntityId = sharingItem.optString(
-                                CDSAccountValidationConstants.LEGAL_ENTITY_ID_TAG,
-                                sharingItem.optString(
-                                        CDSAccountValidationConstants.LEGAL_ENTITY_ID_CAMEL_CASE_TAG, null));
 
                         if (CDSAccountValidationConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED
-                                .equalsIgnoreCase(sharingStatus) && itemLegalEntityId.equalsIgnoreCase(legalEntityId)) {
+                                .equalsIgnoreCase(sharingStatus)) {
                             String accountId = sharingItem.optString(
                                     CDSAccountValidationConstants.ACCOUNT_ID_UPPER_CASE_TAG, sharingItem.optString(
                                             CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG, null));
@@ -473,113 +462,6 @@ public class CDSAccountValidationUtils {
         }
 
         return blockedAccounts;
-    }
-
-    /**
-     * Fetch legal_entity_id from IS application management endpoint by clientId.
-     *
-     * @param clientId software product client ID
-     * @param basicAuthBase64 Base64-encoded Basic Auth credentials
-     * @return legal_entity_id if available, otherwise empty
-     */
-    static String fetchLegalEntityIdByClientId(String clientId, String basicAuthBase64)
-            throws CDSAccountValidationException {
-
-        if (StringUtils.isBlank(clientId)) {
-            return StringUtils.EMPTY;
-        }
-
-        try {
-            String filterParam = URLEncoder.encode(
-                    CDSAccountValidationConstants.CLIENT_ID_FILTER_PREFIX + clientId, StandardCharsets.UTF_8);
-            String attributesParam = URLEncoder.encode(CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG,
-                    StandardCharsets.UTF_8);
-            String requestUrl = CDSAccountValidationConstants.IS_APPLICATIONS_ENDPOINT + "?"
-                    + CDSAccountValidationConstants.FILTER_TAG + "=" + filterParam
-                    + "&" + CDSAccountValidationConstants.ATTRIBUTES_TAG + "=" + attributesParam;
-
-            HttpGet request = new HttpGet(requestUrl);
-            request.addHeader(CDSAccountValidationConstants.ACCEPT_TAG,
-                    CDSAccountValidationConstants.JSON_CONTENT_TYPE);
-            if (StringUtils.isNotBlank(basicAuthBase64)) {
-                request.addHeader(CDSAccountValidationConstants.AUTH_HEADER,
-                        CDSAccountValidationConstants.BASIC_TAG + basicAuthBase64);
-            }
-
-            try (CloseableHttpResponse response = apacheHttpClient.execute(request)) {
-                if (response.getStatusLine().getStatusCode() != 200) {
-                    String errorMessage = "IS applications service returned HTTP "
-                            + response.getStatusLine().getStatusCode();
-                    log.error(errorMessage);
-                    throw new CDSAccountValidationException(errorMessage);
-                }
-
-                String responseBody;
-                try (InputStream inputStream = response.getEntity().getContent()) {
-                    responseBody = IOUtils.toString(inputStream, "UTF-8");
-                }
-
-                return parseLegalEntityIdFromIsResponse(responseBody);
-            }
-        } catch (IOException e) {
-            String errorMessage = "[LegalEntity] Error calling IS applications service";
-            log.error(errorMessage, e);
-            throw new CDSAccountValidationException(errorMessage, e);
-        }
-    }
-
-    /**
-     * Parses the legal entity ID from the IS applications service response body.
-     *
-     * @param responseBody the JSON response body as a string
-     * @return the legal entity ID if found, or an empty string if not present
-     * @throws CDSAccountValidationException if the response is invalid or the legal entity ID cannot be found
-     */
-    private static String parseLegalEntityIdFromIsResponse(String responseBody)
-            throws CDSAccountValidationException {
-
-        JSONObject responseJson;
-        try {
-            responseJson = new JSONObject(responseBody);
-        } catch (JSONException e) {
-            String errorMessage = "Invalid IS applications service response for retrieving legal entity Id.";
-            log.error(errorMessage, e);
-            throw new CDSAccountValidationException(errorMessage, e);
-        }
-
-        JSONArray applications = responseJson.optJSONArray(CDSAccountValidationConstants.APPLICATIONS_TAG);
-        if (applications == null || applications.length() == 0) {
-            return StringUtils.EMPTY;
-        }
-
-        JSONObject application = applications.optJSONObject(0);
-
-        JSONObject advancedConfigurations = application.optJSONObject(
-                CDSAccountValidationConstants.ADVANCED_CONFIGURATIONS_TAG);
-
-        JSONArray additionalSpProperties = advancedConfigurations
-                .optJSONArray(CDSAccountValidationConstants.ADDITIONAL_SP_PROPERTIES_TAG);
-        if (additionalSpProperties == null) {
-            String errorMessage = "No additional SP properties found in IS applications response";
-            log.error(errorMessage);
-            throw new CDSAccountValidationException(errorMessage);
-        }
-
-        for (int i = 0; i < additionalSpProperties.length(); i++) {
-            JSONObject property = additionalSpProperties.optJSONObject(i);
-            if (property == null) {
-                continue;
-            }
-
-            String name = property.optString(CDSAccountValidationConstants.NAME_TAG, StringUtils.EMPTY);
-            if (CDSAccountValidationConstants.LEGAL_ENTITY_ID_PROPERTY_NAME.equalsIgnoreCase(name)) {
-                return property.optString(CDSAccountValidationConstants.VALUE_TAG, StringUtils.EMPTY);
-            }
-        }
-
-        String errorMessage = "legal_entity_id is not available in IS application additional SP properties";
-        log.error(errorMessage);
-        throw new CDSAccountValidationException(errorMessage);
     }
 
 }

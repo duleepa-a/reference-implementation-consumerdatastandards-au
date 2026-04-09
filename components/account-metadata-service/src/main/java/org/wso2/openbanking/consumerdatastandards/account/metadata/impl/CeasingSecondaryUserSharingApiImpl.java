@@ -22,19 +22,36 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.configurations.ConfigurableProperties;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataService;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.core.AccountMetadataServiceImpl;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
@@ -48,12 +65,46 @@ public class CeasingSecondaryUserSharingApiImpl {
 
     private static final AccountMetadataService accountMetadataService = AccountMetadataServiceImpl.getInstance();
 
+    private static final CloseableHttpClient httpClient;
+    private static final String IS_BASIC_AUTH_HEADER;
+
+    private static final long LEGAL_ENTITY_CACHE_TTL_MS = TimeUnit.HOURS.toMillis(1);
+    private static final Map<String, LegalEntityCacheEntry> LEGAL_ENTITY_CACHE = new ConcurrentHashMap<>();
+
+    private static class LegalEntityCacheEntry {
+        final String legalEntityId;
+        final long expiryMs;
+
+        LegalEntityCacheEntry(String legalEntityId) {
+            this.legalEntityId = legalEntityId;
+            this.expiryMs = System.currentTimeMillis() + LEGAL_ENTITY_CACHE_TTL_MS;
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiryMs;
+        }
+    }
+
+    static {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(5000)
+                .setSocketTimeout(10000)
+                .build();
+        httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
+
+        String credentials = ConfigurableProperties.IS_USERNAME + ":" + ConfigurableProperties.IS_PASSWORD;
+        IS_BASIC_AUTH_HEADER = CommonConstants.BASIC_TAG
+                + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
     private CeasingSecondaryUserSharingApiImpl() {
         // Prevent instantiation
     }
 
     /**
      * Updates legal entity sharing statuses for one or more account-user records.
+     * Items with status {@code blocked} are inserted into fs_account_blocked_legal_entity (idempotent upsert).
+     * Items with status {@code active} delete the corresponding row if it exists.
      *
      * @param request list of legal entity sharing records to update
      * @return response with list of processed records
@@ -72,63 +123,8 @@ public class CeasingSecondaryUserSharingApiImpl {
                 return Response.status(Response.Status.OK).entity(new ArrayList<>()).build();
             }
 
-            // Extract unique (accountId, userId) pairs 
-            List<Pair<String, String>> accountUserPairs = buildAccountUserPairs(validItems);
-            Map<Pair<String, String>, String> existingBlockedEntities =
-                    accountMetadataService.getBatchSecondaryUserBlockedEntities(accountUserPairs);
-
-
-            Map<Pair<String, String>, String> finalBlockedEntitiesByAccountUser = new LinkedHashMap<>();
-            List<LegalEntitySharingItem> processedItems = new ArrayList<>();
-
-            // Accumulate the final blocked entity CSV per account-user pair across all items in the request.
-            // Using getOrDefault ensures that multiple items targeting the same pair are applied incrementally
-            // on top of each other
-            for (LegalEntitySharingItem item : validItems) {
-                Pair<String, String> accountUserPair = Pair.of(item.getAccountID(), item.getSecondaryUserID());
-                String originalCSV = existingBlockedEntities.get(accountUserPair);
-                // Use the in-progress accumulated value 
-                String baseCSV = finalBlockedEntitiesByAccountUser.getOrDefault(accountUserPair, originalCSV);
-                String updatedCSV = getUpdatedBlockedEntities(baseCSV, item);
-
-                // Update the accumulated value for this account-user pair
-                finalBlockedEntitiesByAccountUser.put(accountUserPair, updatedCSV);
-
-                processedItems.add(item);
-            }
-
-            Map<Pair<String, String>, String> updates = new LinkedHashMap<>();
-            Map<Pair<String, String>, String> inserts = new LinkedHashMap<>();
-
-            // Separate the final state into inserts (new records) and updates (existing records that changed)
-            for (Map.Entry<Pair<String, String>, String> entry : finalBlockedEntitiesByAccountUser.entrySet()) {
-                Pair<String, String> accountUserPair = entry.getKey();
-                String finalCSV = entry.getValue();
-
-                if (existingBlockedEntities.containsKey(accountUserPair)) {
-                    // Only update if the blocked entity list actually changed
-                    String originalCSV = existingBlockedEntities.get(accountUserPair);
-                    if (!StringUtils.equals(finalCSV, originalCSV)) {
-                        updates.put(accountUserPair, finalCSV);
-                    }
-                } else {
-                    inserts.put(accountUserPair, finalCSV);
-                }
-            }
-
-            if (!inserts.isEmpty()) {
-                accountMetadataService.addBatchSecondaryUserBlockedEntities(inserts);
-            }
-
-            if (!updates.isEmpty()) {
-                accountMetadataService.updateBatchSecondaryUserBlockedEntities(updates);
-            }
-
-            // Combine results and return 201 Created if any new items added, 200 OK otherwise
-            Response.ResponseBuilder responseBuilder = inserts.isEmpty() ?
-                    Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
-
-            return responseBuilder.entity(processedItems).build();
+            accountMetadataService.upsertBatchLegalEntitySharingStatuses(validItems);
+            return Response.status(Response.Status.OK).entity(validItems).build();
 
         } catch (AccountMetadataException e) {
             log.error("[Legal Entity Sharing] Failed to update legal entity sharing statuses", e);
@@ -140,62 +136,77 @@ public class CeasingSecondaryUserSharingApiImpl {
     }
 
     /**
-     * Retrieves legal entity sharing statuses for one user and multiple accounts.
+     * Retrieves blocked legal entity sharing records for one user and multiple accounts.
+     * When {@code clientId} is provided, the legal entity ID is resolved from the IS server and only rows
+     * matching that legal entity are returned.
      *
      * @param accountIds comma-separated account IDs
-     * @param userId user ID
-     * @return response with legal entity sharing status records
+     * @param userId     user ID
+     * @param clientId   software product client ID to resolve the legal entity ID
+     * @return response with blocked legal entity sharing records
      */
-    public static Response getLegalEntitySharingStatus(String accountIds, String userId) {
+    public static Response getLegalEntitySharingStatus(String accountIds, String userId, String clientId) {
 
-        // Split the comma-separated accountIds and strip whitespace from each token
+        if (StringUtils.isBlank(clientId)) {
+            return sendBadRequest("clientId is required");
+        }
+
         List<String> accountIdList = Arrays.stream(accountIds.split(",")).map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank).collect(Collectors.toList());
+            .filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList());
+
+        // Resolve the legal entity ID from IS when a clientId is supplied
+        String resolvedLegalEntityId = null;
+        try {
+            resolvedLegalEntityId = resolveLegalEntityId(clientId);
+            if (StringUtils.isBlank(resolvedLegalEntityId)) {
+                throw new AccountMetadataException("No legal entity ID found for clientId: " + clientId);
+            }
+        } catch (AccountMetadataException e) {
+            log.error("[Legal Entity Sharing] Failed to resolve legal entity ID for clientId: " + clientId, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse().errorDescription(
+                            "Failed to resolve legal entity ID: " + e.getMessage()))
+                    .build();
+        }
 
         try {
-            List<Pair<String, String>> accountUserPairs = new ArrayList<>();
             String normalizedUserId = StringUtils.trimToEmpty(userId);
-
-            // Build (accountId, userId) pairs for each requested account
+            List<Pair<String, String>> accountUserPairs = new ArrayList<>();
             for (String accountId : accountIdList) {
                 accountUserPairs.add(Pair.of(accountId, normalizedUserId));
             }
 
-            Map<Pair<String, String>, String> blockedEntitiesByAccountUser =
-                    accountMetadataService.getBatchSecondaryUserBlockedEntities(accountUserPairs);
+            List<LegalEntitySharingItem> items =
+                    accountMetadataService.getBatchLegalEntitySharingStatuses(accountUserPairs);
 
-            List<LegalEntitySharingItem> responseItems = new ArrayList<>();
-            for (Pair<String, String> accountUserPair : accountUserPairs) {
-                // Skip accounts that have no stored record
-                if (!blockedEntitiesByAccountUser.containsKey(accountUserPair)) {
+            final String filterEntityId = resolvedLegalEntityId;
+            Map<String, LegalEntitySharingItem.LegalEntitySharingStatusEnum> statusByAccount =
+                    new LinkedHashMap<>();
+            for (String accountId : accountIdList) {
+                statusByAccount.put(accountId, LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
+            }
+
+            for (LegalEntitySharingItem item : items) {
+                if (item == null || !filterEntityId.equalsIgnoreCase(item.getLegalEntityID())) {
                     continue;
                 }
-
-                Set<String> blockedEntityIds = parseBlockedEntities(blockedEntitiesByAccountUser.get(accountUserPair));
-
-                if (blockedEntityIds.isEmpty()) {
-                    // A record exists but the blocked list is empty, meaning all entities are currently active
-                    LegalEntitySharingItem activeItem = new LegalEntitySharingItem();
-                    activeItem.setSecondaryUserID(accountUserPair.getRight());
-                    activeItem.setAccountID(accountUserPair.getLeft());
-                    activeItem.setLegalEntityID("");
-                    activeItem.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
-                    responseItems.add(activeItem);
-                } else {
-                    // Return one response item per blocked legal entity
-                    for (String blockedEntityId : blockedEntityIds) {
-                        LegalEntitySharingItem blockedItem = new LegalEntitySharingItem();
-                        blockedItem.setSecondaryUserID(accountUserPair.getRight());
-                        blockedItem.setAccountID(accountUserPair.getLeft());
-                        blockedItem.setLegalEntityID(blockedEntityId);
-                        blockedItem.setLegalEntitySharingStatus(
-                                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
-                        responseItems.add(blockedItem);
-                    }
+                if (statusByAccount.containsKey(item.getAccountID())) {
+                    statusByAccount.put(item.getAccountID(), item.getLegalEntitySharingStatus());
                 }
             }
 
-            return Response.status(Response.Status.OK).entity(responseItems).build();
+            List<LegalEntitySharingItem> responseItems = new ArrayList<>();
+            for (String accountId : accountIdList) {
+                LegalEntitySharingItem responseItem = new LegalEntitySharingItem();
+                responseItem.setAccountID(accountId);
+                responseItem.setSecondaryUserID(normalizedUserId);
+                responseItem.setLegalEntityID(filterEntityId);
+                responseItem.setLegalEntitySharingStatus(statusByAccount.get(accountId));
+                responseItems.add(responseItem);
+            }
+            items = responseItems;
+
+            return Response.status(Response.Status.OK).entity(items).build();
 
         } catch (AccountMetadataException e) {
             log.error("[Legal Entity Sharing] Failed to retrieve legal entity sharing statuses", e);
@@ -207,25 +218,114 @@ public class CeasingSecondaryUserSharingApiImpl {
     }
 
     /**
-     * Applies a single legal entity sharing item to the current blocked entities CSV, adding or removing
-     * the legal entity ID depending on the requested sharing status.
+     * Returns the legal entity ID for the given client ID, using a 1-hour in-memory cache to avoid
+     * repeated calls to the IS server.
      *
-     * @param blockedEntitiesCSV current comma-separated list of blocked legal entity IDs (may be null or empty)
-     * @param item               the sharing item describing the desired status change
-     * @return updated comma-separated list of blocked legal entity IDs
+     * @param clientId software product client ID
+     * @return legal entity ID
      */
-    private static String getUpdatedBlockedEntities(String blockedEntitiesCSV, LegalEntitySharingItem item) {
-        Set<String> blockedEntities = parseBlockedEntities(blockedEntitiesCSV);
-        String legalEntityId = item.getLegalEntityID();
-        LegalEntitySharingItem.LegalEntitySharingStatusEnum sharingStatus = item.getLegalEntitySharingStatus();
+    private static String resolveLegalEntityId(String clientId) throws AccountMetadataException {
+        LegalEntityCacheEntry cached = LEGAL_ENTITY_CACHE.get(clientId);
+        
+        if (cached != null && !cached.isExpired()) {
+            return cached.legalEntityId;
+        }
+        String legalEntityId = fetchLegalEntityIdByClientId(clientId);
+        LEGAL_ENTITY_CACHE.put(clientId, new LegalEntityCacheEntry(legalEntityId));
 
-        if (LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked.equals(sharingStatus)) {
-            blockedEntities.add(legalEntityId);
-        } else {
-            blockedEntities.remove(legalEntityId);
+        return legalEntityId;
+    }
+
+    /**
+     * Calls the IS applications endpoint to resolve the legal entity ID for the given client ID.
+     * Uses credentials from {@link ConfigurableProperties}.
+     *
+     * @param clientId software product client ID
+     * @return legal entity ID, or empty string if not found
+     */
+    private static String fetchLegalEntityIdByClientId(String clientId) throws AccountMetadataException {
+
+        try {
+            String filterParam = URLEncoder.encode(
+                    CommonConstants.CLIENT_ID_FILTER_PREFIX + clientId, StandardCharsets.UTF_8);
+            String attributesParam = URLEncoder.encode(
+                    CommonConstants.ADVANCED_CONFIGURATIONS_TAG, StandardCharsets.UTF_8);
+            String requestUrl = CommonConstants.IS_APPLICATIONS_ENDPOINT + "?" + CommonConstants.FILTER_TAG + "="
+                    + filterParam + "&" + CommonConstants.ATTRIBUTES_TAG + "=" + attributesParam;
+
+            HttpGet request = new HttpGet(requestUrl);
+            request.addHeader(CommonConstants.ACCEPT_TAG, CommonConstants.JSON_CONTENT_TYPE);
+            request.addHeader(CommonConstants.AUTH_HEADER, IS_BASIC_AUTH_HEADER);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode != 200) {
+                    String errorMessage = "IS applications service returned HTTP " + statusCode;
+                    log.error(errorMessage);
+                    throw new AccountMetadataException(errorMessage);
+                }
+
+                String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+                return parseLegalEntityIdFromIsResponse(responseBody);
+            }
+        } catch (IOException e) {
+            String errorMessage = "[LegalEntity] Error calling IS applications service";
+            log.error(errorMessage, e);
+            throw new AccountMetadataException(errorMessage, e);
+        }
+    }
+
+    /**
+     * Parses the legal entity ID from the IS applications service response body.
+     *
+     * @param responseBody the JSON response body as a string
+     * @return the legal entity ID if found, or an empty string if not present
+     * @throws AccountMetadataException if the response is malformed
+     */
+    private static String parseLegalEntityIdFromIsResponse(String responseBody) throws AccountMetadataException {
+
+        JSONObject responseJson;
+        try {
+            responseJson = new JSONObject(responseBody);
+        } catch (JSONException e) {
+            String errorMessage = "Invalid IS applications service response for retrieving legal entity ID";
+            log.error(errorMessage, e);
+            throw new AccountMetadataException(errorMessage, e);
         }
 
-        return String.join(",", blockedEntities);
+        JSONArray applications = responseJson.optJSONArray(CommonConstants.APPLICATIONS_TAG);
+        if (applications == null || applications.length() == 0) {
+            return StringUtils.EMPTY;
+        }
+
+        JSONObject application = applications.optJSONObject(0);
+        JSONObject advancedConfigurations = application.optJSONObject(CommonConstants.ADVANCED_CONFIGURATIONS_TAG);
+        if (advancedConfigurations == null) {
+            return StringUtils.EMPTY;
+        }
+
+        JSONArray additionalSpProperties = advancedConfigurations
+                .optJSONArray(CommonConstants.ADDITIONAL_SP_PROPERTIES_TAG);
+        if (additionalSpProperties == null) {
+            String errorMessage = "No additional SP properties found in IS applications response";
+            log.error(errorMessage);
+            throw new AccountMetadataException(errorMessage);
+        }
+
+        for (int i = 0; i < additionalSpProperties.length(); i++) {
+            JSONObject property = additionalSpProperties.optJSONObject(i);
+            if (property == null) {
+                continue;
+            }
+            String name = property.optString(CommonConstants.PROPERTY_NAME_TAG, StringUtils.EMPTY);
+            if (CommonConstants.LEGAL_ENTITY_ID_PROPERTY_NAME.equalsIgnoreCase(name)) {
+                return property.optString(CommonConstants.PROPERTY_VALUE_TAG, StringUtils.EMPTY);
+            }
+        }
+
+        String errorMessage = "legal_entity_id not found in IS application additional SP properties";
+        log.error(errorMessage);
+        throw new AccountMetadataException(errorMessage);
     }
 
     /**
@@ -234,7 +334,7 @@ public class CeasingSecondaryUserSharingApiImpl {
      *
      * @param request raw list of legal entity sharing items from the caller
      * @return list of validated and trimmed items ready for processing
-     * @throws AccountMetadataException if any item is missing required fields or a duplicate entry is detected
+     * @throws AccountMetadataException if a duplicate entry is detected
      */
     private static List<LegalEntitySharingItem> validateRequest(List<LegalEntitySharingItem> request)
             throws AccountMetadataException {
@@ -242,7 +342,6 @@ public class CeasingSecondaryUserSharingApiImpl {
         List<LegalEntitySharingItem> validatedItems = new ArrayList<>();
 
         for (LegalEntitySharingItem item : request) {
-
             String accountId = StringUtils.trimToEmpty(item.getAccountID());
             String secondaryUserId = StringUtils.trimToEmpty(item.getSecondaryUserID());
             String legalEntityId = StringUtils.trimToEmpty(item.getLegalEntityID());
@@ -251,8 +350,8 @@ public class CeasingSecondaryUserSharingApiImpl {
             item.setSecondaryUserID(secondaryUserId);
             item.setLegalEntityID(legalEntityId);
 
-            String dedupeKey = accountId + "::" + secondaryUserId + "::" + legalEntityId;
-            if (!seenKeys.add(dedupeKey)) {
+            String key = accountId + "::" + secondaryUserId + "::" + legalEntityId;
+            if (!seenKeys.add(key)) {
                 throw new AccountMetadataException("Duplicate entry for accountID=" + accountId
                         + ", secondaryUserID=" + secondaryUserId + ", legalEntityID=" + legalEntityId);
             }
@@ -263,38 +362,6 @@ public class CeasingSecondaryUserSharingApiImpl {
     }
 
     /**
-     * Extracts unique (accountID, secondaryUserID) pairs from the given items, preserving insertion order.
-     * Deduplication ensures each pair appears only once in the resulting batch service call.
-     *
-     * @param items list of legal entity sharing items
-     * @return deduplicated list of account-user pairs
-     */
-    private static List<Pair<String, String>> buildAccountUserPairs(List<LegalEntitySharingItem> items) {
-        Map<String, Pair<String, String>> uniquePairs = new LinkedHashMap<>();
-        for (LegalEntitySharingItem item : items) {
-            String key = item.getAccountID() + "::" + item.getSecondaryUserID();
-            uniquePairs.put(key, Pair.of(item.getAccountID(), item.getSecondaryUserID()));
-        }
-        return new ArrayList<>(uniquePairs.values());
-    }
-
-    /**
-     * Parses a comma-separated list of blocked legal entity IDs into an ordered set.
-     * Blank tokens are ignored and each remaining value is trimmed of whitespace.
-     *
-     * @param blockedEntitiesCSV comma-separated string of blocked entity IDs (may be null or empty)
-     * @return ordered set of non-blank entity IDs; empty set if input is blank
-     */
-    private static Set<String> parseBlockedEntities(String blockedEntitiesCSV) {
-        if (StringUtils.isBlank(blockedEntitiesCSV)) {
-            return new LinkedHashSet<>();
-        }
-
-        return Arrays.stream(blockedEntitiesCSV.split(",")).map(StringUtils::trimToEmpty)
-                .filter(StringUtils::isNotBlank).collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    /**
      * Logs the given message at error level and returns a 400 Bad Request response.
      *
      * @param message human-readable description of the validation error
@@ -302,8 +369,7 @@ public class CeasingSecondaryUserSharingApiImpl {
      */
     private static Response sendBadRequest(String message) {
         log.error("[Legal Entity Sharing] " + message);
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponse().errorDescription(message))
+        return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse().errorDescription(message))
                 .build();
     }
 }

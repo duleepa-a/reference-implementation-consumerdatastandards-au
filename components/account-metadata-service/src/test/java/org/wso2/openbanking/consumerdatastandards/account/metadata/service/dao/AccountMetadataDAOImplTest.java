@@ -24,6 +24,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries.AccountMetadataDbQueries;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries.AccountMetadataDbQueriesMySqlImpl;
@@ -121,10 +122,10 @@ public class AccountMetadataDAOImplTest {
 
         /**
          * @param pairCount number of account-user pairs
-         * @return select query for blocked entities in secondary account table
+         * @return select query for legal entity sharing statuses
          */
         @Override
-        public String getBatchGetSecondaryUserBlockedEntitiesQuery(int pairCount) {
+        public String getBatchGetLegalEntitySharingStatusesQuery(int pairCount) {
             StringBuilder placeholders = new StringBuilder();
             for (int i = 0; i < pairCount; i++) {
                 if (i > 0) {
@@ -132,26 +133,20 @@ public class AccountMetadataDAOImplTest {
                 }
                 placeholders.append("(?,?)");
             }
-            return "SELECT ACCOUNT_ID, USER_ID, BLOCKED_ENTITIES FROM fs_account_secondary_user WHERE " +
-                    "(ACCOUNT_ID, USER_ID) IN (" + placeholders + ")";
+            return "SELECT ACCOUNT_ID, USER_ID, LEGAL_ENTITY_ID, LEGAL_ENTITY_STATUS FROM "
+                    + "fs_account_secondary_user_legal_entity WHERE (ACCOUNT_ID, USER_ID) IN (" + placeholders + ")";
         }
 
         /**
-         * @return update query for blocked entities in secondary account table
+         * @return upsert query for legal entity sharing statuses
          */
         @Override
-        public String getBatchUpdateSecondaryUserBlockedEntitiesQuery() {
-            return "UPDATE fs_account_secondary_user SET BLOCKED_ENTITIES = ?, LAST_UPDATED_TIMESTAMP = ? " +
-                    "WHERE ACCOUNT_ID = ? AND USER_ID = ?";
-        }
-
-        /**
-         * @return insert query for blocked entities in secondary account table
-         */
-        @Override
-        public String getBatchAddSecondaryUserBlockedEntitiesQuery() {
-            return "INSERT INTO fs_account_secondary_user " +
-                "(ACCOUNT_ID, USER_ID, BLOCKED_ENTITIES, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?, ?, ?)";
+        public String getUpsertLegalEntitySharingStatusQuery() {
+            return "INSERT INTO fs_account_secondary_user_legal_entity "
+                    + "(ACCOUNT_ID, USER_ID, LEGAL_ENTITY_ID, LEGAL_ENTITY_STATUS, LAST_UPDATED_TIMESTAMP) "
+                    + "VALUES (?, ?, ?, ?, ?) "
+                    + "ON DUPLICATE KEY UPDATE LEGAL_ENTITY_STATUS = VALUES(LEGAL_ENTITY_STATUS), "
+                    + "LAST_UPDATED_TIMESTAMP = VALUES(LAST_UPDATED_TIMESTAMP)";
         }
 
         /**
@@ -960,12 +955,10 @@ public class AccountMetadataDAOImplTest {
     }
 
     /**
-     * Verifies batch retrieval of blocked entities for secondary users.
-     *
-     * @throws Exception if setup or invocation fails
+     * Verifies batch retrieval of legal entity sharing statuses.
      */
     @Test
-    public void testGetBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
+    public void testGetBatchLegalEntitySharingStatusesSuccess() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
         PreparedStatement statement = Mockito.mock(PreparedStatement.class);
@@ -976,52 +969,59 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(resultSet.next()).thenReturn(true).thenReturn(true).thenReturn(false);
         Mockito.when(resultSet.getString("ACCOUNT_ID")).thenReturn("acc-200").thenReturn("acc-201");
         Mockito.when(resultSet.getString("USER_ID")).thenReturn("user-200").thenReturn("user-201");
-        Mockito.when(resultSet.getString("BLOCK_LEGAL_ENTITIES")).thenReturn("le-001,le-002").thenReturn(null);
+        Mockito.when(resultSet.getString("LEGAL_ENTITY_ID")).thenReturn("le-001").thenReturn("le-002");
+        Mockito.when(resultSet.getString("LEGAL_ENTITY_STATUS")).thenReturn("blocked").thenReturn("active");
 
         List<Pair<String, String>> queryItems = Arrays.asList(
                 Pair.of("acc-200", "user-200"),
                 Pair.of("acc-201", "user-201"));
 
-        Map<Pair<String, String>, String> result = dao.getBatchSecondaryUserBlockedEntities(connection, queryItems);
+        List<LegalEntitySharingItem> result = dao.getBatchLegalEntitySharingStatuses(connection, queryItems);
 
         Assert.assertEquals(result.size(), 2);
-        Assert.assertEquals(result.get(Pair.of("acc-200", "user-200")), "le-001,le-002");
+        Assert.assertEquals(result.get(0).getAccountID(), "acc-200");
+        Assert.assertEquals(result.get(0).getSecondaryUserID(), "user-200");
+        Assert.assertEquals(result.get(0).getLegalEntityID(), "le-001");
+        Assert.assertEquals(result.get(0).getLegalEntitySharingStatus(),
+                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
+        Assert.assertEquals(result.get(1).getLegalEntitySharingStatus(),
+                LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
     }
 
     /**
-     * Verifies retrieval short-circuit when blocked entities input is empty.
+     * Verifies retrieval short-circuit when legal entity sharing input is empty.
      */
     @Test
-    public void testGetBatchSecondaryUserBlockedEntitiesEmptyInput() throws Exception {
+    public void testGetBatchLegalEntitySharingStatusesEmptyInput() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
 
-        Map<Pair<String, String>, String> result =
-                dao.getBatchSecondaryUserBlockedEntities(connection, Collections.emptyList());
+        List<LegalEntitySharingItem> result =
+                dao.getBatchLegalEntitySharingStatuses(connection, Collections.emptyList());
 
         Assert.assertTrue(result.isEmpty());
         Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
     }
 
     /**
-     * Verifies SQL exception handling during blocked entities retrieval.
+     * Verifies SQL exception handling during legal entity sharing retrieval.
      */
     @Test(expectedExceptions = AccountMetadataException.class)
-    public void testGetBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
+    public void testGetBatchLegalEntitySharingStatusesSqlException() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
 
-        dao.getBatchSecondaryUserBlockedEntities(connection,
+        dao.getBatchLegalEntitySharingStatuses(connection,
                 Collections.singletonList(Pair.of("acc-202", "user-202")));
     }
 
     /**
-     * Verifies successful batch update of blocked entities.
+     * Verifies successful batch upsert of legal entity sharing statuses.
      */
     @Test
-    public void testUpdateBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
+    public void testUpsertBatchLegalEntitySharingStatusesSuccess() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
         PreparedStatement statement = Mockito.mock(PreparedStatement.class);
@@ -1029,100 +1029,47 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
         Mockito.when(statement.executeBatch()).thenReturn(new int[] {1, 1});
 
-        Map<Pair<String, String>, String> updates = new HashMap<>();
-        updates.put(Pair.of("acc-203", "user-203"), "le-001,le-002");
-        updates.put(Pair.of("acc-204", "user-204"), "");
+        List<LegalEntitySharingItem> items = Arrays.asList(
+                buildLegalEntityItem("acc-206", "user-206", "le-020", "blocked"),
+                buildLegalEntityItem("acc-207", "user-207", "le-021", "active"));
 
-        dao.updateBatchSecondaryUserBlockedEntities(connection, updates);
-
-        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(1), Mockito.anyString());
-        Mockito.verify(statement, Mockito.times(2)).setTimestamp(Mockito.eq(2), Mockito.any(Timestamp.class));
-        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(3), Mockito.anyString());
-        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(4), Mockito.anyString());
-        Mockito.verify(statement, Mockito.times(2)).addBatch();
-        Mockito.verify(statement).executeBatch();
-    }
-
-    /**
-     * Verifies update short-circuit for empty blocked entities map.
-     */
-    @Test
-    public void testUpdateBatchSecondaryUserBlockedEntitiesEmpty() throws Exception {
-        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
-        Connection connection = Mockito.mock(Connection.class);
-
-        dao.updateBatchSecondaryUserBlockedEntities(connection, Collections.emptyMap());
-
-        Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
-    }
-
-    /**
-     * Verifies SQL exception handling during blocked entities update.
-     */
-    @Test(expectedExceptions = AccountMetadataException.class)
-    public void testUpdateBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
-        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
-        Connection connection = Mockito.mock(Connection.class);
-
-        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
-
-        Map<Pair<String, String>, String> updates = Collections.singletonMap(
-                Pair.of("acc-205", "user-205"), "le-010");
-        dao.updateBatchSecondaryUserBlockedEntities(connection, updates);
-    }
-
-    /**
-     * Verifies successful batch insert of blocked entities for secondary users.
-     */
-    @Test
-    public void testAddBatchSecondaryUserBlockedEntitiesSuccess() throws Exception {
-        AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
-        Connection connection = Mockito.mock(Connection.class);
-        PreparedStatement statement = Mockito.mock(PreparedStatement.class);
-
-        Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
-        Mockito.when(statement.executeBatch()).thenReturn(new int[] {1, 1});
-
-        Map<Pair<String, String>, String> inserts = new HashMap<>();
-        inserts.put(Pair.of("acc-206", "user-206"), "le-020");
-        inserts.put(Pair.of("acc-207", "user-207"), "");
-
-        dao.addBatchSecondaryUserBlockedEntities(connection, inserts);
+        dao.upsertBatchLegalEntitySharingStatuses(connection, items);
 
         Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(1), Mockito.anyString());
         Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(2), Mockito.anyString());
         Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(3), Mockito.anyString());
-        Mockito.verify(statement, Mockito.times(2)).setTimestamp(Mockito.eq(4), Mockito.any(Timestamp.class));
+        Mockito.verify(statement, Mockito.times(2)).setString(Mockito.eq(4), Mockito.anyString());
+        Mockito.verify(statement, Mockito.times(2)).setTimestamp(Mockito.eq(5), Mockito.any(Timestamp.class));
         Mockito.verify(statement, Mockito.times(2)).addBatch();
         Mockito.verify(statement).executeBatch();
     }
 
     /**
-     * Verifies add short-circuit for empty blocked entities map.
+     * Verifies upsert short-circuit for empty legal entity sharing list.
      */
     @Test
-    public void testAddBatchSecondaryUserBlockedEntitiesEmpty() throws Exception {
+    public void testUpsertBatchLegalEntitySharingStatusesEmpty() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
 
-        dao.addBatchSecondaryUserBlockedEntities(connection, Collections.emptyMap());
+        dao.upsertBatchLegalEntitySharingStatuses(connection, Collections.emptyList());
 
         Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
     }
 
     /**
-     * Verifies SQL exception handling during blocked entities insert.
+     * Verifies SQL exception handling during legal entity sharing upsert.
      */
     @Test(expectedExceptions = AccountMetadataException.class)
-    public void testAddBatchSecondaryUserBlockedEntitiesSqlException() throws Exception {
+    public void testUpsertBatchLegalEntitySharingStatusesSqlException() throws Exception {
         AccountMetadataDAO dao = new AccountMetadataDAOImpl(new TestQueries());
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
 
-        Map<Pair<String, String>, String> inserts = Collections.singletonMap(
-                Pair.of("acc-208", "user-208"), "le-021");
-        dao.addBatchSecondaryUserBlockedEntities(connection, inserts);
+        List<LegalEntitySharingItem> items = Collections.singletonList(
+                buildLegalEntityItem("acc-208", "user-208", "le-021", "blocked"));
+        dao.upsertBatchLegalEntitySharingStatuses(connection, items);
     }
 
     /**
@@ -1206,6 +1153,19 @@ public class AccountMetadataDAOImplTest {
         item.setUserId(userId);
         item.setPermission(permission != null
                 ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
+        return item;
+    }
+
+    /**
+     * Builds a legal entity sharing test item.
+     */
+    private LegalEntitySharingItem buildLegalEntityItem(String accountId, String userId,
+                                                        String legalEntityId, String status) {
+        LegalEntitySharingItem item = new LegalEntitySharingItem();
+        item.setAccountID(accountId);
+        item.setSecondaryUserID(userId);
+        item.setLegalEntityID(legalEntityId);
+        item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.fromValue(status));
         return item;
     }
     

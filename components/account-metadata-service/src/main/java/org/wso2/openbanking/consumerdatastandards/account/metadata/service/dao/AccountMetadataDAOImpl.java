@@ -21,8 +21,10 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.constants.CommonConstants;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.queries.AccountMetadataDbQueries;
 
@@ -54,11 +56,15 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
     // Column names for secondary user instructions table.
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_USER_ID = "USER_ID";
-    private static final String SECONDARY_INSTRUCTIONS_COLUMN_STATUS =
-            "INSTRUCTION_STATUS";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_STATUS = "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
-        "OTHER_ACCOUNTS_AVAILABILITY";
-    private static final String SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES = "BLOCK_LEGAL_ENTITIES";
+            "OTHER_ACCOUNTS_AVAILABILITY";
+
+    // Column names for legal entity sharing status table.
+    private static final String LEGAL_ENTITY_TABLE_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String LEGAL_ENTITY_TABLE_COLUMN_USER_ID = "USER_ID";
+    private static final String LEGAL_ENTITY_TABLE_COLUMN_LEGAL_ENTITY_ID = "LEGAL_ENTITY_ID";
+    private static final String LEGAL_ENTITY_TABLE_COLUMN_STATUS = "LEGAL_ENTITY_STATUS";
 
     // Column names for business stakeholder permissions table.
     private static final String BNR_PERMISSIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
@@ -312,54 +318,46 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      * {@inheritDoc}
      */
     @Override
-    public Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(Connection conn,
+    public List<LegalEntitySharingItem> getBatchLegalEntitySharingStatuses(Connection conn,
             List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
         if (accountUserPairs == null || accountUserPairs.isEmpty()) {
-            return Collections.emptyMap();
+            return Collections.emptyList();
         }
 
-        List<Pair<String, String>> validAccountUserPairs = new ArrayList<>();
-        for (Pair<String, String> accountUserPair : accountUserPairs) {
-            if (accountUserPair != null) {
-                validAccountUserPairs.add(accountUserPair);
-            }
-        }
-
-        int pairCount = validAccountUserPairs.size();
-        if (pairCount == 0) {
-            return Collections.emptyMap();
-        }
-
-        String sql = dbQueries.getBatchGetSecondaryUserBlockedEntitiesQuery(pairCount);
-        Map<Pair<String, String>, String> blockedEntitiesByAccountUser = new HashMap<>();
+        String sql = dbQueries.getBatchGetLegalEntitySharingStatusesQuery(accountUserPairs.size());
+        List<LegalEntitySharingItem> result = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int parameterIndex = 1;
-            for (Pair<String, String> accountUserPair : validAccountUserPairs) {
-                stmt.setString(parameterIndex++, accountUserPair.getLeft());
-                stmt.setString(parameterIndex++, accountUserPair.getRight());
+            for (Pair<String, String> pair : accountUserPairs) {
+                stmt.setString(parameterIndex++, pair.getLeft());
+                stmt.setString(parameterIndex++, pair.getRight());
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    Pair<String, String> accountUserPair = Pair.of(
-                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID),
-                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_USER_ID));
-                    blockedEntitiesByAccountUser.put(
-                            accountUserPair,
-                            rs.getString(SECONDARY_INSTRUCTIONS_COLUMN_BLOCKED_ENTITIES));
+                    String statusStr = rs.getString(LEGAL_ENTITY_TABLE_COLUMN_STATUS);
+                    LegalEntitySharingItem item = new LegalEntitySharingItem();
+                    item.setAccountID(rs.getString(LEGAL_ENTITY_TABLE_COLUMN_ACCOUNT_ID));
+                    item.setSecondaryUserID(rs.getString(LEGAL_ENTITY_TABLE_COLUMN_USER_ID));
+                    item.setLegalEntityID(rs.getString(LEGAL_ENTITY_TABLE_COLUMN_LEGAL_ENTITY_ID));
+                    item.setLegalEntitySharingStatus(
+                            CommonConstants.LEGAL_ENTITY_SHARING_STATUS_BLOCKED.equalsIgnoreCase(statusStr)
+                                    ? LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked
+                                    : LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
+                    result.add(item);
                 }
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("Retrieved blocked entities for " + blockedEntitiesByAccountUser.size() + " records.");
+                log.debug("Retrieved " + result.size() + " legal entity sharing status rows.");
             }
-            return blockedEntitiesByAccountUser;
+            return result;
 
         } catch (SQLException e) {
-            log.error("Error retrieving batch secondary user blocked entities", e);
-            throw new AccountMetadataException("Failed to retrieve batch secondary user blocked entities", e);
+            log.error("Error retrieving batch legal entity sharing statuses", e);
+            throw new AccountMetadataException("Failed to retrieve batch legal entity sharing statuses", e);
         }
     }
 
@@ -367,71 +365,35 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
      * {@inheritDoc}
      */
     @Override
-    public void updateBatchSecondaryUserBlockedEntities(Connection conn,
-            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException {
+    public void upsertBatchLegalEntitySharingStatuses(Connection conn, List<LegalEntitySharingItem> items)
+            throws AccountMetadataException {
 
-        if (blockedEntitiesByAccountUser == null || blockedEntitiesByAccountUser.isEmpty()) {
+        if (items == null || items.isEmpty()) {
             return;
         }
 
-        String sql = dbQueries.getBatchUpdateSecondaryUserBlockedEntitiesQuery();
+        String sql = dbQueries.getUpsertLegalEntitySharingStatusQuery();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
 
-            for (Map.Entry<Pair<String, String>, String> entry : blockedEntitiesByAccountUser.entrySet()) {
-                Pair<String, String> accountUserPair = entry.getKey();
-                stmt.setString(1, entry.getValue());
-                stmt.setTimestamp(2, currentTimestamp);
-                stmt.setString(3, accountUserPair.getLeft());
-                stmt.setString(4, accountUserPair.getRight());
+            for (LegalEntitySharingItem item : items) {
+                stmt.setString(1, item.getAccountID());
+                stmt.setString(2, item.getSecondaryUserID());
+                stmt.setString(3, item.getLegalEntityID());
+                stmt.setString(4, item.getLegalEntitySharingStatus().toString());
+                stmt.setTimestamp(5, currentTimestamp);
                 stmt.addBatch();
             }
 
             int[] results = stmt.executeBatch();
             if (log.isDebugEnabled()) {
-                log.debug("Batch updated blocked entities for " + results.length + " records.");
+                log.debug("Batch upserted " + results.length + " legal entity sharing status rows.");
             }
 
         } catch (SQLException e) {
-            log.error("Error batch updating secondary user blocked entities", e);
-            throw new AccountMetadataException("Failed to batch update secondary user blocked entities", e);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void addBatchSecondaryUserBlockedEntities(Connection conn,
-            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException {
-
-        if (blockedEntitiesByAccountUser == null || blockedEntitiesByAccountUser.isEmpty()) {
-            return;
-        }
-
-        String sql = dbQueries.getBatchAddSecondaryUserBlockedEntitiesQuery();
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            Timestamp currentTimestamp = new Timestamp((new Date()).getTime());
-
-            for (Map.Entry<Pair<String, String>, String> entry : blockedEntitiesByAccountUser.entrySet()) {
-                Pair<String, String> accountUserPair = entry.getKey();
-                stmt.setString(1, accountUserPair.getLeft());
-                stmt.setString(2, accountUserPair.getRight());
-                stmt.setString(3, entry.getValue());
-                stmt.setTimestamp(4, currentTimestamp);
-                stmt.addBatch();
-            }
-
-            int[] results = stmt.executeBatch();
-            if (log.isDebugEnabled()) {
-                log.debug("Batch added blocked entities for " + results.length + " records.");
-            }
-
-        } catch (SQLException e) {
-            log.error("Error batch adding secondary user blocked entities", e);
-            throw new AccountMetadataException("Failed to batch add secondary user blocked entities", e);
+            log.error("Error batch upserting legal entity sharing statuses", e);
+            throw new AccountMetadataException("Failed to batch upsert legal entity sharing statuses", e);
         }
     }
 

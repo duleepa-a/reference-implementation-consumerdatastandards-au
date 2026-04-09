@@ -102,10 +102,10 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
-    public String getBatchGetSecondaryUserBlockedEntitiesQuery(int pairCount) {
+    public String getBatchGetLegalEntitySharingStatusesQuery(int pairCount) {
         StringBuilder query = new StringBuilder(
-                "SELECT ACCOUNT_ID, USER_ID, BLOCK_LEGAL_ENTITIES FROM fs_account_secondary_user " +
-                        "WHERE (ACCOUNT_ID, USER_ID) IN (");
+                "SELECT ACCOUNT_ID, USER_ID, LEGAL_ENTITY_ID, LEGAL_ENTITY_STATUS " +
+                        "FROM fs_account_secondary_user_legal_entity WHERE (ACCOUNT_ID, USER_ID) IN (");
         for (int i = 0; i < pairCount; i++) {
             query.append("(?,?)");
             if (i < pairCount - 1) {
@@ -120,18 +120,12 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
      * {@inheritDoc}
      */
     @Override
-    public String getBatchUpdateSecondaryUserBlockedEntitiesQuery() {
-        return "UPDATE fs_account_secondary_user SET BLOCK_LEGAL_ENTITIES = ?, LAST_UPDATED_TIMESTAMP = ? " +
-                "WHERE ACCOUNT_ID = ? AND USER_ID = ?";
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getBatchAddSecondaryUserBlockedEntitiesQuery() {
-        return "INSERT INTO fs_account_secondary_user " +
-                "(ACCOUNT_ID, USER_ID, BLOCK_LEGAL_ENTITIES, LAST_UPDATED_TIMESTAMP) VALUES (?, ?, ?, ?)";
+    public String getUpsertLegalEntitySharingStatusQuery() {
+        return "INSERT INTO fs_account_secondary_user_legal_entity " +
+                "(ACCOUNT_ID, USER_ID, LEGAL_ENTITY_ID, LEGAL_ENTITY_STATUS, LAST_UPDATED_TIMESTAMP) " +
+                "VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE LEGAL_ENTITY_STATUS = VALUES(LEGAL_ENTITY_STATUS), " +
+                "LAST_UPDATED_TIMESTAMP = VALUES(LAST_UPDATED_TIMESTAMP)";
     }
 
     /**

@@ -21,6 +21,7 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 import org.apache.commons.lang3.tuple.Pair;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
+import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.sql.Connection;
@@ -96,35 +97,27 @@ public interface AccountMetadataDAO {
             throws AccountMetadataException;
 
     /**
-     * Batch retrieve blocked entity strings for multiple account-user pairs.
+     * Retrieve all legal entity sharing status rows for multiple account-user pairs from
+     * fs_account_secondary_user_legal_entity.
      *
-     * @param conn the database connection
-     * @param accountUserPairs list of account-user pairs
-     * @return map of account-user pair to blocked entities CSV string
+     * @param conn             the database connection
+     * @param accountUserPairs list of (accountId, userId) pairs to query
+     * @return list of legal entity sharing status records
      * @throws AccountMetadataException if an error occurs
      */
-    Map<Pair<String, String>, String> getBatchSecondaryUserBlockedEntities(Connection conn,
+    List<LegalEntitySharingItem> getBatchLegalEntitySharingStatuses(Connection conn,
             List<Pair<String, String>> accountUserPairs) throws AccountMetadataException;
 
     /**
-     * Batch update blocked entity strings for multiple account-user pairs.
+     * Upsert legal entity sharing status rows. Inserts a new row or updates
+     * LEGAL_ENTITY_STATUS and LAST_UPDATED_TIMESTAMP when the primary key already exists.
      *
-     * @param conn the database connection
-     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
+     * @param conn  the database connection
+     * @param items legal entity sharing items to upsert
      * @throws AccountMetadataException if an error occurs
      */
-    void updateBatchSecondaryUserBlockedEntities(Connection conn,
-            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException;
-
-    /**
-     * Batch add blocked entity records for multiple account-user pairs.
-     *
-     * @param conn the database connection
-     * @param blockedEntitiesByAccountUser map of account-user pair to blocked entities CSV string
-     * @throws AccountMetadataException if an error occurs
-     */
-    void addBatchSecondaryUserBlockedEntities(Connection conn,
-            Map<Pair<String, String>, String> blockedEntitiesByAccountUser) throws AccountMetadataException;
+    void upsertBatchLegalEntitySharingStatuses(Connection conn, List<LegalEntitySharingItem> items)
+            throws AccountMetadataException;
 
     /**
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.

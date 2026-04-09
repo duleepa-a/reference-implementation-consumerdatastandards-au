@@ -368,7 +368,7 @@ public class ConsentAuthorizeUtil {
      */
     private static boolean isAccountEligible(JSONObject accountJson, boolean isJointAccount, boolean isSecondaryAccount,
                                              boolean isBusinessAccount, String userId,
-                                             Map<String, String> secondaryInstructionStatusMap ) {
+                                             Map<String, String> secondaryInstructionStatusMap) {
         return (!isJointAccount || isJointAccountElectable(accountJson))
                 && (!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))
                 && (!isBusinessAccount || isBusinessAccountEligible(accountJson, userId));
@@ -524,15 +524,8 @@ public class ConsentAuthorizeUtil {
             return new HashMap<>();
         }
 
-        String legalEntityId = CommonConsentExtensionUtil.getLegalEntityIdByClientId(clientId);
-        if (StringUtils.isBlank(legalEntityId)) {
-            String error_message = "Unable to resolve legal_entity_id for clientId: " + clientId;
-            log.error(error_message);
-            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, error_message);
-        }
-
         return AccountMetadataUtil.getSecondaryAccountBlockedByLegalEntityMap(secondaryAccountIds, userId,
-                legalEntityId);
+                clientId);
     }
 
     private static List<String> extractSecondaryAccountIds(JSONArray accountsJSON) {

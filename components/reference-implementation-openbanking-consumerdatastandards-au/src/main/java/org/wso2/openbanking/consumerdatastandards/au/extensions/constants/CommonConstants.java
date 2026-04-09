@@ -178,6 +178,7 @@ public class CommonConstants {
     public static final String BUSINESS_STAKEHOLDERS_ENDPOINT = "/business-stakeholders";
     public static final String SECONDARY_INSTRUCTION_STATUS_ACTIVE = "active";
     public static final String USER_ID_QUERY_PARAM = "userId";
+    public static final String CLIENT_ID_QUERY_PARAM = "clientId";
     public static final String SECONDARY_USER_ID_FIELD = "secondaryUserId";
     public static final String OTHER_ACCOUNTS_AVAILABILITY_FIELD = "otherAccountsAvailability";
     public static final String SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD = "secondaryAccountInstructionStatus";

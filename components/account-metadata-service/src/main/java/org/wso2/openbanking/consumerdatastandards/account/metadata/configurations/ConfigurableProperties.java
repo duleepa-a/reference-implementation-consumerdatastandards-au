@@ -25,4 +25,10 @@ public class ConfigurableProperties {
 
     public static final String ACCOUNT_METADATA_DATASOURCE_JNDI_NAME = "jdbc/ACCOUNT_METADATA_DB";
 
+    /** Username for authenticating against the IS server when resolving a client ID to its legal entity ID. */
+    public static final String IS_USERNAME = "is_admin@wso2.com";
+
+    /** Password for authenticating against the IS server when resolving a client ID to its legal entity ID. */
+    public static final String IS_PASSWORD = "wso2123";
+
 }

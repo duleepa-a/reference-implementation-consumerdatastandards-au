@@ -38,5 +38,22 @@ public class CommonConstants {
     public static final String BNR_PERMISSION_REVOKE = "REVOKE";
     public static final String BNR_PERMISSION_VIEW = "VIEW";
 
+    // IS Applications endpoint constants
+    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
+    public static final String FILTER_TAG = "filter";
+    public static final String ATTRIBUTES_TAG = "attributes";
+    public static final String CLIENT_ID_FILTER_PREFIX = "clientId eq ";
+    public static final String ADVANCED_CONFIGURATIONS_TAG = "advancedConfigurations";
+    public static final String APPLICATIONS_TAG = "applications";
+    public static final String ADDITIONAL_SP_PROPERTIES_TAG = "additionalSpProperties";
+    public static final String PROPERTY_NAME_TAG = "name";
+    public static final String PROPERTY_VALUE_TAG = "value";
+    public static final String LEGAL_ENTITY_ID_PROPERTY_NAME = "legal_entity_id";
+
+    // HTTP constants
+    public static final String AUTH_HEADER = "Authorization";
+    public static final String BASIC_TAG = "Basic ";
+    public static final String JSON_CONTENT_TYPE = "application/json";
+    public static final String ACCEPT_TAG = "Accept";
 
 }

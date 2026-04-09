@@ -441,6 +441,13 @@ paths:
             type: string
             minLength: 1
             example: "acc-12345,acc-67890"
+        - name: clientId
+          in: query
+          required: false
+          description: Software product client ID used to resolve the legal entity ID from the IS server. When provided, only records matching the resolved legal entity are returned.
+          schema:
+            type: string
+            example: "client-001"
       responses:
         '200':
           description: Legal entity sharing statuses retrieved successfully

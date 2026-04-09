@@ -289,19 +289,19 @@ public class CDSAccountValidationUtilsTest {
     }
 
     @Test
-    public void testFetchBlockedSecondaryAccountsWithBlankUserId() throws CDSAccountValidationException {
+    public void testFetchBlockedSecondaryAccountsWithBlankUserId() throws Exception {
         Set<String> accounts = new HashSet<>();
         accounts.add("acc-1");
 
+        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "[]"));
         Set<String> blockedForBlank = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
                 accounts, SECONDARY_ACCOUNTS_ENDPOINT, "", BASIC_AUTH);
-        Set<String> blockedForNull = CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
-                accounts, SECONDARY_ACCOUNTS_ENDPOINT, null, BASIC_AUTH);
-
         Assert.assertNotNull(blockedForBlank);
-        Assert.assertNotNull(blockedForNull);
         Assert.assertTrue(blockedForBlank.isEmpty());
-        Assert.assertTrue(blockedForNull.isEmpty());
+
+        Assert.expectThrows(NullPointerException.class,
+                () -> CDSAccountValidationUtils.fetchBlockedSecondaryAccountsFromService(
+                        accounts, SECONDARY_ACCOUNTS_ENDPOINT, null, BASIC_AUTH));
     }
 
     @Test
@@ -420,20 +420,20 @@ public class CDSAccountValidationUtilsTest {
         Assert.assertTrue(blockedForNull.isEmpty());
     }
 
-    @Test
-    public void testFetchBlockedBusinessAccountsWithBlankUserId() throws CDSAccountValidationException {
+        @Test
+        public void testFetchBlockedBusinessAccountsWithBlankUserId() throws Exception {
         Set<String> accounts = new HashSet<>();
         accounts.add("acc-1");
 
-        Set<String> blockedForBlank = CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
-                accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "", BASIC_AUTH);
-        Set<String> blockedForNull = CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
-                accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, null, BASIC_AUTH);
+                CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "[]"));
+                Set<String> blockedForBlank = CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
+                                accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, "", BASIC_AUTH);
+                Assert.assertNotNull(blockedForBlank);
+                Assert.assertTrue(blockedForBlank.isEmpty());
 
-        Assert.assertNotNull(blockedForBlank);
-        Assert.assertNotNull(blockedForNull);
-        Assert.assertTrue(blockedForBlank.isEmpty());
-        Assert.assertTrue(blockedForNull.isEmpty());
+        Assert.expectThrows(NullPointerException.class,
+                () -> CDSAccountValidationUtils.fetchBlockedBusinessAccountsFromService(
+                        accounts, BUSINESS_STAKEHOLDERS_ENDPOINT, null, BASIC_AUTH));
     }
 
     @Test
@@ -571,14 +571,20 @@ public class CDSAccountValidationUtilsTest {
         Assert.assertTrue(blocked.isEmpty());
     }
 
-    @Test
-    public void testFetchBlockedLegalEntityAccountsWithBlankUserId() throws CDSAccountValidationException {
+        @Test
+        public void testFetchBlockedLegalEntityAccountsWithBlankUserId() throws Exception {
         Set<String> accounts = new HashSet<>();
         accounts.add("acc-1");
-        Set<String> blocked = CDSAccountValidationUtils.fetchBlockedLegalEntityAccountsFromService(
-                accounts, LEGAL_ENTITY_ENDPOINT, "", BASIC_AUTH, "client-1");
-        Assert.assertNotNull(blocked);
-        Assert.assertTrue(blocked.isEmpty());
+
+                CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "[]"));
+                Set<String> blockedForBlank = CDSAccountValidationUtils.fetchBlockedLegalEntityAccountsFromService(
+                                accounts, LEGAL_ENTITY_ENDPOINT, "", BASIC_AUTH, "client-1");
+                Assert.assertNotNull(blockedForBlank);
+                Assert.assertTrue(blockedForBlank.isEmpty());
+
+        Assert.expectThrows(NullPointerException.class,
+                () -> CDSAccountValidationUtils.fetchBlockedLegalEntityAccountsFromService(
+                        accounts, LEGAL_ENTITY_ENDPOINT, null, BASIC_AUTH, "client-1"));
     }
 
     @Test
@@ -593,8 +599,7 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsWhenLegalEntityIdBlank() throws Exception {
-        // IS endpoint returns empty applications → legalEntityId blank → skip legal entity sharing call
-        CloseableHttpClient client = mockClientWithResponse(200, "{\"applications\":[]}");
+        CloseableHttpClient client = mockClientWithResponse(200, "[]");
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
         Set<String> accounts = new HashSet<>();
@@ -609,19 +614,15 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsSuccess() throws Exception {
-        String isResponse = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
         // null element in array covers the sharingItem == null branch
         String leResponse = "[null,"
-                + "{\"accountID\":\"acc-1\",\"legalEntitySharingStatus\":\"blocked\",\"legalEntityID\":\"le-abc\"},"
-                + "{\"accountID\":\"acc-2\",\"legalEntitySharingStatus\":\"allowed\",\"legalEntityID\":\"le-abc\"}"
+                + "{\"accountID\":\"acc-1\",\"legalEntitySharingStatus\":\"blocked\"},"
+                + "{\"accountID\":\"acc-2\",\"legalEntitySharingStatus\":\"allowed\"}"
                 + "]";
 
-        CloseableHttpResponse isResp = mockResponse(200, isResponse);
         CloseableHttpResponse leResp = mockResponse(200, leResponse);
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
         Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenReturn(isResp)
                 .thenReturn(leResp);
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -639,19 +640,14 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsFallbackKeys() throws Exception {
-        // Tests legalEntityId (camelCase) and accountId (camelCase) fallback key paths
-        String isResponse = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
+        // Tests accountId (camelCase) fallback key path.
         String leResponse = "["
-                + "{\"accountId\":\"acc-camel\",\"legalEntitySharingStatus\":\"blocked\","
-                + "\"legalEntityId\":\"le-abc\"}"
+                + "{\"accountId\":\"acc-camel\",\"legalEntitySharingStatus\":\"blocked\"}"
                 + "]";
 
-        CloseableHttpResponse isResp = mockResponse(200, isResponse);
         CloseableHttpResponse leResp = mockResponse(200, leResponse);
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
         Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenReturn(isResp)
                 .thenReturn(leResp);
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -667,13 +663,9 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsNon200() throws Exception {
-        String isResponse = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
-        CloseableHttpResponse isResp = mockResponse(200, isResponse);
         CloseableHttpResponse leResp = mockResponse(503, "[]");
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
         Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenReturn(isResp)
                 .thenReturn(leResp);
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -686,12 +678,8 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsIoError() throws Exception {
-        String isResponse = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
-        CloseableHttpResponse isResp = mockResponse(200, isResponse);
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
         Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenReturn(isResp)
                 .thenThrow(new IOException("Connection refused"));
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -704,13 +692,9 @@ public class CDSAccountValidationUtilsTest {
 
     @Test
     public void testFetchBlockedLegalEntityAccountsMalformedResponse() throws Exception {
-        String isResponse = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
-        CloseableHttpResponse isResp = mockResponse(200, isResponse);
         CloseableHttpResponse leResp = mockResponse(200, "{not-an-array");
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
         Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenReturn(isResp)
                 .thenReturn(leResp);
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -721,108 +705,15 @@ public class CDSAccountValidationUtilsTest {
                         accounts, LEGAL_ENTITY_ENDPOINT, "user-1", BASIC_AUTH, "client-1"));
     }
 
-    // ---- fetchLegalEntityIdByClientId / parseLegalEntityIdFromIsResponse tests ----
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdBlank() throws CDSAccountValidationException {
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("", BASIC_AUTH), "");
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId(null, BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNon200() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(401, "{}"));
-        Assert.expectThrows(CDSAccountValidationException.class,
-                () -> CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH));
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdIoError() throws Exception {
-        CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
-        Mockito.when(client.execute(Mockito.any(HttpGet.class)))
-                .thenThrow(new IOException("Connection refused"));
-        CDSAccountValidationUtils.setApacheHttpClient(client);
-        Assert.expectThrows(CDSAccountValidationException.class,
-                () -> CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH));
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdInvalidJson() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "{not-json"));
-        Assert.expectThrows(CDSAccountValidationException.class,
-                () -> CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH));
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNoApplicationsKey() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "{}"));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdEmptyApplicationsArray() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "{\"applications\":[]}"));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNullFirstApplication() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(
-                mockClientWithResponse(200, "{\"applications\":[null]}"));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNoAdvancedConfigurations() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, "{\"applications\":[{}]}"));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNoAdditionalSpProperties() throws Exception {
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200,
-                "{\"applications\":[{\"advancedConfigurations\":{}}]}"));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdPropertyNotFound() throws Exception {
-        String body = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"other_property\",\"value\":\"value1\"}]}}]}";
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, body));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdNullPropertyInArray() throws Exception {
-        // null element in array covers the optJSONObject == null skip branch
-        String body = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[null,{\"name\":\"legal_entity_id\",\"value\":\"le-1\"}]}}]}";
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, body));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "le-1");
-    }
-
-    @Test
-    public void testFetchLegalEntityIdByClientIdSuccess() throws Exception {
-        String body = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-xyz\"}]}}]}";
-        CDSAccountValidationUtils.setApacheHttpClient(mockClientWithResponse(200, body));
-        Assert.assertEquals(CDSAccountValidationUtils.fetchLegalEntityIdByClientId("client-1", BASIC_AUTH), "le-xyz");
-    }
-
     // ---- fetchAllBlockedAccounts with clientId (exercises legal entity path) ----
 
     @Test
     public void testFetchAllBlockedAccountsWithClientId() throws Exception {
-        String isBody = "{\"applications\":[{\"advancedConfigurations\":{\"additionalSpProperties\":"
-                + "[{\"name\":\"legal_entity_id\",\"value\":\"le-abc\"}]}}]}";
-        String leBody = "[{\"accountID\":\"acc-1\","
-                + "\"legalEntitySharingStatus\":\"blocked\",\"legalEntityID\":\"le-abc\"}]";
+        String leBody = "[{\"accountID\":\"acc-1\",\"legalEntitySharingStatus\":\"blocked\"}]";
 
         CloseableHttpResponse disclosureResp = mockResponse(200, "[]");
         CloseableHttpResponse secondaryResp = mockResponse(200, "[]");
         CloseableHttpResponse businessResp = mockResponse(200, "[]");
-        CloseableHttpResponse isResp = mockResponse(200, isBody);
         CloseableHttpResponse leResp = mockResponse(200, leBody);
 
         CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
@@ -830,7 +721,6 @@ public class CDSAccountValidationUtilsTest {
                 .thenReturn(disclosureResp)
                 .thenReturn(secondaryResp)
                 .thenReturn(businessResp)
-                .thenReturn(isResp)
                 .thenReturn(leResp);
         CDSAccountValidationUtils.setApacheHttpClient(client);
 
@@ -844,6 +734,6 @@ public class CDSAccountValidationUtilsTest {
         Assert.assertEquals(blocked.size(), 1);
         Assert.assertTrue(blocked.contains("acc-1"));
         Assert.assertFalse(blocked.contains("acc-2"));
-        Mockito.verify(client, Mockito.times(5)).execute(Mockito.any(HttpGet.class));
+        Mockito.verify(client, Mockito.times(4)).execute(Mockito.any(HttpGet.class));
     }
 }
