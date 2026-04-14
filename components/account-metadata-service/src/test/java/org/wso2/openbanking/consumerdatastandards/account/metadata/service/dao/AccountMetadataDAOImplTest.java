@@ -984,7 +984,7 @@ public class AccountMetadataDAOImplTest {
      * @return populated test item
      */
     private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-                                                               boolean otherAccountsAvailable, String status) {
+                                                                boolean otherAccountsAvailable, String status) {
 
         SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
         item.setAccountId(accountId);
@@ -1006,4 +1006,14 @@ public class AccountMetadataDAOImplTest {
                 ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
         return item;
     }
+    
+    /**
+     * Asserts that the given mock object has no interactions (no method calls).
+     *
+     * @param mock the mock object to check
+     */
+    private void assertNoInteractions(Object mock) {
+        Assert.assertTrue(Mockito.mockingDetails(mock).getInvocations().isEmpty());
+    }
+
 }
