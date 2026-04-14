@@ -38,7 +38,7 @@ public class CeasingSecondaryUserSharing {
                 return CeasingSecondaryUserSharingApiImpl.getLegalEntitySharingStatus(accountIds, userId, clientId);
     }
 
-    @PUT
+    @POST
     @Consumes({ "application/json" })
     @Produces({ "application/json" })
     @ApiOperation(value = "Update legal entity sharing statuses for one or more records", notes = "Update legal entity sharing status records identified by the (secondaryUserID, accountID) pair. If legalEntitySharingStatus is blocked, legalEntityID is added to the fs_secondary_user.BLOCKED_ENTITIES column. If a record already exists, legalEntityID values are appended with a preceding ','. If legalEntitySharingStatus is active, legalEntityID is removed from the BLOCKED_ENTITIES string. ", response = LegalEntitySharingItem.class, responseContainer = "List", authorizations = {
@@ -52,7 +52,7 @@ public class CeasingSecondaryUserSharing {
             @ApiResponse(code = 400, message = "Bad Request", response = ErrorResponse.class),
             @ApiResponse(code = 500, message = "Server Error", response = ErrorResponse.class)
     })
-    public Response updateLegalEntitySharingStatusPut(@Valid @NotNull List<@Valid LegalEntitySharingItem> legalEntitySharingItem) {
+    public Response updateLegalEntitySharingStatusPost(@Valid @NotNull List<@Valid LegalEntitySharingItem> legalEntitySharingItem) {
                 return CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(legalEntitySharingItem);
     }
 }

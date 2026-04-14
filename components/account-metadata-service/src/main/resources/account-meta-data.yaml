@@ -85,7 +85,7 @@ paths:
         - OAuth2: []
         - BasicAuth: []
 
-    put:
+    post:
       tags:
         - Disclosure Options
       summary: Update disclosure options for one or more accounts
@@ -482,7 +482,7 @@ paths:
         If legalEntitySharingStatus is blocked, legalEntityID is added to the fs_secondary_user.BLOCKED_ENTITIES column.
         If a record already exists, legalEntityID values are appended with a preceding ','.
         If legalEntitySharingStatus is active, legalEntityID is removed from the BLOCKED_ENTITIES string.
-      operationId: updateLegalEntitySharingStatusPut
+      operationId: updateLegalEntitySharingStatusPost
       requestBody:
         required: true
         content:

@@ -380,7 +380,6 @@ public class ConsentAuthorizeUtil {
      * @return list of linked member IDs, or an empty list if none are found
      */
     private static List<String> extractLinkedMembers(JSONObject accountJson) {
-
         List<String> linkedMembers = new ArrayList<>();
 
         if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
@@ -514,7 +513,6 @@ public class ConsentAuthorizeUtil {
      */
     private static Map<String, Boolean> buildSecondaryAccountLegalEntityBlockedMap(JSONArray accountsJSON,
             String userId, String clientId) throws CdsConsentException {
-
         if (accountsJSON == null || StringUtils.isBlank(userId) || StringUtils.isBlank(clientId)) {
             return new HashMap<>();
         }
