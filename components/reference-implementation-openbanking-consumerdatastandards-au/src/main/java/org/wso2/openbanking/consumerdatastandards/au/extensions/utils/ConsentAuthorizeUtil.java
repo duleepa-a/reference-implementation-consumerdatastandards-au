@@ -358,17 +358,19 @@ public class ConsentAuthorizeUtil {
     /**
      * Determines whether an account is eligible to be shown for consent selection.
      *
-     * @param accountJson account json payload
+     * @param accountJson account JSON payload
      * @param isJointAccount whether account is joint
      * @param isSecondaryAccount whether account is secondary
      * @param isBusinessAccount whether account is business
      * @param userId authenticated user id
+     * @param secondaryInstructionStatusMap map of accountId to secondary account instruction status,
      * @return true if account passes all eligibility checks
      */
     private static boolean isAccountEligible(JSONObject accountJson, boolean isJointAccount, boolean isSecondaryAccount,
-                                             boolean isBusinessAccount, String userId) {
+                                             boolean isBusinessAccount, String userId,
+                                             Map<String, String> secondaryInstructionStatusMap) {
         return (!isJointAccount || isJointAccountElectable(accountJson))
-                && (!isSecondaryAccount || isSecondaryAccountPrivileged(accountJson))
+                && (!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))
                 && (!isBusinessAccount || isBusinessAccountEligible(accountJson, userId));
     }
 
@@ -447,11 +449,17 @@ public class ConsentAuthorizeUtil {
             accountJson.optString(CommonConstants.CUSTOMER_ACCOUNT_TYPE, ""));
 
         // Check eligibility for each account and block account if any eligibility check fails
-        if (!isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId)) {  
+        if (!isAccountEligible(accountJson, isJointAccount, isSecondaryAccount, isBusinessAccount, userId,
+                secondaryInstructionStatusMap)) {
             // Block account if any eligibility check fails
             AdditionalDataItem blockedItem = new AdditionalDataItem();
             blockedItem.setItem(getDisplayNameWithAccountNumber(
                     accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
+
+            if (isBusinessAccount && ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
+                blockedItem.setType(accountJson.optString(CommonConstants.PROFILE_ID_RESPONSE_TAG, ""));
+            }
+
             blockedAccountsList.add(blockedItem);
             return;
         }
