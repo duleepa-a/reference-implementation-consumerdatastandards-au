@@ -129,6 +129,11 @@ public class CDSAccountValidationUtils {
         blockedAccounts.addAll(blockedSecondaryAccounts);
         blockedAccounts.addAll(blockedBusinessAccounts);
 
+        Set<String> blockedSecondaryAccounts = fetchBlockedSecondaryAccountsFromService(accountIds,
+                secondaryAccountsApi, userId, basicAuthBase64);
+
+        blockedAccounts.addAll(blockedSecondaryAccounts);
+
         return blockedAccounts;
     }
 
