@@ -37,7 +37,9 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.configurations.ConfigurableProperties;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CdsErrorEnum;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,8 +99,8 @@ public class AccountMetadataUtil {
             HttpResponse response = client.execute(request);
 
             if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-                log.error("Failed to retrieve DOMS statuses for accounts, HTTP Status: " +
-                        response.getStatusLine().getStatusCode());
+                int statusCode = response.getStatusLine().getStatusCode();
+                log.error("Failed to retrieve DOMS statuses for accounts, HTTP Status: " + statusCode);
                 return null;
             }
 
@@ -121,8 +123,8 @@ public class AccountMetadataUtil {
      * @param secondaryUserId secondary user ID
      * @return map of accountId to instruction status, or empty map when retrieval fails
      */
-    public static Map<String, String> getSecondaryAccountInstructionStatusesForAccounts(List<String> accountIds,
-                                                                                         String secondaryUserId) {
+    public static Map<String, String> getSecondaryAccountInstructionStatusesForAccounts(
+            List<String> accountIds, String secondaryUserId) throws CdsConsentException {
 
         Map<String, String> instructionStatusMap = new HashMap<>();
 
@@ -146,10 +148,11 @@ public class AccountMetadataUtil {
 
             HttpResponse response = client.execute(request);
 
-            if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-                log.error("Failed to retrieve secondary account instruction statuses, HTTP Status: " +
-                        response.getStatusLine().getStatusCode());
-                return instructionStatusMap;
+                    if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
+                    int statusCode = response.getStatusLine().getStatusCode();
+                    log.error("Failed to retrieve secondary account instruction statuses, HTTP Status: " + statusCode);
+                throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                        "Failed to retrieve secondary account instruction statuses, HTTP Status: " + statusCode);
             }
 
             InputStream in = response.getEntity().getContent();
@@ -158,9 +161,8 @@ public class AccountMetadataUtil {
 
         } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve secondary account instruction statuses", e);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR, "");
         }
-
-        return instructionStatusMap;
     }
 
     /**

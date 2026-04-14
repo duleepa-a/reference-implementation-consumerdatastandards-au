@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.CommonConstants;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponseForConsentSearchData;
 
 import java.util.ArrayList;
@@ -49,8 +50,9 @@ public class CdsConsentSearchEnrichUtil {
      * @param enrichmentParams optional enrichment params (query params from caller)
      * @return enriched search data wrapped in SuccessResponseForConsentSearchData
      */
-    public static SuccessResponseForConsentSearchData enrichSearchResult(Object enrichedObj, Object enrichmentParams) {
-
+    public static SuccessResponseForConsentSearchData enrichSearchResult(Object enrichedObj, Object enrichmentParams)
+            throws CdsConsentException {
+                
         SuccessResponseForConsentSearchData searchData = enrichDOMSStatus(enrichedObj);
         Object enrichedSearchResult = searchData.getEnrichedSearchResult();
         Map<String, Object> paramsMap = parseEnrichmentParams(enrichmentParams);
@@ -150,7 +152,8 @@ public class CdsConsentSearchEnrichUtil {
      * @param enrichedObj search result object to enrich
      * @return enriched searchData wrapped in SuccessResponseForConsentSearchData
      */
-    public static SuccessResponseForConsentSearchData enrichSecondaryAccountInfo(Object enrichedObj) {
+    public static SuccessResponseForConsentSearchData enrichSecondaryAccountInfo(Object enrichedObj)
+            throws CdsConsentException {
 
         SuccessResponseForConsentSearchData searchData = new SuccessResponseForConsentSearchData();
         searchData.setEnrichedSearchResult(enrichedObj);
@@ -236,7 +239,7 @@ public class CdsConsentSearchEnrichUtil {
     /**
      * Enrich a single consent with secondary account info if secondary account owner auth resources are available.
      */
-    private static void enrichConsentWithSecondaryInfo(JSONObject consent) {
+    private static void enrichConsentWithSecondaryInfo(JSONObject consent) throws CdsConsentException {
 
         String primaryUserId = extractPrimaryUserId(consent);
         if (StringUtils.isBlank(primaryUserId)) {
@@ -373,8 +376,10 @@ public class CdsConsentSearchEnrichUtil {
             if (StringUtils.isBlank(secondaryOwnerUserId)) {
                 continue;
             }
-            accountOwnerAccountIdsMap.computeIfAbsent(secondaryOwnerUserId, key ->
-                    new LinkedHashSet<>()).add(accountId);
+
+            accountOwnerAccountIdsMap
+                    .computeIfAbsent(secondaryOwnerUserId, key -> new LinkedHashSet<>())
+                    .add(accountId);
         }
 
         return accountOwnerAccountIdsMap;
@@ -385,7 +390,7 @@ public class CdsConsentSearchEnrichUtil {
      */
     private static boolean isSecondaryAccountOwner(String authType) {
         return CommonConstants.AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER.equalsIgnoreCase(authType)
-                || CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER.equalsIgnoreCase(authType);
+            || CommonConstants.AUTH_TYPE_SECONDARY_JOINT_ACCOUNT_OWNER.equalsIgnoreCase(authType);
     }
 
     /**

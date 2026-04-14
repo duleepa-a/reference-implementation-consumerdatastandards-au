@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -188,7 +189,8 @@ public class CdsConsentAuthPersistUtil {
                 Set<String> secondaryAccountIds = secondaryOwnerAccountMap.values().stream().flatMap(Set::stream)
                         .collect(Collectors.toSet());
 
-                if (!AccountMetadataUtil.addSecondaryAccountInstructions(secondaryAccountIds, primaryUserId,
+                String userId = consumerInputData.getString("userId");
+                if (!AccountMetadataUtil.addSecondaryAccountInstructions(secondaryAccountIds, userId,
                         otherAccountsAvailability)) {
                     // Throwing an error if secondary user instruction data didn't get added.
                     log.error("Error occurred while adding secondary account instructions in persist step.");
@@ -280,7 +282,8 @@ public class CdsConsentAuthPersistUtil {
                 }
 
                 String accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(
-                        ConfigurableProperties.SHARABLE_ENDPOINT, displayName.split("<br>")[0]);
+                        ConfigurableProperties.SHARABLE_ENDPOINT, displayName.split("<br>")[0]
+                );
 
                 if (StringUtils.isEmpty(accountId)) {
                     log.warn("Could not resolve accountId for displayName: " + displayName.split("<br>")[0]);
@@ -564,7 +567,7 @@ public class CdsConsentAuthPersistUtil {
                         switch (title) {
                             case CommonConstants.PERMISSIONS:
                                 List<String> permissions = dataList.stream()
-                                        .map(obj -> ((String) obj).toUpperCase())
+                                    .map(obj -> ((String) obj).toUpperCase(Locale.ROOT))
                                         .collect(Collectors.toList());
                                 accountDataJson.put(CommonConstants.PERMISSIONS, permissions);
                                 break;
