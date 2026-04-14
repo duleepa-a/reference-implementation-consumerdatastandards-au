@@ -97,7 +97,6 @@ public interface AccountMetadataDAO {
 
     /**
      * Batch retrieve business stakeholder permissions for multiple account-user pairs.
-     *
      * @param conn the database connection
      * @param accountUserPairs list of (accountId, userId) pairs to query
      * @return list of existing business stakeholder permission records

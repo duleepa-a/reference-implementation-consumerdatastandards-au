@@ -168,7 +168,8 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
      */
     @Override
     public List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(
-            List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
+            List<Pair<String, String>> accountUserPairs)
+            throws AccountMetadataException {
 
         try (Connection conn = connectionProvider.getConnection()) {
             return metadataDAO.getBatchSecondaryAccountInstructions(conn, accountUserPairs);

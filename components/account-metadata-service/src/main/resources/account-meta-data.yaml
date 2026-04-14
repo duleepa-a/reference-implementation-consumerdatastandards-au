@@ -443,12 +443,7 @@ components:
         disclosureOption:
           type: string
           description: Disclosure option status
-          enum: [no-sharing, pre-approval]
           example: no-sharing
-          x-enum-description: |
-            Allowed values:
-              - no-sharing: No data sharing
-              - pre-approval: Pre-approved sharing
 
     ErrorResponse:
       type: object
