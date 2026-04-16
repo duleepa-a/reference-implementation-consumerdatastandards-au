@@ -75,6 +75,12 @@
       </param-value>
     </init-param>
 
+    <!-- Bean Validation interceptor -->
+    <init-param>
+      <param-name>jaxrs.inInterceptors</param-name>
+      <param-value>org.apache.cxf.jaxrs.validation.JAXRSBeanValidationInInterceptor</param-value>
+    </init-param>
+
     <!-- JSON Provider + Exception Mapper -->
     <init-param>
       <param-name>jaxrs.providers</param-name>

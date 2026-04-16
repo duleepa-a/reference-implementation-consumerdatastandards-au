@@ -115,6 +115,11 @@ public class CDSAccountValidationUtils {
             Set<String> accountIds, String baseUrl, String userId, String basicAuthBase64)
             throws CDSAccountValidationException {
 
+        if (StringUtils.isBlank(userId)) {
+            log.warn("[CDS-policy] no primary userId, skipping cds account validation.");
+            return new HashSet<>();
+        }
+
         String disclosureOptionsApi = baseUrl + CDSAccountValidationConstants.DISCLOSURE_OPTIONS_PATH;
         String secondaryAccountsApi = baseUrl + CDSAccountValidationConstants.SECONDARY_ACCOUNTS_PATH;
         String businessStakeholdersApi = baseUrl + CDSAccountValidationConstants.BUSINESS_STAKEHOLDERS_PATH;
@@ -231,11 +236,6 @@ public class CDSAccountValidationUtils {
             return blockedAccounts;
         }
 
-        if (StringUtils.isBlank(userId)) {
-            log.warn("[SecondaryAccounts] userId is blank, skipping secondary accounts check");
-            return blockedAccounts;
-        }
-
         try {
             String accountIdsParam = URLEncoder.encode(String.join(",", accountIds), StandardCharsets.UTF_8);
             String userIdParam = URLEncoder.encode(userId, StandardCharsets.UTF_8);
@@ -316,11 +316,6 @@ public class CDSAccountValidationUtils {
         Set<String> blockedAccounts = new HashSet<>();
 
         if (accountIds == null || accountIds.isEmpty()) {
-            return blockedAccounts;
-        }
-
-        if (StringUtils.isBlank(userId)) {
-            log.warn("[BusinessStakeholders] userId is blank, skipping business stakeholders check");
             return blockedAccounts;
         }
 
