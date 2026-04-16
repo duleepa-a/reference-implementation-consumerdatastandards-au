@@ -291,7 +291,7 @@ public class ConsentAuthorizeUtil {
             }
         }
 
-        return false;
+        return true;
     }
 
     /**
@@ -453,8 +453,7 @@ public class ConsentAuthorizeUtil {
                 secondaryInstructionStatusMap)) {
             // Block account if any eligibility check fails
             AdditionalDataItem blockedItem = new AdditionalDataItem();
-            blockedItem.setItem(getDisplayNameWithAccountNumber(
-                    accountJson.getString(CommonConstants.DISPLAY_NAME), accountId));
+            blockedItem.setItem(accountJson.getString(CommonConstants.DISPLAY_NAME));
 
             if (isBusinessAccount && ConfigurableProperties.PROFILE_SELECTION_PAGE_ENABLED) {
                 blockedItem.setType(accountJson.optString(CommonConstants.PROFILE_ID_RESPONSE_TAG, ""));
@@ -501,8 +500,7 @@ public class ConsentAuthorizeUtil {
             account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
         }
 
-        account.setDisplayName(getDisplayNameWithAccountNumber(accountJson.getString(CommonConstants.DISPLAY_NAME),
-                accountId));
+        account.setDisplayName(accountJson.getString(CommonConstants.DISPLAY_NAME));
         accountList.add(account);
     }
 
