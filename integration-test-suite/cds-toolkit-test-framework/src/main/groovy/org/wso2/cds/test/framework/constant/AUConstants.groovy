@@ -287,7 +287,7 @@ class AUConstants extends Constants {
     public static final String ADMIN_API_AUDIENCE = "https://wso2ob.com"
 
     //Selenium Constants
-    public static final int DEFAULT_DELAY = 5;
+    public static final int DEFAULT_DELAY = 1;
 
     // Second Factor Authenticator constants
     public static final String AU_OTP_CODE = "111222"

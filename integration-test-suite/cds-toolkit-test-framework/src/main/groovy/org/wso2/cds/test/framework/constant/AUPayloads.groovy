@@ -126,22 +126,20 @@ class AUPayloads {
                                                 String permissionType) {
 
         return """
-               {
-                    "data":[
-                         {
-                         "accountID":${accountId},
-                         "accountOwners":[                     
-                                "${accountOwnerUserID}"
-                             ],
-                          "nominatedRepresentatives":[
-                             {
-                                "name": "${nominatedRepUserID}",
-                                "permission": "${permissionType}"
-                              }
-                            ]
-                         }
-                        ]
-                 }
+                    [
+                          {
+                                 "accountID":${accountId},
+                                 "accountOwners":[
+                                          "${accountOwnerUserID}"
+                                      ],
+                                 "nominatedRepresentatives":[
+                                      {
+                                          "name": "${nominatedRepUserID}",
+                                          "permission": "${permissionType}"
+                                      }
+                                 ]
+                          }
+                    ]
             """.stripIndent()
     }
 
@@ -155,19 +153,17 @@ class AUPayloads {
     static String getIncorrectUserDeletePayload(String accountId, String accountOwnerUserID, String nominatedRepUserID) {
 
         return """
-               {
-                  "data":[
-                     {
-                        "accountID":${accountId},
-                        "accountOwners":[
-                            "${accountOwnerUserID}"
-                        ],
-                        "nominatedRepresentatives":[
-                           "${nominatedRepUserID}"
-                        ]
-                     }
-                  ]
-               }
+                    [
+                          {
+                                "accountID":${accountId},
+                                "accountOwners":[
+                                     "${accountOwnerUserID}"
+                                ],
+                                "nominatedRepresentatives":[
+                                    "${nominatedRepUserID}"
+                                ]
+                          }
+                    ]
             """.stripIndent()
     }
 

@@ -20,7 +20,8 @@ package org.wso2.cds.keymanager.test.secondaryUser
 
 import org.wso2.cds.test.framework.AUTest
 import org.wso2.cds.test.framework.constant.AUConstants
-import org.wso2.cds.test.framework.request_builder.AURegistrationRequestBuilder
+import org.wso2.cds.test.framework.constant.AUPayloads
+import org.wso2.cds.test.framework.utility.AURestAsRequestBuilder
 import org.wso2.cds.test.framework.utility.AUTestUtil
 import io.restassured.response.Response
 import org.testng.Assert
@@ -38,6 +39,41 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     String accountID, userId, legalEntityId, altLegalEntityId, accountOwnerId
     Response response
     List <String> legalEntityList
+
+    private def updateLegalEntitySharingStatus(String accountId, String secondaryUserId, String legalEntityId,
+                            String legalEntityStatus, boolean isMultipleLegalEntity = false,
+                            String secondaryUserId2 = null, String accountId2 = null,
+                            String legalEntityId2 = null, String legalEntityStatus2 = null) {
+
+    def requestBody = AUPayloads.getBlockLegalEntityPayload(secondaryUserId, accountId, legalEntityId,
+        legalEntityStatus, isMultipleLegalEntity, secondaryUserId2, accountId2, legalEntityId2,
+        legalEntityStatus2)
+
+    return AURestAsRequestBuilder.buildBasicRequest()
+        .header(AUConstants.AUTHORIZATION_HEADER_KEY, AUConstants.BASIC_HEADER_KEY + " " +
+            Base64.encoder.encodeToString(
+                "${auConfiguration.getUserBasicAuthName()}:${auConfiguration.getUserBasicAuthPWD()}"
+                    .getBytes(Charset.forName("UTF-8"))))
+        .contentType(AUConstants.CONTENT_TYPE_APPLICATION_JSON)
+        .body(requestBody)
+        .baseUri(getAuConfiguration().getServerAuthorisationServerURL())
+        .post(AUConstants.UPDATE_LEGAL_ENTITY_SHARING_STATUS)
+    }
+
+    private def getLegalEntitySharingStatuses(String userId, String accountId, String clientId) {
+
+    return AURestAsRequestBuilder.buildBasicRequest()
+        .header(AUConstants.AUTHORIZATION_HEADER_KEY, AUConstants.BASIC_HEADER_KEY + " " +
+            Base64.encoder.encodeToString(
+                "${auConfiguration.getUserBasicAuthName()}:${auConfiguration.getUserBasicAuthPWD()}"
+                    .getBytes(Charset.forName("UTF-8"))))
+        .contentType(AUConstants.CONTENT_TYPE_APPLICATION_JSON)
+        .baseUri(getAuConfiguration().getServerAuthorisationServerURL())
+        .queryParam("userId", userId)
+        .queryParam("accountIds", accountId)
+        .queryParam("clientId", clientId)
+        .get(AUConstants.LEGAL_ENTITY_LIST_ENDPOINT)
+    }
 
     @BeforeClass (alwaysRun = true)
     void "Pre Execution Step"() {
@@ -60,16 +96,8 @@ class CeasingSecondaryUserManagementTest extends AUTest {
         def updateResponse = updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.ACTIVE)
         Assert.assertEquals(updateResponse.statusCode(), AUConstants.OK)
 
-        //Get Legal Entity ID of the client
-        accessToken = getApplicationAccessToken(auConfiguration.getAppInfoClientID())
-        Assert.assertNotNull(accessToken)
-
-        def registrationResponse = AURegistrationRequestBuilder.buildBasicRequest(accessToken)
-                .when()
-                .get(AUConstants.DCR_REGISTRATION_ENDPOINT + auConfiguration.getAppInfoClientID())
-
         // Resolve legal entity ID from API response to keep tests runtime-agnostic.
-        def legalEntityResponse = getLegalEntityIds(userId, accountID, clientId)
+        def legalEntityResponse = getLegalEntitySharingStatuses(userId, accountID, clientId)
         Assert.assertEquals(legalEntityResponse.statusCode(), AUConstants.STATUS_CODE_200)
         legalEntityId = AUTestUtil.parseResponseBody(legalEntityResponse, "[0].${AUConstants.LEGAL_ENTITY_ID_MAP}")
         Assert.assertNotNull(legalEntityId)
@@ -79,11 +107,11 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test (groups = "SmokeTest", priority = 1)
     void "CDS-631_Block the sharing status for a legal entity"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
 
         //Check Sharing Status
-        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntityIds(userId, accountID, clientId).getBody().asString(),
+        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntitySharingStatuses(userId, accountID, clientId).getBody().asString(),
                 userId, accountID, legalEntityId)
         Assert.assertEquals(responseSharingStatusLegalEntity, AUConstants.BLOCK_ENTITY)
     }
@@ -91,11 +119,11 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test (priority = 1, dependsOnMethods = "CDS-631_Block the sharing status for a legal entity")
     void "CDS-632_Block an already blocked legal entity"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
 
         //Check Sharing Status
-        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntityIds(userId, accountID, clientId).getBody().asString(),
+        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntitySharingStatuses(userId, accountID, clientId).getBody().asString(),
                 userId, accountID, legalEntityId)
         Assert.assertEquals(responseSharingStatusLegalEntity, AUConstants.BLOCK_ENTITY)
     }
@@ -103,11 +131,11 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test (priority = 1, dependsOnMethods = "CDS-632_Block an already blocked legal entity")
     void "CDS-633_Unlock the sharing status for a legal entity"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), AUConstants.ACTIVE)
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), AUConstants.ACTIVE)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
 
         //Check Sharing Status
-        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntityIds(userId, accountID, clientId).getBody().asString(),
+        def responseSharingStatusLegalEntity = getSharingStatusOfUserAccount(getLegalEntitySharingStatuses(userId, accountID, clientId).getBody().asString(),
                 userId, accountID, legalEntityId)
         Assert.assertEquals(responseSharingStatusLegalEntity, AUConstants.ACTIVE)
     }
@@ -115,12 +143,12 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-634_Block multiple legal entities for same user and same account id"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId, AUConstants.BLOCK_ENTITY,
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId, AUConstants.BLOCK_ENTITY,
                 true, userId, accountID, altLegalEntityId, AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
 
         //Check Sharing Status - Legal Entity 1
-        def responseSharingStatusLegalEntity1 = getSharingStatusOfUserAccount(getLegalEntityIds(userId, accountID, clientId).getBody().asString(),
+        def responseSharingStatusLegalEntity1 = getSharingStatusOfUserAccount(getLegalEntitySharingStatuses(userId, accountID, clientId).getBody().asString(),
                 userId, accountID, legalEntityId)
         Assert.assertEquals(responseSharingStatusLegalEntity1, AUConstants.BLOCK_ENTITY)
     }
@@ -128,7 +156,7 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-635_Block sharing status with incorrect status value"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), "Block_Entity")
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), "Block_Entity")
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_400)
 
         Assert.assertTrue(AUTestUtil.parseResponseBody(response, "errorDescription")
@@ -138,7 +166,7 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-639_Block sharing status for multiple user Ids"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY,
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY,
                 true, "admin@wso2.com", accountID, altLegalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
@@ -146,7 +174,7 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-640_Blocking and activating sharing status for legal entities via same request"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, userId, legalEntityId.toLowerCase(), AUConstants.ACTIVE,
+        response = updateLegalEntitySharingStatus(accountID, userId, legalEntityId.toLowerCase(), AUConstants.ACTIVE,
                 true, userId, accountID, altLegalEntityId.toLowerCase(), AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
@@ -154,7 +182,7 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test (dependsOnMethods = "CDS-640_Blocking and activating sharing status for legal entities via same request")
     void "CDS-641_Retrieve sharing status of a particular legal entity"() {
 
-        def responseSharingStatusLegalEntity1 = getSharingStatusOfUserAccount(getLegalEntityIds(userId, accountID, clientId).getBody().asString(),
+        def responseSharingStatusLegalEntity1 = getSharingStatusOfUserAccount(getLegalEntitySharingStatuses(userId, accountID, clientId).getBody().asString(),
                 userId, accountID, legalEntityId)
         Assert.assertEquals(responseSharingStatusLegalEntity1, AUConstants.ACTIVE)
     }
@@ -162,7 +190,7 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-642_Account owner is able to view all the accounts, secondary users, legal entities"() {
 
-        def response = getLegalEntityIds(userId, accountID, clientId)
+        def response = getLegalEntitySharingStatuses(userId, accountID, clientId)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
         Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.PAYLOAD_PARAM_ACCOUNT_ID}"))
         Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.SECONDARY_USERS_USERID}"))
@@ -173,14 +201,14 @@ class CeasingSecondaryUserManagementTest extends AUTest {
     @Test
     void "CDS-636_Block sharing status with incorrect accountId"() {
 
-        response = updateLegalEntityStatus(clientHeader, "1234", userId, legalEntityId, AUConstants.BLOCK_ENTITY)
+        response = updateLegalEntitySharingStatus("1234", userId, legalEntityId, AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
 
     @Test
     void "CDS-637_Block sharing status with incorrect user id"() {
 
-        response = updateLegalEntityStatus(clientHeader, accountID, "abc@gold.com", legalEntityId, AUConstants.BLOCK_ENTITY)
+        response = updateLegalEntitySharingStatus(accountID, "abc@gold.com", legalEntityId, AUConstants.BLOCK_ENTITY)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
 }

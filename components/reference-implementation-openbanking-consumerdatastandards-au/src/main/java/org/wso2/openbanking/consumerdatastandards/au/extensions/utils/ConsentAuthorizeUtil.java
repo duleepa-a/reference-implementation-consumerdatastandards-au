@@ -285,7 +285,20 @@ public class ConsentAuthorizeUtil {
                     continue;
                 }
 
-                if (representative.optString(CommonConstants.MEMBER_ID_TAG, "").equalsIgnoreCase(userId)) {
+                String memberId = representative.optString(CommonConstants.MEMBER_ID_TAG, "");
+
+                // Normalize: remove tenant domain if present
+                if (memberId != null && memberId.contains("@")) {
+                    int lastAtIndex = memberId.lastIndexOf("@");
+                    int firstAtIndex = memberId.indexOf("@");
+
+                    // Only strip if there are multiple '@'
+                    if (lastAtIndex != firstAtIndex) {
+                        memberId = memberId.substring(0, lastAtIndex);
+                    }
+                }
+
+                if (memberId.equalsIgnoreCase(userId)) {
                     return true;
                 }
             }

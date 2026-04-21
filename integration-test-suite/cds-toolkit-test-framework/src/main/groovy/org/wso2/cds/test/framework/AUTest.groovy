@@ -611,6 +611,14 @@ class AUTest extends CommonTest {
         //Select Account 1
         String secondaryAccountXpath = resolveFirstPresentXpath(authWebDriver, [
             AUTestUtil.getSecondaryAccount1XPath(),
+            "(//input[@name='accounts' and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[1]",
+            "(//input[starts-with(@name,'accounts-') and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[1]",
+            "(//*[@id='oauth2_authz_account_selection']//input[@type='checkbox' and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[1]",
+            "(//input[@name='accounts' and not(@disabled) and @id])[1]",
+            "(//input[starts-with(@name,'accounts-') and not(@disabled) and @id])[1]",
+            "(//*[@id='oauth2_authz_account_selection']//input[@name='accounts' and not(@disabled)])[1]",
+            "(//*[@id='oauth2_authz_account_selection']//input[@type='checkbox' and not(@disabled)])[1]",
+            "(//input[@type='checkbox' and not(@disabled) and (contains(@name,'account') or contains(@id,'account'))])[1]",
             "(//input[@name='accounts'])[1]"
         ])
         Assert.assertNotNull(secondaryAccountXpath, "No selectable secondary account found in consent UI")
@@ -621,6 +629,14 @@ class AUTest extends CommonTest {
             //Select Account 2
                 String secondaryAltXpath = resolveFirstPresentXpath(authWebDriver, [
                     AUTestUtil.getSecondaryAccount2XPath(),
+                    "(//input[@name='accounts' and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[2]",
+                    "(//input[starts-with(@name,'accounts-') and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[2]",
+                    "(//*[@id='oauth2_authz_account_selection']//input[@type='checkbox' and starts-with(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'secondary_account')])[2]",
+                    "(//input[@name='accounts' and not(@disabled) and @id])[2]",
+                    "(//input[starts-with(@name,'accounts-') and not(@disabled) and @id])[2]",
+                    "(//*[@id='oauth2_authz_account_selection']//input[@name='accounts' and not(@disabled)])[2]",
+                    "(//*[@id='oauth2_authz_account_selection']//input[@type='checkbox' and not(@disabled)])[2]",
+                    "(//input[@type='checkbox' and not(@disabled) and (contains(@name,'account') or contains(@id,'account'))])[2]",
                     "(//input[@name='accounts'])[2]"
                 ])
                 if (secondaryAltXpath != null) {
@@ -1314,7 +1330,7 @@ class AUTest extends CommonTest {
         return automationResponse
     }
 
-    private String appendPromptLoginConsent(String url) {
+    protected String appendPromptLoginConsent(String url) {
         if (url == null || url.isEmpty()) {
             return url
         }
