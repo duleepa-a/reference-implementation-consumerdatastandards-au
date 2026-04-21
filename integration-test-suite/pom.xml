@@ -391,7 +391,7 @@
         <org.wso2.securevault.version>1.1.4</org.wso2.securevault.version>
         <maven.findbugsplugin.version>3.0.2</maven.findbugsplugin.version>
         <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>
-        <maven.spotbugsplugin.version>4.8.2.0</maven.spotbugsplugin.version>
+        <maven.spotbugsplugin.version>4.2.3</maven.spotbugsplugin.version>
         <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
         <com.google.guava.version>31.0.1-jre</com.google.guava.version>
         <com.google.inject.guice.version>4.2.3</com.google.inject.guice.version>
@@ -401,7 +401,7 @@
         <org.jsoup.version>1.15.4</org.jsoup.version>
         <com.auth0.version>3.18.0</com.auth0.version>
         <org.wso2.openbanking.test.cds.version.range>[1.1.0, 2.0.0)</org.wso2.openbanking.test.cds.version.range>
-        <junit.version>4.13.2</junit.version>
+        <junit.version>4.10</junit.version>
         <org.osgi.version>6.0.0</org.osgi.version>
         <hamcrest.version>2.2</hamcrest.version>
     </properties>

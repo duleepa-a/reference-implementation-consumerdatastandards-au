@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
 <!--
- ~ Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+ ~ Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
  ~
  ~ WSO2 LLC. licenses this file to you under the Apache License,
  ~ Version 2.0 (the "License"); you may not use this file except
@@ -21,10 +21,10 @@
     <!-- Common Configurations -->
     <Common>
         <!--Sample Values: 3.0.0 -->
-        <SolutionVersion>4.0.0</SolutionVersion>
+        <SolutionVersion>3.0.0</SolutionVersion>
 
         <!--Sample Values: 1.3.0 -->
-        <ApiVersion>Common.ApiVersion</ApiVersion>
+        <ApiVersion>1.25.0</ApiVersion>
 
         <!--Access token expire time in seconds-->
         <!--Sample Values: 30 -->
@@ -41,13 +41,12 @@
     <Provisioning>
         <!--Sample Value: true/false (Enable if you want to publish and subscribe API via test cases in
            common.integration.test package.)-->
-        <Enabled>true</Enabled>
+        <Enabled>false</Enabled>
 
         <!--Sample Value: <Path to financial-open-banking>/open-banking-test-suite/accelerator-tests/
         ob-gateway-integration-tests/common.integration.test/src/test/resources/provisioningFiles/
         api-config-provisioning.yaml-->
-        <ProvisionFilePath>
-            C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\cds-toolkit-test-framework\src\main\resources\provisioningFiles\api-config-provisioning.yaml</ProvisionFilePath>
+        <ProvisionFilePath>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/cds-toolkit-test-framework/src/main/resources/provisioningFiles/api-config-provisioning.yaml</ProvisionFilePath>
     </Provisioning>
 
     <!-- Server Info -->
@@ -74,7 +73,7 @@
                 <!--Absolute path + file name of JKS keystore file-->
                 <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                 AU/sample-client-resources/signing-keystore/signing.jks -->
-                <Location>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources\signing-keystore\signing.jks</Location>
+                <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources/signing-keystore/signing.jks</Location>
 
                 <!--Sample Values: signing -->
                 <Alias>signing</Alias>
@@ -101,7 +100,7 @@
                     <!--Absolute path + file name of keystore file.-->
                     <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                     AU/sample-client-resources/transport-keystore/transport.jks-->
-                    <Location>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources\transport-keystore\transport.jks</Location>
+                    <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources/transport-keystore/transport.jks</Location>
 
                     <!--Sample Values: jks -->
                     <Type>jks</Type>
@@ -115,7 +114,7 @@
             <DCR>
                 <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                 AU/sample-client-resources/ssa.txt -->
-                <SSAPath>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources\ssa.txt</SSAPath>
+                <SSAPath>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources/ssa.txt</SSAPath>
 
                 <!-- Software Product ID -->
                 <!--Sample Values: SP2 -->
@@ -131,9 +130,9 @@
 
             <!-- Application Info -->
             <Application>
-                <ClientID>gJKvqMSxzLvNxfSsJNLL7bFHSGwa</ClientID>
-                
-                <ClientSecret>QS1hRVMNFHXhZiSB7v7eN0MLuCQXxQJ5pgux3ahJRasa</ClientSecret>
+                <ClientID>bDbZSXnSGkpuCfAW18TthoKNSVIa</ClientID>
+
+                <ClientSecret>BRVBHCJvTccNymvwq3ZvfYwNXcl0sMA_3UeYFRbesTMa</ClientSecret>
 
                 <!--Sample Values: https://www.google.com/redirects/redirect1 -->
                 <RedirectURL>https://www.google.com/redirects/redirect1</RedirectURL>
@@ -147,7 +146,7 @@
                 <!--Absolute path + file name of JKS keystore file-->
                 <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                 AU/sample-client-resources/signing-keystore/signing.jks -->
-                <Location>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources-2\signing-keystore\signing.jks</Location>
+                <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources-2/signing-keystore/signing.jks</Location>
 
                 <!--Sample Values: signing -->
                 <Alias>signing</Alias>
@@ -173,7 +172,7 @@
                     <!--Absolute path + file name of keystore file.-->
                     <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                     AU/sample-client-resources/transport-keystore/transport.jks-->
-                    <Location>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources-2\transport-keystore\transport.jks</Location>
+                    <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources-2/transport-keystore/transport.jks</Location>
 
                     <!--Sample Values: jks -->
                     <Type>jks</Type>
@@ -187,11 +186,11 @@
             <DCR>
                 <!--Sample Values:  {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/DynamicClientRegistration/
                 AU/sample-client-resources/ssa2.txt -->
-                <SSAPath>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\integration-test-suite\test-artifacts\DynamicClientRegistration\AU\sample-client-resources-2\ssa.txt</SSAPath>
+                <SSAPath>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/DynamicClientRegistration/AU/sample-client-resources-2/ssa.txt</SSAPath>
 
                 <!-- Software Product ID -->
                 <!--Sample Values: SP3 -->
-                <SoftwareId>SP3</SoftwareId>
+                <SoftwareId>oQ4KoaavpOuoE7rvQsZEOV</SoftwareId>
 
                 <!-- SSA Redirect Uri -->
                 <!--Sample Values: https://www.google.com/redirects/redirect1 -->
@@ -203,8 +202,8 @@
 
             <!-- Application Info -->
             <Application>
-                <ClientID>AppConfig2.Application.ClientID</ClientID>
-                <ClientSecret>AppConfig2.Application.ClientSecret</ClientSecret>
+                <ClientID>gJKvqMSxzLvNxfSsJNLL7bFHSGwa</ClientID>
+                <ClientSecret>QS1hRVMNFHXhZiSB7v7eN0MLuCQXxQJ5pgux3ahJRasa</ClientSecret>
 
                 <!--Sample Value: https://www.google.com/redirects/redirect1 -->
                 <RedirectURL>https://www.google.com/redirects/redirect1</RedirectURL>
@@ -217,7 +216,7 @@
         <Truststore>
             <!--Absolute path + file name of truststore file. We can point the product client-truststore.jks here.-->
             <!--Sample Values: /wso2am-4.0.0/repository/resources/security/client-truststore.jk-->
-            <Location>C:\wso2am-4.5.0\repository\resources\security\client-truststore.jks</Location>
+            <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/integration-test-suite/test-artifacts/am-certs/client-truststore.jks</Location>
 
             <!--Sample Values: jks -->
             <Type>jks</Type>
@@ -230,7 +229,7 @@
             <!--Absolute path + file name of keystore file. We can point the product wso2carbon.jks here. -->
             <!--Sample Value: <Path to financial-open-banking>/integration-test-suite/test-artifacts/client-truststore/
             wso2carbon.jks -->
-            <Location>C:\Users\duleepa.a\Downloads\Implementation\Toolkit\reference-implementation-consumerdatastandards-au\test-artifacts\client-truststore\wso2carbon.jks</Location>
+            <Location>C:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/test-artifacts/client-truststore/wso2carbon.jks</Location>
 
             <Type>jks</Type>
 
@@ -243,48 +242,48 @@
         <!-- Common PSU Info -->
         <PSUInfo>
             <Credentials>
-                <User>user1@wso2.com</User>
-                <Password>wso2123</Password>
+                <User>psu@gold.com</User>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <!-- Individual PSU Info -->
         <PSUInfo>
             <Credentials>
-                <User>psu@wso2.com</User>
-                <Password>wso2123</Password>
+                <User>user1@wso2.com</User>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <!-- Business User 1-->
         <PSUInfo>
             <Credentials>
                 <User>nominatedUser2@wso2.com</User>
-                <Password>wso2123</Password>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <!-- Business User 2 (Multiple NR)-->
         <PSUInfo>
             <Credentials>
                 <User>nominatedUser1@wso2.com</User>
-                <Password>wso2123</Password>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <!-- Account Owner-->
         <PSUInfo>
             <Credentials>
                 <User>amy@gold.com</User>
-                <Password>wso2123</Password>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <!-- API Publisher-->
         <PSUInfo>
             <Credentials>
                 <User>publisher@wso2.com</User>
-                <Password>wso2123</Password>
+                <Password>Wso21234</Password>
             </Credentials>
         </PSUInfo>
         <PSUInfo>
             <Credentials>
-                <User>admin@wso2.com</User>
+                <User>is_admin@wso2.com</User>
                 <Password>wso2123</Password>
             </Credentials>
         </PSUInfo>
@@ -296,7 +295,7 @@
         <User>publisher@wso2.com</User>
 
         <!--Sample Values: wso2123 -->
-        <Password>wso2123</Password>
+        <Password>Wso21234</Password>
     </PublisherInfo>
     <!-- PSU Info -->
 
@@ -305,7 +304,7 @@
         <User>user1@wso2.com</User>
 
         <!--Sample Values: wso2123 -->
-        <Password>wso2123</Password>
+        <Password>Wso21234</Password>
     </TPPInfo>
 
     <!-- Customer Care Info -->
@@ -314,7 +313,7 @@
         <User>ann@gold.com</User>
 
         <!--Sample Values: wso2123 -->
-        <Password>wso2123</Password>
+        <Password>Wso21234</Password>
     </CustomerCareInfo>
 
     <!-- Basic Auth Info -->
@@ -328,7 +327,7 @@
 
     <KeyManagerAdmin>
         <!--Sample Values: admin@wso2.com -->
-        <User>am_admin@wso2.com</User>
+        <User>is_admin@wso2.com</User>
 
         <!--Sample Values: wso2123 -->
         <Password>wso2123</Password>
@@ -339,9 +338,9 @@
         <!--Sample Values: chrome/firefox-->
         <BrowserPreference>firefox</BrowserPreference>
         <!--Sample Values: true/false -->
-        <HeadlessEnabled>BrowserAutomation.HeadlessEnabled</HeadlessEnabled>
+        <HeadlessEnabled>false</HeadlessEnabled>
         <!--Sample Values: {Path to ob-compliance-toolkit-cds}/integration-test-suite/test-artifacts/selenium-libs/ubuntu/geckodriver -->
-        <WebDriverLocation>BrowserAutomation.WebDriverLocation</WebDriverLocation>
+        <WebDriverLocation>C:\Users\duleepa.a\Downloads\geckodriver-v0.36.0-win64\geckodriver.exe</WebDriverLocation>
     </BrowserAutomation>
 
     <ConsentApi>
@@ -371,21 +370,21 @@
 
     <DataBaseConfiguration>
         <!--Sample Value: mysql/mssql/postgresql/oracle -->
-        <DBType>DataBaseConfiguration.DBType</DBType>
+        <DBType>mysql</DBType>
         <!--Sample Value: <DB SERVER HOSTNAME/IP> -->
-        <DBServerHost>DataBaseConfiguration.DBServerHost</DBServerHost>
+        <DBServerHost>localhost</DBServerHost>
         <!--Sample Value: <DB USERNAME> -->
-        <DBUsername>DataBaseConfiguration.DBUsername</DBUsername>
+        <DBUsername>root</DBUsername>
         <!--Sample Value: <DB PASSWORD> -->
-        <DBPassword>DataBaseConfiguration.DBPassword</DBPassword>
+        <DBPassword>duleepa</DBPassword>
         <!--Sample Value for mysql: com.mysql.jdbc.Driver -->
         <!--Sample Value for mssql: com.microsoft.sqlserver.jdbc.SQLServerDriver -->
         <!--Sample Value for oracle: oracle.jdbc.driver.OracleDriver -->
         <!--Sample Value for postgresql: org.postgresql.Driver -->
-        <DBDriverClass>DataBaseConfiguration.DBDriverClass</DBDriverClass>
+        <DBDriverClass>com.mysql.jdbc.Driver</DBDriverClass>
         <!-- Configure the following tag only for Oracle DB -->
         <!--Sample Value: ORCLCDB -->
-        <OracleDBSID>DataBaseConfiguration.OracleDBSID</OracleDBSID>
+        <OracleDBSID>orcl</OracleDBSID>
     </DataBaseConfiguration>
 
 </Configurations>
