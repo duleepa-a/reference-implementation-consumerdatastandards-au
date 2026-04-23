@@ -52,7 +52,7 @@ class DisclosureOptionManagementServiceTest extends AUTest {
         AUAccountScope.BANK_REGULAR_PAYMENTS_READ,
         AUAccountScope.BANK_CUSTOMER_BASIC_READ,
         AUAccountScope.BANK_CUSTOMER_DETAIL_READ
-    ] 
+    ]
     private List<String> jointAccountIdList = new ArrayList<>()
     private List<String> singleAccountIdList = new ArrayList<>()
     private String secretKey = auConfiguration.getIDPermanence()
@@ -145,10 +145,12 @@ class DisclosureOptionManagementServiceTest extends AUTest {
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
 
         String account = resolvePlainAccountId(
-                AUTestUtil.parseResponseBody(accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]"))
+                AUTestUtil.parseResponseBody(
+                        accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]"))
 
         Assert.assertEquals(jointAccountIdList[0], account)
-        Assert.assertNull(AUTestUtil.parseResponseBody(accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[7]"))
+        Assert.assertNull(AUTestUtil.parseResponseBody(
+                accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[1]"))
     }
 
     @Test(groups = "SmokeTest")
@@ -178,7 +180,8 @@ class DisclosureOptionManagementServiceTest extends AUTest {
         //Account Retrieval - Return Account Details
         Response accountResponse = doAccountRetrieval(userAccessToken)
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}"))
+        Assert.assertNotNull(AUTestUtil.parseResponseBody(
+                accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}"))
     }
 
     @Test
@@ -197,7 +200,8 @@ class DisclosureOptionManagementServiceTest extends AUTest {
                 .get("${AUConstants.CDS_PATH}/banking/accounts/${AUConstants.testJointAccountID}")
 
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(accountResponse, "${AUConstants.RESPONSE_DATA_SINGLE_ACCOUNTID}"))
+        Assert.assertNotNull(AUTestUtil.parseResponseBody(
+                accountResponse, "${AUConstants.RESPONSE_DATA_SINGLE_ACCOUNTID}"))
     }
 
     //TODO: Issue: https://github.com/wso2-enterprise/financial-open-banking/issues/8452
@@ -253,7 +257,7 @@ class DisclosureOptionManagementServiceTest extends AUTest {
 
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
         Assert.assertNull(AUTestUtil.parseResponseBody(accountResponse,
-                "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[7]"))
+                "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[1]"))
     }
 
     @Test
@@ -316,9 +320,11 @@ class DisclosureOptionManagementServiceTest extends AUTest {
                 .get("${AUConstants.BULK_ACCOUNT_PATH}")
 
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}"))
+        Assert.assertNotNull(AUTestUtil.parseResponseBody(
+                accountResponse, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}"))
     }
 
+    // Not testable in the current implementation.
     @Test(priority = 2, enabled = false)
     void "CDS-620_Verify creating new consent when DOMS status to no-sharing status"() {
 
@@ -337,8 +343,8 @@ class DisclosureOptionManagementServiceTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), auConfiguration.getAppInfoClientID())
-                .toURI().toString()
+        authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(
+                requestUri.toURI(), auConfiguration.getAppInfoClientID()).toURI().toString()
 
         automationResponse = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -351,18 +357,21 @@ class DisclosureOptionManagementServiceTest extends AUTest {
 
                         //Select Individual Profile with resilient selectors.
                         boolean profileSelected = selectProfileIfPresent(authWebDriver, AUAccountProfile.INDIVIDUAL)
-                        if (!profileSelected && authWebDriver.isElementPresent(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
+                        if (!profileSelected && authWebDriver.isElementPresent(
+                                AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
                                 authWebDriver.clickButtonXpath(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)
                         }
 
-                        boolean jointAccountSelectable = authWebDriver.isElementPresent(AUPageObjects.JOINT_ACCOUNT_2_XPATH)
+                        boolean jointAccountSelectable =
+                                authWebDriver.isElementPresent(AUPageObjects.JOINT_ACCOUNT_2_XPATH)
                         Assert.assertFalse(jointAccountSelectable,
                                         "Expected joint_account_2 to be unavailable, " +
                                                         "but selector still matched in consent UI")
                     }
                     //If Profile Selection Disabled
                     else {
-                        boolean jointAccountSelectable = authWebDriver.isElementPresent(AUPageObjects.JOINT_ACCOUNT_2_XPATH)
+                        boolean jointAccountSelectable =
+                                authWebDriver.isElementPresent(AUPageObjects.JOINT_ACCOUNT_2_XPATH)
                         Assert.assertFalse(jointAccountSelectable,
                                         "Expected joint_account_2 to be unavailable, " +
                                                         "but selector still matched in consent UI")
@@ -388,7 +397,7 @@ class DisclosureOptionManagementServiceTest extends AUTest {
                 "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]"))
     }
 
-    @Test(priority = 2, enabled = false)
+    @Test(priority = 2)
     void "CDS-624_Consent search API for DOMS status to no-sharing status"() {
 
         //Update the DOMS Status to no-sharing
@@ -401,7 +410,7 @@ class DisclosureOptionManagementServiceTest extends AUTest {
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
 
-    @Test(priority = 2, enabled = false)
+    @Test(priority = 2)
     void "CDS-623_Consent search API for DOMS status to pre-approval status"() {
 
         //Update the DOMS Status to pre-approval
@@ -413,7 +422,8 @@ class DisclosureOptionManagementServiceTest extends AUTest {
         def response = doConsentSearch()
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
     }
-    
+
+    // TODO : After Implementing Consent Amendment flow
     @Test(priority = 2, enabled = false)
     void "CDS-650_Verify Consent amendment flow after changing DOMS status to no-sharing"() {
 

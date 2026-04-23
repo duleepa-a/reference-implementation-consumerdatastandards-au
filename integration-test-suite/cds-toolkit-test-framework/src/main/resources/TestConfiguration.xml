@@ -368,6 +368,21 @@
         <Enabled>true</Enabled>
     </ProfileSelection>
 
+    <!-- Consent Manager Application Info -->
+    <ConsentManagerApp>
+        <!--Client ID of the Consent Manager application (used as Basic Auth username for token request)-->
+        <ClientID>nAYk_RV5kr2VfPIqznO5XI40G2wa</ClientID>
+
+        <!--Client Secret of the Consent Manager application (used as Basic Auth password for token request)-->
+        <ClientSecret>wGMYelta96GVdWLbszkNx4olfzckcxU5CRpAX6aplnka</ClientSecret>
+
+        <!--Username of a user with Customer Care Officer role (used in password grant for consent admin search)-->
+        <ConsentAdminUser>accountmetadata@gold.com</ConsentAdminUser>
+
+        <!--Password of the Customer Care Officer user-->
+        <ConsentAdminPassword>Wso21234</ConsentAdminPassword>
+    </ConsentManagerApp>
+
     <DataBaseConfiguration>
         <!--Sample Value: mysql/mssql/postgresql/oracle -->
         <DBType>mysql</DBType>

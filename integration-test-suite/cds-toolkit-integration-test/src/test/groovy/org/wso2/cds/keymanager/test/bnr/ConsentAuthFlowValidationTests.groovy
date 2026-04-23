@@ -168,6 +168,7 @@ class ConsentAuthFlowValidationTests extends AUTest {
                 .execute()
     }
 
+    // No cancel button in the account selection page
     @Test(enabled = false)
     void "CDS-484_Verify a Consent cancellation flow after Business Profile selection"() {
 
@@ -323,6 +324,7 @@ class ConsentAuthFlowValidationTests extends AUTest {
                 .execute()
     }
 
+    // No select all account checkbox in the current implementation
     @Test(priority = 1, enabled = false)
     void "CDS-589_Verify select all option in account selection page"() {
 

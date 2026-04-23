@@ -220,7 +220,7 @@ class AUPageObjects {
     public static String TXT_OTP_CODE = "OTPcode"
     public static BTN_CONSENT_EXPIRY_XPATH = "//button[@id='consent-expiry-date']"
     public static LBL_UNAVAILABLE_ACCOUNT = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/"
-    public static POPUP_UNAVAILABLE_ACCOUNTS = "//p[@id='UnavailableAccountPopover']"
+    public static POPUP_UNAVAILABLE_ACCOUNTS = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/p[contains(@class,'fs-tooltip-content')]"
     public static LBL_WHY_CANT_SHARE = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/p[2]"
 
     static final String TXT_USERNAME = "//input[@id='txtUserName']"

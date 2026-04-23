@@ -99,13 +99,13 @@ class BnrEndToEndTest extends AUTest{
     @Test
     void "CDS-487_Verify account is blocked when business user only has VIEW permission"() {
 
+        doBnrConsentAuthorisationViaRequestUri()
+        generateUserAccessToken()
+
         // Set VIEW-only permission — account validation policy blocks non-AUTHORIZE accounts
         def updateResponse = updateSingleBusinessUserPermission(clientHeader, accountID, accountOwnerUserID,
                 activeNominatedRepUserID, AUBusinessUserPermission.VIEW.getPermissionString())
         Assert.assertEquals(updateResponse.statusCode(), AUConstants.OK)
-
-        doBnrConsentAuthorisationViaRequestUri()
-        generateUserAccessToken()
 
         def accountResponse = AURequestBuilder.buildBasicRequestWithCustomHeaders(userAccessToken,
                 AUConstants.X_V_HEADER_ACCOUNTS, clientHeader)

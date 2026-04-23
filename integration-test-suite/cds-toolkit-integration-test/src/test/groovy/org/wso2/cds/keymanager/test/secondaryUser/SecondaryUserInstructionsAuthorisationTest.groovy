@@ -21,11 +21,9 @@ package org.wso2.cds.keymanager.test.secondaryUser
 import org.wso2.bfsi.test.framework.automation.AutomationMethod
 import org.wso2.cds.test.framework.AUTest
 import org.wso2.cds.test.framework.automation.consent.AUBasicAuthAutomationStep
-import org.wso2.cds.test.framework.constant.AUAccountProfile
 import org.wso2.cds.test.framework.constant.AUAccountScope
 import org.wso2.cds.test.framework.constant.AUConstants
 import org.wso2.cds.test.framework.constant.AUPageObjects
-import org.wso2.cds.test.framework.request_builder.AURegistrationRequestBuilder
 import org.wso2.cds.test.framework.utility.AUTestUtil
 import io.restassured.response.Response
 import org.openqa.selenium.By
@@ -60,7 +58,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
         shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts(), false)
         accountID =  shareableElements[AUConstants.PARAM_ACCOUNT_ID]
 
-        def updateResponseJointAccount = updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.ACTIVE)
+        def updateResponseJointAccount =
+                updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.ACTIVE)
         Assert.assertEquals(updateResponseJointAccount.statusCode(), AUConstants.OK)
     }
 
@@ -72,8 +71,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -111,12 +110,12 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 AUAccountScope.BANK_PAYEES_READ
         ]
 
-        response = auAuthorisationBuilder.doPushAuthorisationRequest(no_account_scopes, AUConstants.DEFAULT_SHARING_DURATION,
-                true, cdrArrangementId)
+        response = auAuthorisationBuilder.doPushAuthorisationRequest(
+                no_account_scopes, AUConstants.DEFAULT_SHARING_DURATION, true, cdrArrangementId)
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -152,15 +151,16 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
                 .addStep { driver, context ->
                     AutomationMethod authWebDriver = new AutomationMethod(driver)
 
-                    Assert.assertTrue(authWebDriver.getAttributeText(AUPageObjects.ADR_NAME_HEADER_XPATH).contains(adrName))
+                    Assert.assertTrue(
+                            authWebDriver.getAttributeText(AUPageObjects.ADR_NAME_HEADER_XPATH).contains(adrName))
 
                     //Verify Account List
                     Assert.assertTrue(authWebDriver.isElementDisplayed(AUTestUtil.getSingleAccountXPath()))
@@ -189,8 +189,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -214,8 +214,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -239,8 +239,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, cdrArrangementId)
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -249,12 +249,14 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                     AutomationMethod authWebDriver = new AutomationMethod(driver)
 
                     //Verify The page does not contain unavailable accounts
-                    Assert.assertFalse(authWebDriver.isElementDisplayed(AUPageObjects.LBL_ACCOUNTS_UNAVAILABLE_TO_SHARE))
+                    Assert.assertFalse(
+                            authWebDriver.isElementDisplayed(AUPageObjects.LBL_ACCOUNTS_UNAVAILABLE_TO_SHARE))
                 }
                 .addStep(getWaitForRedirectAutomationStep())
                 .execute()
     }
 
+    // No select all account feature in the current implementation
     @Test(enabled = false)
     void "CDS-546_Verify selecting all secondary user accounts in authorisation"() {
 
@@ -262,7 +264,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), auConfiguration.getAppInfoClientID())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), auConfiguration.getAppInfoClientID())
                 .toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
@@ -286,6 +289,7 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
         Assert.assertNotNull(authorisationCode)
     }
 
+    // No cancellation button in the account selection page
     @Test(priority = 2, enabled = false)
     void "CDS-549_Verify cancellation of authorisation process in account selection page without selecting accounts"() {
 
@@ -293,8 +297,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -319,8 +323,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -345,13 +349,23 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
     @Test
     void "CDS-627_Verify user nominated for both individual and joint accounts"() {
 
-        //Provide secondary user instruction permissions for joint account
-        shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts(), false)
+        //Provide secondary user instruction permissions for individual account
+        shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts(), true)
         String accountID =  shareableElements[AUConstants.PARAM_ACCOUNT_ID]
-        String userId = auConfiguration.getUserPSUName()
+        String userId = auConfiguration.getUserPSUName(0)
 
         def updateResponse = updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.ACTIVE)
         Assert.assertEquals(updateResponse.statusCode(), AUConstants.OK)
+
+
+        //Provide secondary user instruction permissions for joint account
+        shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts(), false)
+        String jointAccountID =  shareableElements[AUConstants.PARAM_ACCOUNT_ID]
+
+        def jointUpdateResponse = updateSecondaryUserInstructionPermission(
+                jointAccountID, userId, AUConstants.ACTIVE)
+        Assert.assertEquals(jointUpdateResponse.statusCode(), AUConstants.OK)
+
 
         //Consent Authorisation
         response = auAuthorisationBuilder.doPushAuthorisationRequest(scopes, AUConstants.DEFAULT_SHARING_DURATION,
@@ -416,8 +430,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         //User unable to select the secondary Account
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
@@ -447,8 +461,8 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         //User unable to select the secondary joint Account
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
@@ -462,16 +476,24 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
                 .execute()
     }
 
-    @Test(enabled = false)
+    @Test
     void "CDS-438_Verify notification to indicate the reason for pausing the data sharing from that account"() {
+
+        //Inactive secondary user instruction permissions for individual account
+        shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts(), true)
+        String accountID =  shareableElements[AUConstants.PARAM_ACCOUNT_ID]
+        String userId = auConfiguration.getUserPSUName(0)
+
+        def updateResponse = updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.INACTIVE)
+        Assert.assertEquals(updateResponse.statusCode(), AUConstants.OK)
 
         //Send Authorisation Request via PAR
         response = auAuthorisationBuilder.doPushAuthorisationRequest(scopes, AUConstants.DEFAULT_SHARING_DURATION,
                 true, "")
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
                 .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
@@ -480,7 +502,7 @@ class SecondaryUserInstructionsAuthorisationTest extends AUTest {
 
                     //Verify Notification to indicate the reason for pausing the data sharing
                     Assert.assertTrue(authWebDriver.getAttributeText(AUPageObjects.LBL_WHY_CANT_SHARE)
-                            .contains("Why can't I share these? "))
+                            .contains("Why can't I share these accounts?"))
                     Assert.assertNotNull(authWebDriver.getAttributeText(AUPageObjects.POPUP_UNAVAILABLE_ACCOUNTS))
                 }
                 .execute()

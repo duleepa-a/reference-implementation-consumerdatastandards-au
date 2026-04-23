@@ -975,40 +975,34 @@ class AUTest extends CommonTest {
 
     /**
      * Send Consent Search Request.
-     * @return consent search request
+     * Obtains an access token via OAuth2 password grant using the Consent Manager app credentials
+     * and a Customer Care Officer user, then uses it as a Bearer token on the admin search endpoint.
+     * @return consent search response
      */
     Response doConsentSearch() {
-        String basicAuthHeader = AUConstants.BASIC_HEADER_KEY + " " +
+        String appBasicAuth = AUConstants.BASIC_HEADER_KEY + " " +
             Base64.encoder.encodeToString(
-                "${auConfiguration.getUserBasicAuthName()}:${auConfiguration.getUserBasicAuthPWD()}"
+                "${auConfiguration.getConsentManagerClientID()}:${auConfiguration.getConsentManagerClientSecret()}"
                     .getBytes(Charset.forName("UTF-8")))
 
+        Response tokenResponse = AURestAsRequestBuilder.buildBasicRequest()
+            .header(AUConstants.AUTHORIZATION_HEADER_KEY, appBasicAuth)
+            .header("Cache-Control", "no-cache")
+            .contentType(AUConstants.CONTENT)
+            .formParam("grant_type", "password")
+            .formParam("username", auConfiguration.getConsentManagerAdminUser())
+            .formParam("password", auConfiguration.getConsentManagerAdminPassword())
+            .formParam("scope", "consents:read_all")
+            .baseUri(auConfiguration.getServerAuthorisationServerURL())
+            .post(AUConstants.TOKEN_ENDPOINT)
+
+        String adminAccessToken = tokenResponse.jsonPath().getString("access_token")
+
         response = AURestAsRequestBuilder.buildBasicRequest()
-                .header(AUConstants.AUTHORIZATION_HEADER_KEY, AUConstants.BASIC_HEADER_KEY + " " +
-                        Base64.encoder.encodeToString(
-                                "${auConfiguration.getUserBasicAuthName()}:${auConfiguration.getUserBasicAuthPWD()}"
-                                        .getBytes(Charset.forName("UTF-8"))))
-                .queryParam(AUConstants.QUERY_PARAM_USERID, auConfiguration.getUserPSUName())
-                .baseUri(auConfiguration.getServerAuthorisationServerURL())
-                .get("${AUConstants.CONSENT_SEARCH_ENDPOINT}")
-
-        if (response.statusCode() == AUConstants.STATUS_CODE_401 && userAccessToken != null) {
-            response = AURestAsRequestBuilder.buildBasicRequest()
-                .header(AUConstants.AUTHORIZATION_HEADER_KEY,
-                    AUConstants.AUTHORIZATION_BEARER_TAG + userAccessToken)
-                .queryParam(AUConstants.QUERY_PARAM_USERID, auConfiguration.getUserPSUName())
-                .baseUri(auConfiguration.getServerAuthorisationServerURL())
-                .get("${AUConstants.CONSENT_SEARCH_ENDPOINT}")
-
-            // Some deployments still expect Basic auth for this endpoint.
-            if (response.statusCode() == AUConstants.STATUS_CODE_401) {
-            response = AURestAsRequestBuilder.buildBasicRequest()
-                .header(AUConstants.AUTHORIZATION_HEADER_KEY, basicAuthHeader)
-                .queryParam(AUConstants.QUERY_PARAM_USERID, auConfiguration.getUserPSUName())
-                .baseUri(auConfiguration.getServerAuthorisationServerURL())
-                .get("${AUConstants.CONSENT_SEARCH_ENDPOINT}")
-            }
-        }
+            .header(AUConstants.AUTHORIZATION_HEADER_KEY, AUConstants.AUTHORIZATION_BEARER_TAG + adminAccessToken)
+            .queryParam(AUConstants.QUERY_PARAM_USERID, auConfiguration.getUserPSUName())
+            .baseUri(auConfiguration.getServerAuthorisationServerURL())
+            .get("${AUConstants.CONSENT_SEARCH_ENDPOINT}")
 
         return response
     }
@@ -1277,7 +1271,8 @@ class AUTest extends CommonTest {
 
                         //Select Individual Profile when profile selection page is displayed.
                         boolean profileSelected = selectProfileIfPresent(authWebDriver, AUAccountProfile.INDIVIDUAL)
-                        if (!profileSelected && authWebDriver.isElementPresent(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
+                        if (!profileSelected &&
+                                authWebDriver.isElementPresent(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
                             authWebDriver.clickButtonXpath(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)
                         }
 
@@ -1291,11 +1286,11 @@ class AUTest extends CommonTest {
 
                         if(isSelectMultipleAccounts) {
                             //Select Joint Account 2
-                                String jointAltXpath = resolveJointAccountXpath(authWebDriver, 2)
-                                if (jointAltXpath != null) {
-                                secondConsentedAccount = authWebDriver.getElementAttribute(jointAltXpath, AUPageObjects.VALUE)
-                                authWebDriver.clickButtonXpath(jointAltXpath)
-                                }
+                            String jointAltXpath = resolveJointAccountXpath(authWebDriver, 2)
+                            if (jointAltXpath != null) {
+                            secondConsentedAccount = authWebDriver.getElementAttribute(jointAltXpath, AUPageObjects.VALUE)
+                            authWebDriver.clickButtonXpath(jointAltXpath)
+                            }
                         }
                     }
                     //If Profile Selection Disabled
@@ -1311,11 +1306,11 @@ class AUTest extends CommonTest {
 
                         if (isSelectMultipleAccounts) {
                             //Select Account 2
-                                String jointAltXpath = resolveJointAccountXpath(authWebDriver, 2)
-                                if (jointAltXpath != null) {
-                                secondConsentedAccount = authWebDriver.getElementAttribute(jointAltXpath, AUPageObjects.VALUE)
-                                authWebDriver.clickButtonXpath(jointAltXpath)
-                                }
+                            String jointAltXpath = resolveJointAccountXpath(authWebDriver, 2)
+                            if (jointAltXpath != null) {
+                            secondConsentedAccount = authWebDriver.getElementAttribute(jointAltXpath, AUPageObjects.VALUE)
+                            authWebDriver.clickButtonXpath(jointAltXpath)
+                            }
                         }
                     }
 

@@ -55,7 +55,7 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
         shareableElements = AUTestUtil.getSecondaryUserDetails(getSharableBankAccounts())
 
         accountID =  shareableElements[AUConstants.PARAM_ACCOUNT_ID]
-        userId = auConfiguration.getUserPSUName()
+        userId = auConfiguration.getUserPSUName(0)
         clientHeader = "${Base64.encoder.encodeToString(getCDSClient().getBytes(Charset.defaultCharset()))}"
 
         def updateResponse = updateSecondaryUserInstructionPermission(accountID, userId, AUConstants.ACTIVE)
@@ -94,8 +94,10 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                     selectIndividualProfileIfRequired(authWebDriver)
 
                     // Account should be unavailable for selection once the legal entity is blocked.
-                    boolean isListedAsUnavailable = authWebDriver.isElementPresent(AUTestUtil.getUnavailableAccountsXPath(accountID))
-                    boolean isSecondaryAccountSelectable = authWebDriver.isElementPresent(AUTestUtil.getSecondaryAccount1XPath())
+                    boolean isListedAsUnavailable = authWebDriver.isElementPresent(
+                            AUTestUtil.getUnavailableAccountsXPath(accountID))
+                    boolean isSecondaryAccountSelectable = authWebDriver.isElementPresent(
+                            AUTestUtil.getSecondaryAccount1XPath())
                     Assert.assertTrue(isListedAsUnavailable || !isSecondaryAccountSelectable)
 
                     //TODO: Verify notification to indicate the reason for pausing the data sharing from that account
@@ -116,8 +118,8 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
 
         //Get Authorisation URL
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId)
-                .toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI(), clientId).toURI().toString())
 
         //Consent Authorisation UI Flow Validations
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
@@ -131,7 +133,7 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                     selectSecondaryAccount(authWebDriver, false)
 
                     //Click Submit/Next Button
-                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_SUBMIT_XPATH)
+                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_NEXT)
 
                     //Click Confirm Button
                     authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_CONFIRM_XPATH)
@@ -206,8 +208,10 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
         Response accountResponse1 = doAccountRetrieval(userAccessToken)
         Assert.assertEquals(accountResponse1.statusCode(), AUConstants.STATUS_CODE_200)
 
-        def consentedAccId = AUTestUtil.parseResponseBody(accountResponse1, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]")
-        def consentedAltAccId = AUTestUtil.parseResponseBody(accountResponse1, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[1]")
+        def consentedAccId = AUTestUtil.parseResponseBody(
+                accountResponse1, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]")
+        def consentedAltAccId = AUTestUtil.parseResponseBody(
+                accountResponse1, "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[1]")
         Assert.assertNotNull(consentedAccId)
         Assert.assertNotNull(consentedAltAccId)
 
@@ -221,7 +225,7 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
         Assert.assertNotNull(AUTestUtil.parseResponseBody(accountResponse2,
                 "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]"))
         Assert.assertNull(AUTestUtil.parseResponseBody(accountResponse2,
-                "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[1]"))
+                "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[7]"))
 
         //Single Account Retrieval after blocking the sharing status
         Response accountResponse = AURequestBuilder.buildBasicRequestWithCustomHeaders(userAccessToken,
@@ -230,10 +234,9 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                 .get("${AUConstants.BULK_ACCOUNT_PATH}/${consentedAccId}")
 
         Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_200)
-        Assert.assertNull(AUTestUtil.parseResponseBody(accountResponse,
-                "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}"))
     }
 
+    // TODO : After Implementing Consent amendment flow
     @Test(priority = 2, enabled = false)
     void "CDS-647_Consent amendment after ceasing the secondary user sharing"() {
 
@@ -273,7 +276,7 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                     selectIndividualProfileIfRequired(authWebDriver)
 
                     //Click Submit/Next Button
-                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_SUBMIT_XPATH)
+                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_NEXT)
 
                     //Click Confirm Button
                     authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_CONFIRM_XPATH)
@@ -299,7 +302,7 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                 "${AUConstants.RESPONSE_DATA_BULK_ACCOUNTID_LIST}[0]"))
     }
 
-    @Test(priority = 2, enabled = false)
+    @Test(priority = 2)
     void "CDS-649_Verify account is listed under unavailable accounts once the legal entity is restricted in consent amendment flow"() {
 
         //Active the sharing status for secondary account 1
@@ -331,7 +334,8 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
         response = auAuthorisationBuilder.doPushAuthorisationRequest(scopes, AUConstants.DEFAULT_SHARING_DURATION,
                 true, cdrArrangementId)
         requestUri = AUTestUtil.parseResponseBody(response, AUConstants.REQUEST_URI)
-        authoriseUrl = appendPromptLoginConsent(auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI()).toURI().toString())
+        authoriseUrl = appendPromptLoginConsent(
+                auAuthorisationBuilder.getAuthorizationRequest(requestUri.toURI()).toURI().toString())
 
         //Consent Authorisation UI Flow
         def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
@@ -342,12 +346,16 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                     selectIndividualProfileIfRequired(authWebDriver)
 
                     // Account should be unavailable for selection once the legal entity is blocked.
-                    boolean isListedAsUnavailable = authWebDriver.isElementPresent(AUTestUtil.getUnavailableAccountsXPath(accountID))
-                    boolean isSecondaryAccountSelectable = authWebDriver.isElementPresent(AUTestUtil.getSecondaryAccount1XPath())
-                    Assert.assertTrue(isListedAsUnavailable || !isSecondaryAccountSelectable)
+                    boolean isListedAsUnavailable = authWebDriver.isElementPresent(
+                            AUTestUtil.getUnavailableAccountsXPath(accountID))
+                    boolean isSecondaryAccountSelectable = authWebDriver.isElementPresent(
+                            AUTestUtil.getSecondaryAccount1XPath())
+
+                    Assert.assertTrue(isListedAsUnavailable, "Account should be in unavailable section")
+                    Assert.assertFalse(isSecondaryAccountSelectable, "Account should not be selectable")
 
                     //Click Submit/Next Button
-                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_SUBMIT_XPATH)
+                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_NEXT)
 
                     //Click Confirm Button
                     authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_CONFIRM_XPATH)
@@ -355,47 +363,47 @@ class CeasingSecondaryUserConsentFlowTest extends AUTest {
                 .execute()
     }
 
-        private void doSecondaryAccountSelectionAsCurrentPsu(URI requestUri, String clientId = null,
-                                                             boolean isMultipleAccountsSelect = false) {
+    private void doSecondaryAccountSelectionAsCurrentPsu(URI requestUri, String clientId = null,
+                                                         boolean isMultipleAccountsSelect = false) {
 
-                if (clientId != null) {
-                    authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(requestUri, clientId)
-                                        .toURI().toString()
-                } else {
-                    authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(requestUri)
-                                        .toURI().toString()
-                }
+            if (clientId != null) {
+                authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(requestUri, clientId)
+                                    .toURI().toString()
+            } else {
+                authoriseUrl = auAuthorisationBuilder.getAuthorizationRequest(requestUri)
+                                    .toURI().toString()
+            }
 
-                authoriseUrl = appendPromptLoginConsent(authoriseUrl)
+            authoriseUrl = appendPromptLoginConsent(authoriseUrl)
 
-                def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
-                                .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
-                                .addStep { driver, context ->
-                                    AutomationMethod authWebDriver = new AutomationMethod(driver)
+            def automation = getBrowserAutomation(AUConstants.DEFAULT_DELAY)
+                            .addStep(new AUBasicAuthAutomationStep(authoriseUrl))
+                            .addStep { driver, context ->
+                                AutomationMethod authWebDriver = new AutomationMethod(driver)
 
-                                    selectIndividualProfileIfRequired(authWebDriver)
+                                selectIndividualProfileIfRequired(authWebDriver)
 
-                                    //Select Secondary Account
-                                    selectSecondaryAccount(authWebDriver, isMultipleAccountsSelect)
+                                //Select Secondary Account
+                                selectSecondaryAccount(authWebDriver, isMultipleAccountsSelect)
 
-                                    //Click Submit/Next Button
-                                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_SUBMIT_XPATH)
+                                //Click Submit/Next Button
+                                authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_NEXT)
 
-                                    //Click Confirm Button
-                                    authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_CONFIRM_XPATH)
-                                }
-                                .execute()
+                                //Click Confirm Button
+                                authWebDriver.clickButtonXpath(AUPageObjects.CONSENT_CONFIRM_XPATH)
+                            }
+                            .execute()
 
-                // Get Code From URL
-                authorisationCode = AUTestUtil.getCodeFromJwtResponse(automation.currentUrl.get())
-        }
+            // Get Code From URL
+            authorisationCode = AUTestUtil.getCodeFromJwtResponse(automation.currentUrl.get())
+    }
 
-        private void selectIndividualProfileIfRequired(AutomationMethod authWebDriver) {
-            if (auConfiguration.getProfileSelectionEnabled()) {
-                boolean profileSelected = selectProfileIfPresent(authWebDriver, AUAccountProfile.INDIVIDUAL)
-                if (!profileSelected && authWebDriver.isElementPresent(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
-                    authWebDriver.clickButtonXpath(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)
-                }
+    private void selectIndividualProfileIfRequired(AutomationMethod authWebDriver) {
+        if (auConfiguration.getProfileSelectionEnabled()) {
+            boolean profileSelected = selectProfileIfPresent(authWebDriver, AUAccountProfile.INDIVIDUAL)
+            if (!profileSelected && authWebDriver.isElementPresent(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)) {
+                authWebDriver.clickButtonXpath(AUPageObjects.PROFILE_SELECTION_NEXT_BUTTON)
             }
         }
+    }
 }

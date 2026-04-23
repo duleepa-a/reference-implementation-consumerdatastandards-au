@@ -108,7 +108,7 @@ class AUConstants extends Constants {
     public static final String SHARABLE_BANK_ACCOUNT_SERVICE= "/api/openbanking/cds/backend"
     public static final String BANK_ACCOUNT_SERVICE  = "/services/bankaccounts/bankaccountservice/sharable-accounts"
         public static final String BUSINESS_USER_PERMISSION  = ACCOUNT_METADATA_CONTEXT + "/business-stakeholders/permission"
-    public static final String CONSENT_SEARCH_ENDPOINT = "/api/openbanking/consent/admin/search"
+    public static final String CONSENT_SEARCH_ENDPOINT = "/api/fs/consent/admin/search"
         public static final String DISCLOSURE_OPTIONS_ENDPOINT = ACCOUNT_METADATA_CONTEXT + "/disclosure-options"
         public static final String SECONDARY_ACCOUNT_ENDPOINT = ACCOUNT_METADATA_CONTEXT + "/secondary-accounts"
         public static final String LEGAL_ENTITY_LIST_ENDPOINT = ACCOUNT_METADATA_CONTEXT + "/legal-entity"

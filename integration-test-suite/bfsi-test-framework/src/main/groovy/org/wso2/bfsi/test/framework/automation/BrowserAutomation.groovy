@@ -40,7 +40,7 @@ class BrowserAutomation {
     private RemoteWebDriver driver
     private final LinkedHashSet<BrowserAutomationStep> automationSteps = new LinkedHashSet<>()
     private final AutomationContext context = new AutomationContext()
-    public static final int DEFAULT_DELAY = 1;
+    public static final int DEFAULT_DELAY = 5;
 
     /**
      * * Initialize the Browser Automation Context.
