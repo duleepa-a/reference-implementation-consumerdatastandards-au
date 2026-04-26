@@ -75,6 +75,7 @@ public interface AccountMetadataDbQueries {
      */
     String getBatchUpdateSecondaryAccountInstructionQuery();
 
+<<<<<<< HEAD
     // DB Queries related to Legal Entity Sharing Feature.
     /**
      * Get the SQL query for retrieving all legal entity sharing status rows for multiple account-user pairs
@@ -133,4 +134,6 @@ public interface AccountMetadataDbQueries {
      */
     String getBatchDeleteBusinessStakeholderPermissionQuery();
 
+=======
+>>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 }

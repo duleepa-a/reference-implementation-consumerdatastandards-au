@@ -18,6 +18,8 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -529,8 +531,7 @@ public class AccountMetadataDAOImplTest {
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
-
-
+    
         Map<String, String> accountMap = new HashMap<>();
         accountMap.put("acc-901", "no-sharing");
 

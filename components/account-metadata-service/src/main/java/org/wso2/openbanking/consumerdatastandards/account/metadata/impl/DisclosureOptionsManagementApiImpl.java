@@ -62,6 +62,7 @@ public class DisclosureOptionsManagementApiImpl {
             Map<String, String> accountDisclosureMap = new HashMap<>();
             List<String> accountIdsToCheck = new ArrayList<>();
 
+            // Validate and build map
             for (DisclosureOptionItem item : request) {
                 String disclosureOptionStatus = item.getDisclosureOption();
                 if (isValidDOMSStatus(disclosureOptionStatus)) {
@@ -71,8 +72,9 @@ public class DisclosureOptionsManagementApiImpl {
                     log.error("[DOMS] Invalid disclosure option status for account: " +
                             item.getAccountId() + " - " + disclosureOptionStatus);
                     return Response.status(Response.Status.BAD_REQUEST)
-                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status. " +
-                                    "Allowed values: no-sharing, pre-approval")).build();
+                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status provided " +
+                                    "for " + item.getAccountId() +
+                                    " Allowed values: no-sharing, pre-approval")).build();
                 }
             }
 
@@ -139,6 +141,7 @@ public class DisclosureOptionsManagementApiImpl {
 
             Map<String, String> result = accountMetadataService.getBatchDisclosureOptions(accountIdList);
 
+            // Convert map to array of objects
             List<DisclosureOptionItem> responseList = result.entrySet().stream()
                     .map(entry -> new DisclosureOptionItem(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
@@ -175,8 +178,9 @@ public class DisclosureOptionsManagementApiImpl {
                     log.error("[DOMS] Invalid disclosure option status for account: " +
                             item.getAccountId() + " - " + disclosureOptionStatus);
                     return Response.status(Response.Status.BAD_REQUEST)
-                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status" +
-                                    " provided for acc-1, Allowed values: pre-approval, no-sharing")).build();
+                            .entity(new ErrorResponse().errorDescription("Invalid disclosure option status provided " +
+                                    "for " + item.getAccountId() +
+                                    " Allowed values: no-sharing, pre-approval")).build();
                 }
             }
 
@@ -201,6 +205,7 @@ public class DisclosureOptionsManagementApiImpl {
                 log.debug("[DOMS] Added disclosure options for " + addedItems.size() + " account(s)");
             }
 
+            // Return 201 Created if all were new, 200 OK if some already existed
             Response.ResponseBuilder responseBuilder = addedItems.isEmpty() ?
                     Response.status(Response.Status.OK) : Response.status(Response.Status.CREATED);
 

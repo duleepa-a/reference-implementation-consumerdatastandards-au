@@ -47,6 +47,17 @@ import java.util.Map;
 public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
     private static final Log log = LogFactory.getLog(AccountMetadataDAOImpl.class);
+    // Column names for DOMS table.
+    private static final String DISCLOSURE_OPTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String DISCLOSURE_OPTIONS_COLUMN_STATUS = "DISCLOSURE_OPTION_STATUS";
+    // Column names for secondary user instructions table.
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_USER_ID = "USER_ID";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_STATUS =
+            "INSTRUCTION_STATUS";
+    private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
+        "OTHER_ACCOUNTS_AVAILABILITY";
+
     private final AccountMetadataDbQueries dbQueries;
 
     // Column names for DOMS table.

@@ -22,8 +22,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
+<<<<<<< HEAD
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
+=======
+>>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAOImpl;
@@ -166,7 +169,12 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
      */
     @Override
     public List<SecondaryAccountInstructionItem> getBatchSecondaryAccountInstructions(
+<<<<<<< HEAD
             List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
+=======
+            List<Pair<String, String>> accountUserPairs)
+            throws AccountMetadataException {
+>>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 
         try (Connection conn = connectionProvider.getConnection()) {
             return metadataDAO.getBatchSecondaryAccountInstructions(conn, accountUserPairs);
@@ -211,6 +219,7 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
             throw new AccountMetadataException("Failed to batch update secondary account instructions", e);
         }
     }
+<<<<<<< HEAD
 
     /**
      * Retrieve all legal entity sharing status records for multiple account-user pairs.
@@ -341,4 +350,6 @@ public class AccountMetadataServiceImpl implements AccountMetadataService {
             throw new AccountMetadataException("Failed to batch delete business stakeholder permissions", e);
         }
     }
+=======
+>>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 }

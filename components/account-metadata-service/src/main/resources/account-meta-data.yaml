@@ -85,7 +85,7 @@ paths:
         - OAuth2: []
         - BasicAuth: []
 
-    post:
+    put:
       tags:
         - Disclosure Options
       summary: Update disclosure options for one or more accounts
@@ -542,10 +542,6 @@ components:
           type: string
           description: Disclosure option status
           example: no-sharing
-          x-enum-description: |
-            Allowed values:
-              - no-sharing: No data sharing
-              - pre-approval: Pre-approved sharing
 
     ErrorResponse:
       type: object

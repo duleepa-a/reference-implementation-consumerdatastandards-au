@@ -294,7 +294,6 @@ public class CDSAccountValidationUtils {
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         }
-
         return blockedAccounts;
     }
 
@@ -308,8 +307,7 @@ public class CDSAccountValidationUtils {
      * @param basicAuthBase64 Base64-encoded Basic Auth credentials
      * @return set of blocked account IDs
      */
-    static Set<String> fetchBlockedBusinessAccountsFromService(Set<String> accountIds,
-                                                               String businessStakeholdersApi,
+    static Set<String> fetchBlockedBusinessAccountsFromService(Set<String> accountIds, String businessStakeholdersApi,
                                                                String userId, String basicAuthBase64)
             throws CDSAccountValidationException {
 
@@ -371,7 +369,6 @@ public class CDSAccountValidationUtils {
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         }
-
         return blockedAccounts;
     }
 

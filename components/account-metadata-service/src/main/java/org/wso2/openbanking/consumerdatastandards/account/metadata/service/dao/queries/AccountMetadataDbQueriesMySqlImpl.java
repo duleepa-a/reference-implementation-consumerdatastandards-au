@@ -97,6 +97,7 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
         return "UPDATE fs_account_secondary_user SET INSTRUCTION_STATUS = ?, " +
                 "OTHER_ACCOUNTS_AVAILABILITY = ?, LAST_UPDATED_TIMESTAMP = ? WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
+<<<<<<< HEAD
 
     /**
      * {@inheritDoc}
@@ -188,4 +189,6 @@ public class AccountMetadataDbQueriesMySqlImpl implements AccountMetadataDbQueri
     public String getBatchDeleteBusinessStakeholderPermissionQuery() {
         return "DELETE FROM fs_account_bnr_permission WHERE ACCOUNT_ID = ? AND USER_ID = ?";
     }
+=======
+>>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 }

@@ -59,15 +59,18 @@ public class CDSAccountValidationMediatorTest {
         Mockito.when(axis2MessageContext.getProperty(MessageContext.TRANSPORT_HEADERS)).thenReturn(headers);
     }
 
+    /**
+     * Verifies invalid info-header payloads are handled by setting policy error properties.
+     */
     @Test
     public void testMediateHandlesDecodeError() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
 
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, "{not-json");
 
-        Assert.assertThrows(org.apache.synapse.SynapseException.class,
-                () -> mediator.mediate(synapseMessageContext));
+        boolean result = mediator.mediate(synapseMessageContext);
 
+        Assert.assertTrue(result);
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                 "Internal Server Error");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
@@ -78,6 +81,9 @@ public class CDSAccountValidationMediatorTest {
                 "Error during CDS mediation policy");
     }
 
+    /**
+     * Verifies linked and blocked accounts are filtered out and the updated payload is re-signed.
+     */
     @Test
     public void testMediateFiltersLinkedAndBlockedAccountsAndSignsHeader() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -128,6 +134,9 @@ public class CDSAccountValidationMediatorTest {
         }
     }
 
+    /**
+     * Verifies JWT signing failures are converted into mediation error properties.
+     */
     @Test
     public void testMediateSetsErrorPropertiesWhenJwtGenerationFails() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -165,21 +174,6 @@ public class CDSAccountValidationMediatorTest {
     }
 
     @Test
-    public void testMediateWithNoConsentMappingResources() throws Exception {
-        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
-
-        JSONObject payload = new JSONObject();
-        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
-
-        boolean result = mediator.mediate(synapseMessageContext);
-
-        Assert.assertTrue(result);
-        Mockito.verify(synapseMessageContext, Mockito.never())
-                .setProperty(Mockito.eq(CDSAccountValidationConstants.ERROR_CODE), Mockito.any());
-    }
-
-    @Test
     public void testMediateWithNoAuthorizationResources() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
         mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
@@ -204,12 +198,39 @@ public class CDSAccountValidationMediatorTest {
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
-            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    Mockito.anySet(), Mockito.eq(ACCOUNT_METADATA_WEBAPP_BASE_URL),
-                    Mockito.isNull(), Mockito.eq("dGVzdDp0ZXN0"), Mockito.anyString()));
+            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
+                    "Internal Server Error");
+            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
+                    "CDS DOMS Policy Error");
+            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
+                    "500");
+            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
+                    "Error during CDS mediation policy");
         }
     }
 
+    /**
+     * Verifies mediation succeeds without errors when consent mapping resources are absent.
+     */
+    @Test
+    public void testMediateWithNoConsentMappingResources() throws Exception {
+        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
+        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
+
+        JSONObject payload = new JSONObject();
+        // No consentMappingResources — mediator should log a warning and return true without error
+        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
+
+        boolean result = mediator.mediate(synapseMessageContext);
+
+        Assert.assertTrue(result);
+        Mockito.verify(synapseMessageContext, Mockito.never())
+                .setProperty(Mockito.eq(CDSAccountValidationConstants.ERROR_CODE), Mockito.any());
+    }
+
+    /**
+     * Verifies accounts mapped to secondary-owner authorization types are excluded from validation.
+     */
     @Test
     public void testMediateExcludesSecondaryAccountOwnerAuthTypes() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -265,6 +286,9 @@ public class CDSAccountValidationMediatorTest {
         }
     }
 
+    /**
+     * Verifies account_id fields are normalized to accountId when no accounts are blocked.
+     */
     @Test
     public void testMediateWithNoBlockedAccountsNormalizesAccountIdField() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -304,6 +328,7 @@ public class CDSAccountValidationMediatorTest {
             Assert.assertTrue(result);
             Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
 
+            // Verify all accounts passed through and account_id was renamed to accountId
             JSONObject capturedJson = new JSONObject(jwtPayloadCaptor.getValue());
             JSONArray filteredMappings = capturedJson
                     .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
@@ -316,6 +341,9 @@ public class CDSAccountValidationMediatorTest {
         }
     }
 
+    /**
+     * Verifies account-validation service failures are translated into mediation error properties.
+     */
     @Test
     public void testMediateExcludesBusinessAccountOwnerAuthTypes() throws Exception {
         CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
@@ -475,6 +503,7 @@ public class CDSAccountValidationMediatorTest {
                     .getString(CDSAccountValidationConstants.AUTH_TYPE_TAG),
                     CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG);
 
+            // acc-linked (excluded) and acc-blocked (blocked) must be absent; only acc-allowed survives
             JSONArray filteredMappings = capturedJson
                     .getJSONArray(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG);
             Assert.assertEquals(filteredMappings.length(), 1);

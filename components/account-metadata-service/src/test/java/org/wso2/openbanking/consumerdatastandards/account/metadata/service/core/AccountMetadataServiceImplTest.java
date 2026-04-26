@@ -18,6 +18,8 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core;
 
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -106,7 +108,7 @@ public class AccountMetadataServiceImplTest {
         Map<String, String> expectedResult = new HashMap<>();
         expectedResult.put("acc-111", "pre-approval");
         expectedResult.put("acc-222", "no-sharing");
-
+        
         Mockito.when(metadataDAO.getBatchDisclosureOptions(connection, Arrays.asList("acc-111", "acc-222")))
                 .thenReturn(expectedResult);
 
@@ -159,7 +161,7 @@ public class AccountMetadataServiceImplTest {
     public void testAddBatchDisclosureOptionsDaoException() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
         accountMap.put("acc-666", "no-sharing");
-
+        
         Mockito.doThrow(new AccountMetadataException("dao error"))
                 .when(metadataDAO)
                 .addBatchDisclosureOptions(connection, accountMap);
@@ -196,7 +198,7 @@ public class AccountMetadataServiceImplTest {
     public void testUpdateBatchDisclosureOptionsDaoException() throws Exception {
         Map<String, String> accountMap = new HashMap<>();
         accountMap.put("acc-999", "pre-approval");
-
+        
         Mockito.doThrow(new AccountMetadataException("dao error"))
                 .when(metadataDAO)
                 .updateBatchDisclosureOptions(connection, accountMap);
@@ -221,11 +223,11 @@ public class AccountMetadataServiceImplTest {
                 buildSecondaryItem("acc-123", "user-1", true, "active"),
                 buildSecondaryItem("acc-124", "user-2", false, "inactive")));
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection, accountUserPairs))
-                .thenReturn(expected);
+            .thenReturn(expected);
 
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
         List<SecondaryAccountInstructionItem> result =
-                service.getBatchSecondaryAccountInstructions(accountUserPairs);
+            service.getBatchSecondaryAccountInstructions(accountUserPairs);
 
         Assert.assertEquals(result, expected);
         Mockito.verify(metadataDAO).getBatchSecondaryAccountInstructions(connection, accountUserPairs);
@@ -241,7 +243,7 @@ public class AccountMetadataServiceImplTest {
         List<Pair<String, String>> accountUserPairs = Collections.singletonList(Pair.of("acc-125", "user-1"));
 
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(connection, accountUserPairs))
-                .thenThrow(new AccountMetadataException("dao error"));
+            .thenThrow(new AccountMetadataException("dao error"));
 
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
 
@@ -274,8 +276,8 @@ public class AccountMetadataServiceImplTest {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
                 buildSecondaryItem("acc-127", "user-1", true, "active"));
         Mockito.doThrow(new AccountMetadataException("dao error"))
-                .when(metadataDAO)
-                .addBatchSecondaryAccountInstructions(connection, items);
+            .when(metadataDAO)
+            .addBatchSecondaryAccountInstructions(connection, items);
 
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
 
@@ -308,8 +310,8 @@ public class AccountMetadataServiceImplTest {
         List<SecondaryAccountInstructionItem> items = Collections.singletonList(
                 buildSecondaryItem("acc-129", "user-3", true, "active"));
         Mockito.doThrow(new AccountMetadataException("dao error"))
-                .when(metadataDAO)
-                .updateBatchSecondaryAccountInstructions(connection, items);
+            .when(metadataDAO)
+            .updateBatchSecondaryAccountInstructions(connection, items);
 
         AccountMetadataServiceImpl service = AccountMetadataServiceImpl.getInstance(metadataDAO, connectionProvider);
 

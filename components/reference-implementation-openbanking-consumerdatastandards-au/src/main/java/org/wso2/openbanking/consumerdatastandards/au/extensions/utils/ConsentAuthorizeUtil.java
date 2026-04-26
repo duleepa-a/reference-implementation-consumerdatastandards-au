@@ -235,6 +235,21 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
+     * Checks whether a secondary account is eligible for consent authorization.
+     * An account is eligible only if it is both privileged and has an active instruction status.
+     *
+     * @param accountJson            the account JSON containing privilege status
+     * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
+     * @return true if the account is privileged and its instruction status is active or absent
+     */
+    private static boolean isSecondaryAccountEligible(JSONObject accountJson,
+                                                      Map<String, String> instructionStatusMap) {
+        String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
+        return isSecondaryAccountPrivileged(accountJson)
+                && isSecondaryAccountInstructionActive(accountId, instructionStatusMap);
+    }
+
+    /**
      * Checks if a secondary account has privilege status.
      * @param accountJson The account JSON object containing secondary account privilege status
      * @return true if the account has privilege (secondaryAccountPrivilegeStatus is true), false otherwise
@@ -259,21 +274,6 @@ public class ConsentAuthorizeUtil {
         }
         return CommonConstants.SECONDARY_INSTRUCTION_STATUS_ACTIVE
                 .equalsIgnoreCase(instructionStatusMap.get(accountId));
-    }
-
-    /**
-     * Checks whether a secondary account is eligible for consent authorization.
-     * An account is eligible only if it is both privileged and has an active instruction status.
-     *
-     * @param accountJson            the account JSON containing privilege status
-     * @param instructionStatusMap   map of accountId to instruction status returned by the batch call
-     * @return true if the account is privileged and its instruction status is active or absent
-     */
-    private static boolean isSecondaryAccountEligible(JSONObject accountJson,
-                                                      Map<String, String> instructionStatusMap) {
-        String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
-        return isSecondaryAccountPrivileged(accountJson)
-                && isSecondaryAccountInstructionActive(accountId, instructionStatusMap);
     }
 
     /**
@@ -419,6 +419,7 @@ public class ConsentAuthorizeUtil {
      * @return list of linked member IDs, or an empty list if none are found
      */
     private static List<String> extractLinkedMembers(JSONObject accountJson) {
+
         List<String> linkedMembers = new ArrayList<>();
 
         if (accountJson.has(CommonConstants.JOINT_ACCOUNT_INFO_TAG)) {
@@ -652,14 +653,21 @@ public class ConsentAuthorizeUtil {
                     }
                 }
 
-                // Retrieving Secondary instruction statuses for secondary accounts from the account metadata service.
                 Map<String, String> secondaryInstructionStatusMap =
                         AccountMetadataUtil.getSecondaryAccountInstructionStatusesForAccounts(
                                 secondaryAccountIds, userId);
 
                 List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList =
                     new ArrayList<>();
+
                 List<AdditionalDataItem> blockedAccountsList = new ArrayList<>();
+
+                for (int i = 0; i < accountsJSON.length(); i++) {
+                    JSONObject accountJson = accountsJSON.getJSONObject(i);
+                    if (accountJson.optBoolean(CommonConstants.IS_SECONDARY_ACCOUNT_RESPONSE, false)) {
+                        secondaryAccountIds.add(accountJson.getString(CommonConstants.ACCOUNT_ID));
+                    }
+                }
 
                 String clientId = getClientIdFromRequestBody(jsonRequestBody);
                 Map<String, Boolean> blockedSecondaryAccountsByLegalEntity =

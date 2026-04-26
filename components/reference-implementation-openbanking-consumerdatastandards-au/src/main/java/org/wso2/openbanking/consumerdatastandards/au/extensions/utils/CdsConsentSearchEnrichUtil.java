@@ -37,7 +37,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility to enrich consent search response by adding "domsStatus" for joint accounts.
+ * Utility to enrich consent-search responses with derived account metadata.
+ * <p>
+ * Supported enrichments include DOMS status for joint-account mappings and
+ * secondary-account ownership/instruction information.
  */
 public class CdsConsentSearchEnrichUtil {
 
@@ -46,9 +49,10 @@ public class CdsConsentSearchEnrichUtil {
     /**
      * Enrich consent search response by applying all supported enrichment operations.
      *
-     * @param enrichedObj search result object to enrich
-     * @param enrichmentParams optional enrichment params (query params from caller)
+     * @param enrichedObj search result payload to enrich; expected to be a {@link List} of consent objects
+     * @param enrichmentParams optional enrichment flags (query params from caller), expected as a {@link Map}
      * @return enriched search data wrapped in SuccessResponseForConsentSearchData
+     * @throws CdsConsentException if secondary-account-info enrichment is requested and metadata retrieval fails
      */
     public static SuccessResponseForConsentSearchData enrichSearchResult(Object enrichedObj, Object enrichmentParams)
             throws CdsConsentException {
@@ -74,7 +78,7 @@ public class CdsConsentSearchEnrichUtil {
     /**
      * Enrich consent search response by adding "domsStatus" for each account in consentMappingResources.
      *
-     * @param enrichedObj the searchData object containing enrichedSearchResult
+     * @param enrichedObj search result payload to enrich; expected to be a {@link List} of consent objects
      * @return enriched searchData wrapped in SuccessResponseForConsentSearchData
      */
     public static SuccessResponseForConsentSearchData enrichDOMSStatus(Object enrichedObj) {
@@ -149,8 +153,9 @@ public class CdsConsentSearchEnrichUtil {
     /**
      * Enrich consent search response by adding secondary account information for consents.
      *
-     * @param enrichedObj search result object to enrich
+     * @param enrichedObj search result payload to enrich; expected to be a {@link List} of consent objects
      * @return enriched searchData wrapped in SuccessResponseForConsentSearchData
+     * @throws CdsConsentException if account instruction metadata retrieval fails
      */
     public static SuccessResponseForConsentSearchData enrichSecondaryAccountInfo(Object enrichedObj)
             throws CdsConsentException {
@@ -238,6 +243,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Enrich a single consent with secondary account info if secondary account owner auth resources are available.
+     *
+     * @param consent consent object to enrich in-place
+     * @throws CdsConsentException if account instruction metadata retrieval fails
      */
     private static void enrichConsentWithSecondaryInfo(JSONObject consent) throws CdsConsentException {
 
@@ -293,6 +301,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Extract primary user ID from consent authorization resources.
+     *
+     * @param consent consent object containing authorization resources
+     * @return primary user ID when present; otherwise {@code null}
      */
     private static String extractPrimaryUserId(JSONObject consent) {
 
@@ -321,6 +332,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Extract secondary owner userId to accountId mappings from consent resources.
+     *
+     * @param consent consent object containing authorization and mapping resources
+     * @return map of secondary owner user ID to associated account ID set; empty when no mappings are found
      */
     private static Map<String, Set<String>> extractSecondaryOwnerAccountIds(JSONObject consent) {
 
@@ -376,8 +390,10 @@ public class CdsConsentSearchEnrichUtil {
             if (StringUtils.isBlank(secondaryOwnerUserId)) {
                 continue;
             }
-            accountOwnerAccountIdsMap.computeIfAbsent(secondaryOwnerUserId, key ->
-                    new LinkedHashSet<>()).add(accountId);
+
+            accountOwnerAccountIdsMap
+                    .computeIfAbsent(secondaryOwnerUserId, key -> new LinkedHashSet<>())
+                    .add(accountId);
         }
 
         return accountOwnerAccountIdsMap;
@@ -385,6 +401,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Check whether the given authorization type belongs to a secondary account owner.
+     *
+     * @param authType authorization type value from an auth resource
+     * @return {@code true} when the type represents a secondary owner; {@code false} otherwise
      */
     private static boolean isSecondaryAccountOwner(String authType) {
         return CommonConstants.AUTH_TYPE_SECONDARY_INDIVIDUAL_ACCOUNT_OWNER.equalsIgnoreCase(authType)
@@ -571,6 +590,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Extract Joint account IDs corresponding to consents.
+     *
+     * @param consent consent object containing authorization and mapping resources
+     * @return list of unique joint account IDs linked to the consent
      */
     private static List<String> extractJointAccountIds(JSONObject consent) {
 
@@ -627,6 +649,9 @@ public class CdsConsentSearchEnrichUtil {
 
     /**
      * Check if authorization type is linkedMember.
+     *
+     * @param authType authorization type value from an auth resource
+     * @return {@code true} when the type represents a linked member (joint account); {@code false} otherwise
      */
     private static boolean isJointAccount(String authType) {
         return CommonConstants.AUTH_RESOURCE_TYPE_LINKED.equalsIgnoreCase(authType);
@@ -636,7 +661,7 @@ public class CdsConsentSearchEnrichUtil {
      * Convert a consent object into a {@link JSONObject}.
      *
      * @param consentObj consent object as either JSONObject or Map
-     * @return converted JSONObject, or null when the input type is unsupported
+     * @return converted JSONObject, or {@code null} when the input type is unsupported
      */
     private static JSONObject toJSONObject(Object consentObj) {
         if (consentObj instanceof JSONObject) {
