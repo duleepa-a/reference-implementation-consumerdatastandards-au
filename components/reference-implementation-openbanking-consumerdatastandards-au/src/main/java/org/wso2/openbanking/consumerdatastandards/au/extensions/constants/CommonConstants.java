@@ -221,5 +221,4 @@ public class CommonConstants {
     public static final String PROFILE_ID_TAG = "profileId";
     public static final String PROFILE_NAME_TAG = "profileName";
 
-
 }

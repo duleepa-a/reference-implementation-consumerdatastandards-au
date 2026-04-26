@@ -163,7 +163,7 @@ public class AccountMetadataUtil {
             String responseBody = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
             return extractSecondaryInstructionStatusesFromBatchResponse(responseBody);
 
-        } catch (IOException | URISyntaxException | CdsConsentException e) {
+        } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve secondary account instruction statuses", e);
             throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
                     "Failed to retrieve secondary account instruction statuses");
@@ -484,7 +484,6 @@ public class AccountMetadataUtil {
     /**
      * Build the request URL for the legal-entity sharing endpoint.
      *
-     * @return the complete request URL
      */
     private static String buildLegalEntitySharingUrl() {
         return ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_BASE_URL + CommonConstants.LEGAL_ENTITY_SHARING_ENDPOINT;
@@ -492,8 +491,6 @@ public class AccountMetadataUtil {
 
     /**
      * Build the request body for adding secondary account instructions.
-     * Constructs JSON array with account ID, secondary user ID, and instruction status.
-     * @param accountIds set of account IDs
      * @param secondaryUserId the secondary user ID (consenting user)
      * @param otherAccountsAvailability map of accountId to other-accounts-availability
      * @return JSON request body as string

@@ -56,7 +56,7 @@ public class CdsConsentSearchEnrichUtil {
      */
     public static SuccessResponseForConsentSearchData enrichSearchResult(Object enrichedObj, Object enrichmentParams)
             throws CdsConsentException {
-
+                
         SuccessResponseForConsentSearchData searchData = enrichDOMSStatus(enrichedObj);
         Object enrichedSearchResult = searchData.getEnrichedSearchResult();
         Map<String, Object> paramsMap = parseEnrichmentParams(enrichmentParams);
