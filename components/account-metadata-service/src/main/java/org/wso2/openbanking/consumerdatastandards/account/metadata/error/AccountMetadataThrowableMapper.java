@@ -25,10 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.ErrorResponse;
 
 import javax.validation.ConstraintViolationException;
-<<<<<<< HEAD
 import javax.ws.rs.WebApplicationException;
-=======
->>>>>>> c4505a5e85deda2680a60c58ae1ae1eacfaea88d
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;

@@ -582,41 +582,4 @@ public class CDSAccountValidationMediatorTest {
         }
     }
 
-    @Test
-    public void testMediatePassesSnakeCaseClientIdFromPayload() throws Exception {
-        CDSAccountValidationMediator mediator = new CDSAccountValidationMediator();
-        mediator.setWebappBaseURL(ACCOUNT_METADATA_WEBAPP_BASE_URL);
-        mediator.setBasicAuthCredentials("dGVzdDp0ZXN0");
-
-        JSONObject payload = new JSONObject();
-        payload.put(CDSAccountValidationConstants.CLIENT_ID_SNAKE_CASE_TAG, "snake-client-id");
-        JSONArray authorizationResources = new JSONArray();
-        authorizationResources.put(new JSONObject()
-                .put(CDSAccountValidationConstants.AUTH_TYPE_TAG, CDSAccountValidationConstants.PRIMARY_AUTH_TYPE_TAG)
-                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1")
-                .put(CDSAccountValidationConstants.USER_ID_TAG, "user-1"));
-        payload.put(CDSAccountValidationConstants.AUTH_RESOURCES_TAG, authorizationResources);
-        JSONArray accounts = new JSONArray();
-        accounts.put(new JSONObject()
-                .put(CDSAccountValidationConstants.ACCELERATOR_ACCOUNT_ID_TAG, "acc-1")
-                .put(CDSAccountValidationConstants.AUTH_ID_TAG, "auth-1"));
-        payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, accounts);
-        headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, payload.toString());
-
-        try (MockedStatic<CDSAccountValidationUtils> utilsMock = Mockito.mockStatic(CDSAccountValidationUtils.class)) {
-            utilsMock.when(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                            Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
-                            Mockito.anyString(), Mockito.eq("snake-client-id")))
-                    .thenReturn(Collections.emptySet());
-            utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
-                    .thenReturn("signed-jwt");
-
-            boolean result = mediator.mediate(synapseMessageContext);
-
-            Assert.assertTrue(result);
-            utilsMock.verify(() -> CDSAccountValidationUtils.fetchAllBlockedAccounts(
-                    Mockito.anySet(), Mockito.anyString(), Mockito.anyString(),
-                    Mockito.anyString(), Mockito.eq("snake-client-id")));
-        }
-    }
 }

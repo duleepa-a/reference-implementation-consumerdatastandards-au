@@ -163,10 +163,16 @@ class CeasingSecondaryUserManagementTest extends AUTest {
         def response = getLegalEntityIds(userId, accountID, clientId)
         Assert.assertEquals(response.statusCode(), AUConstants.STATUS_CODE_200)
 
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.PAYLOAD_PARAM_ACCOUNT_ID}"))
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.SECONDARY_USERS_USERID}"))
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.LEGAL_ENTITY_ID_MAP}"))
-        Assert.assertNotNull(AUTestUtil.parseResponseBody(response, "[0].${AUConstants.SHARING_STATUS}"))
+        def responseBody = response.jsonPath().getList("")
+
+        Assert.assertFalse(responseBody.isEmpty())
+
+        responseBody.each { item ->
+            Assert.assertNotNull(item[AUConstants.PAYLOAD_PARAM_ACCOUNT_ID])
+            Assert.assertNotNull(item[AUConstants.SECONDARY_USERS_USERID])
+            Assert.assertNotNull(item[AUConstants.LEGAL_ENTITY_ID_MAP])
+            Assert.assertNotNull(item[AUConstants.SHARING_STATUS])
+        }
     }
 
     //TODO: Enable after investigating issue: https://github.com/wso2/financial-services-accelerator/issues/215

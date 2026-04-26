@@ -56,9 +56,4 @@ public class CommonConstants {
     public static final String JSON_CONTENT_TYPE = "application/json";
     public static final String ACCEPT_TAG = "Accept";
 
-    // Constants Related to Business Stakeholders
-    public static final String BNR_PERMISSION_AUTHORIZE = "AUTHORIZE";
-    public static final String BNR_PERMISSION_REVOKE = "REVOKE";
-    public static final String BNR_PERMISSION_VIEW = "VIEW";
-
 }

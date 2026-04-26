@@ -174,24 +174,14 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                 String requestedAccountId = null;
                 String[] segments = fullRequestPath.split("/");
                 for (int i = 0; i < segments.length - 1; i++) {
-                    if ("accounts".equals(segments[i])) {
+                    if (CDSAccountValidationConstants.RESOURCE_ACCOUNTS_TAG.equals(segments[i])) {
                         requestedAccountId = segments[i + 1];
                         break;
                     }
                 }
 
                 if (requestedAccountId != null) {
-                    boolean isAllowed = false;
-                    for (int i = 0; i < filteredConsentMappings.length(); i++) {
-                        JSONObject mapping = filteredConsentMappings.getJSONObject(i);
-                        if (requestedAccountId.equals(
-                                mapping.optString(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG))) {
-                            isAllowed = true;
-                            break;
-                        }
-                    }
-
-                    if (!isAllowed) {
+                    if (blockedAccounts.contains(requestedAccountId)) {
                         if (log.isDebugEnabled()) {
                             log.debug("[CDS-policy] Single-account request for blocked or unknown accountId: "
                                     + requestedAccountId);
@@ -203,6 +193,42 @@ public class CDSAccountValidationMediator extends AbstractMediator {
                                 CDSAccountValidationConstants.HTTP_SC_404);
                         throw new SynapseException("Account " + requestedAccountId
                                 + " is not available for data sharing");
+                    }
+                }
+            }
+
+            // POST multi-account validation: all requested accountIds must be in the allowed list
+            String httpMethod = (String) messageContext.getProperty(CDSAccountValidationConstants.HTTP_METHOD);
+            if (CDSAccountValidationConstants.POST_METHOD.equals(httpMethod)) {
+                String requestBody = (String) messageContext.getProperty(
+                        CDSAccountValidationConstants.ORIGINAL_REQUEST_JSON_BODY);
+                if (requestBody != null) {
+                    JSONObject requestBodyJson = new JSONObject(requestBody);
+                    if (requestBodyJson.has(CDSAccountValidationConstants.DATA_TAG)) {
+                        JSONObject dataObj = requestBodyJson.getJSONObject(
+                                CDSAccountValidationConstants.DATA_TAG);
+                        if (dataObj.has(CDSAccountValidationConstants.POST_PAYLOAD_ACCOUNT_IDS_TAG)) {
+                            JSONArray requestedAccountIds = dataObj.getJSONArray(
+                                    CDSAccountValidationConstants.POST_PAYLOAD_ACCOUNT_IDS_TAG);
+
+                            // All-or-nothing: reject if any requested account is not allowed
+                            for (int i = 0; i < requestedAccountIds.length(); i++) {
+                                String requestedAccountId = requestedAccountIds.optString(i);
+                                if (blockedAccounts.contains(requestedAccountId)) {
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("[CDS-policy] POST request contains blocked or " +
+                                                "unknown accountId: " + requestedAccountId);
+                                    }
+                                    setErrorResponseProperties(messageContext,
+                                            CDSAccountValidationConstants.RESOURCE_INVALID_BANKING_ACCOUNT,
+                                            CDSAccountValidationConstants.INVALID_BANKING_ACCOUNT_TITLE,
+                                            CDSAccountValidationConstants.INVALID_BANKING_ACCOUNT_POST_DESC,
+                                            CDSAccountValidationConstants.HTTP_SC_422);
+                                    throw new SynapseException("Account " + requestedAccountId
+                                            + " is not available for data sharing");
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -285,10 +311,6 @@ public class CDSAccountValidationMediator extends AbstractMediator {
      * @return client id value if present, otherwise empty string
      */
     private static String getClientIdFromPayload(JSONObject payload) {
-        String clientId = payload.optString(CDSAccountValidationConstants.CLIENT_ID_TAG);
-        if (!StringUtils.isEmpty(clientId)) {
-            return clientId;
-        }
-        return payload.optString(CDSAccountValidationConstants.CLIENT_ID_SNAKE_CASE_TAG);
+            return payload.optString(CDSAccountValidationConstants.CLIENT_ID_TAG);
     }
 }

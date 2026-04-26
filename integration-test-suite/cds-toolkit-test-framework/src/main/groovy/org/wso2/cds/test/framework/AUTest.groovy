@@ -1422,8 +1422,8 @@ class AUTest extends CommonTest {
                                         .getBytes(Charset.forName("UTF-8"))))
                 .contentType(AUConstants.CONTENT_TYPE_APPLICATION_JSON)
                 .body(requestBody)
-            .baseUri(auConfiguration.getServerAuthorisationServerURL())
-                .put(AUConstants.SECONDARY_ACCOUNT_ENDPOINT)
+                .baseUri(auConfiguration.getServerAuthorisationServerURL())
+                .post(AUConstants.SECONDARY_ACCOUNT_ENDPOINT)
 
         return secondUserUpdateResponse
     }

@@ -76,7 +76,7 @@ public class AccountMetadataUtil {
      * @param accountIds list of account IDs to retrieve DOMS statuses for
      * @return a Map of accountId to DOMS Status, or null if retrieval fails
      */
-    public static Map<String, String> getDOMSStatusesForAccounts(List<String> accountIds) {
+    public static Map<String, String> getDOMSStatusesForAccounts(List<String> accountIds) throws CdsConsentException {
 
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_CONNECT_TIMEOUT_MILLIS)
@@ -111,8 +111,9 @@ public class AccountMetadataUtil {
 
         } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve DOMS statuses for batch accounts", e);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                    "Failed to retrieve DOMS statuses");
         }
-        return null;
     }
 
     /**
@@ -241,22 +242,11 @@ public class AccountMetadataUtil {
      * @return map of accountId to permission, or empty map when retrieval fails
      */
     public static Map<String, String> getBusinessStakeholderPermissionsForAccounts(List<String> accountIds,
-                                                                                    String userId) {
+                                                                                    String userId) throws CdsConsentException {
 
         Map<String, String> permissionMap = new HashMap<>();
 
         if (accountIds == null || accountIds.isEmpty() || StringUtils.isBlank(userId)) {
-            return permissionMap;
-        }
-
-        List<String> validAccountIds = new ArrayList<>();
-        for (String accountId : accountIds) {
-            if (StringUtils.isNotBlank(accountId)) {
-                validAccountIds.add(accountId);
-            }
-        }
-
-        if (validAccountIds.isEmpty()) {
             return permissionMap;
         }
 
@@ -267,7 +257,7 @@ public class AccountMetadataUtil {
 
         try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
             String baseUrl = buildBusinessStakeholdersUrl();
-            String accountIdParam = String.join(",", validAccountIds);
+            String accountIdParam = String.join(",", accountIds);
 
             URIBuilder uriBuilder = new URIBuilder(baseUrl);
             uriBuilder.addParameter(CommonConstants.ACCOUNT_IDS, accountIdParam);
@@ -283,7 +273,9 @@ public class AccountMetadataUtil {
             if (response.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
                 log.error("Failed to retrieve business stakeholder permissions, HTTP Status: " +
                         response.getStatusLine().getStatusCode());
-                return permissionMap;
+                throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                        "Failed to retrieve legal entity sharing statuses from Account metadata service");
+
             }
 
             InputStream in = response.getEntity().getContent();
@@ -292,9 +284,9 @@ public class AccountMetadataUtil {
 
         } catch (IOException | URISyntaxException e) {
             log.error("Failed to retrieve business stakeholder permissions", e);
+            throw new CdsConsentException(CdsErrorEnum.UNEXPECTED_ERROR,
+                    "Failed to retrieve legal entity sharing statuses from Account metadata service");
         }
-
-        return permissionMap;
     }
 
     /**
@@ -330,47 +322,6 @@ public class AccountMetadataUtil {
 
         } catch (IOException e) {
             log.error("Failed to add DOMS statuses for joint accounts", e);
-            return false;
-        }
-    }
-
-    /**
-     * Add secondary account instructions for the consenting user.
-     * Calls POST /secondary-accounts with account IDs and the secondary user ID
-     * (the user initiating the consent, not the account owners).
-     *
-     * @param accountIds set of secondary account IDs selected during consent
-     * @param secondaryUserId the user ID of the consenting user (secondary user)
-     * @param otherAccountsAvailability map of accountId to other-accounts-availability
-     * @return true if secondary account instructions are added successfully, false otherwise
-     */
-    public static boolean addSecondaryAccountInstructions(Set<String> accountIds, String secondaryUserId,
-                                               Boolean otherAccountsAvailability) {
-
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_CONNECT_TIMEOUT_MILLIS)
-                .setSocketTimeout(ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_SOCKET_TIMEOUT_MILLIS)
-                .build();
-
-        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
-            String requestUrl = buildSecondaryAccountsUrl();
-            HttpPost request = new HttpPost(requestUrl);
-
-            request.addHeader(CommonConstants.ACCEPT_HEADER_NAME, CommonConstants.ACCEPT_HEADER_VALUE);
-            request.addHeader(CommonConstants.ACCEPT_CONTENT_NAME, CommonConstants.ACCEPT_CONTENT_VALUE_JSON);
-            addBasicAuthHeader(request);
-
-                String requestBody = buildSecondaryAccountInstructionsRequestBody(accountIds, secondaryUserId,
-                    otherAccountsAvailability);
-            request.setEntity(new StringEntity(requestBody, StandardCharsets.UTF_8));
-
-            HttpResponse response = client.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-
-            return statusCode == HttpURLConnection.HTTP_CREATED || statusCode == HttpURLConnection.HTTP_OK;
-
-        } catch (IOException e) {
-            log.error("Failed to add secondary account instructions for user: " + secondaryUserId, e);
             return false;
         }
     }
@@ -487,29 +438,6 @@ public class AccountMetadataUtil {
      */
     private static String buildLegalEntitySharingUrl() {
         return ConfigurableProperties.ACCOUNT_METADATA_WEBAPP_BASE_URL + CommonConstants.LEGAL_ENTITY_SHARING_ENDPOINT;
-    }
-
-    /**
-     * Build the request body for adding secondary account instructions.
-     * @param secondaryUserId the secondary user ID (consenting user)
-     * @param otherAccountsAvailability map of accountId to other-accounts-availability
-     * @return JSON request body as string
-     */
-    private static String buildSecondaryAccountInstructionsRequestBody(Set<String> accountIds,
-                                           String secondaryUserId, Boolean otherAccountsAvailability) {
-                                            
-        JsonArray dataArray = new JsonArray();
-
-        for (String accountId : accountIds) {
-            JsonObject item = new JsonObject();
-            item.addProperty(CommonConstants.ACCOUNT_ID, accountId);
-            item.addProperty(CommonConstants.SECONDARY_USER_ID_FIELD, secondaryUserId);
-            item.addProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, otherAccountsAvailability);
-            item.addProperty(CommonConstants.SECONDARY_ACCOUNT_INSTRUCTION_STATUS_FIELD,
-                    CommonConstants.SECONDARY_INSTRUCTION_STATUS_ACTIVE);
-            dataArray.add(item);
-        }
-        return dataArray.toString();
     }
 
     /**

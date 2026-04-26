@@ -30,8 +30,6 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.model.Seconda
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connection.provider.ConnectionProvider;
 
-import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
-
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -668,19 +666,6 @@ public class AccountMetadataServiceImplTest {
             item.setSecondaryUserID(userId);
             item.setLegalEntityID(legalEntityId);
             item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.fromValue(status));
-            return item;
-        }
-
-        /**
-         * Builds a business stakeholder permission test item.
-         */
-        private BusinessStakeholderPermissionItem buildBusinessItem(
-                String accountId, String userId, String permission) {
-            BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
-            item.setAccountId(accountId);
-            item.setUserId(userId);
-            item.setPermission(permission != null
-                    ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
             return item;
         }
 

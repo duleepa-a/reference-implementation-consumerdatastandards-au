@@ -162,8 +162,10 @@ public class ConsentAuthorizeUtil {
             }
 
             //Set Basic Consent Data for Consent Authorisation Screen.
-            Map<String, List<String>> basicConsentData = constructBasicConsentData(expirationDate, sharingDurationValue,
-                    permissionsList);
+            // TODO: derive customerType from the selected profile once the multi-profile flow is wired up.
+            List<String> scopesForClusters = Arrays.asList(scopesString.split("\\s+"));
+            Map<String, List<String>> basicConsentData = constructBasicConsentData(scopesForClusters,
+                    CommonConstants.INDIVIDUAL_PROFILE_TYPE, expirationDate, sharingDurationValue);
             consentData.setBasicConsentData(basicConsentData);
 
             //Set Consent MetaData to Consent Data
@@ -321,67 +323,6 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
-     * Extracts business account owners from account payload.
-     *
-     * @param accountJson account JSON payload
-     * @return list of business account owner member ids
-     */
-    private static List<String> extractBusinessAccountOwners(JSONObject accountJson) {
-        return extractBusinessMemberIds(accountJson, CommonConstants.ACCOUNT_OWNERS_TAG, null);
-    }
-
-    /**
-     * Extracts nominated representatives excluding the authenticated user.
-     *
-     * @param accountJson account JSON payload
-     * @param userId authenticated user id
-     * @return list of nominated representative member ids excluding userId
-     */
-    private static List<String> extractNominatedRepresentativesExcludingUser(JSONObject accountJson, String userId) {
-        return extractBusinessMemberIds(accountJson, CommonConstants.NOMINATED_REPRESENTATIVES_TAG, userId);
-    }
-
-    /**
-     * Extracts member ids from a business account info section.
-     *
-     * @param accountJson account JSON payload
-     * @param arrayTag businessAccountInfo array key
-     * @param excludedUserId optional user id to exclude from results
-     * @return list of member ids from the requested section
-     */
-    private static List<String> extractBusinessMemberIds(JSONObject accountJson, String arrayTag,
-            String excludedUserId) {
-
-        List<String> memberIds = new ArrayList<>();
-        JSONObject businessInfo = accountJson.optJSONObject(CommonConstants.BUSINESS_ACCOUNT_INFO_TAG);
-        if (businessInfo == null) {
-            return memberIds;
-        }
-
-        JSONArray members = businessInfo.optJSONArray(arrayTag);
-        if (members == null) {
-            return memberIds;
-        }
-
-        for (int i = 0; i < members.length(); i++) {
-            JSONObject member = members.optJSONObject(i);
-            if (member == null) {
-                continue;
-            }
-
-            String memberId = StringUtils.trimToEmpty(member.optString(CommonConstants.MEMBER_ID_TAG, ""));
-
-            if (StringUtils.isNotBlank(excludedUserId) && memberId.equalsIgnoreCase(excludedUserId)) {
-                continue;
-            }
-
-            memberIds.add(memberId);
-        }
-
-        return memberIds;
-    }
-
-    /**
      * Determines whether an account is eligible to be shown for consent selection.
      *
      * @param accountJson account JSON payload
@@ -398,53 +339,6 @@ public class ConsentAuthorizeUtil {
         return (!isJointAccount || isJointAccountElectable(accountJson))
                 && (!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))
                 && (!isBusinessAccount || isBusinessAccountEligible(accountJson, userId));
-    }
-
-    /**
-     * Checks whether a business account is eligible for the authenticated user.
-     *
-     * A business account is eligible only if the authenticated user appears in
-     * businessAccountInfo.NominatedRepresentatives[].memberId.
-     *
-     * @param accountJson account JSON payload
-     * @param userId authenticated user id
-     * @return true when the user is a nominated representative
-     */
-    private static boolean isBusinessAccountEligible(JSONObject accountJson, String userId) {
-
-        JSONObject businessInfo = accountJson.optJSONObject(CommonConstants.BUSINESS_ACCOUNT_INFO_TAG);
-        if (businessInfo == null) {
-            return false;
-        }
-
-        JSONArray representatives = businessInfo.optJSONArray(CommonConstants.NOMINATED_REPRESENTATIVES_TAG);
-        if (representatives != null && StringUtils.isNotBlank(userId)) {
-            for (int i = 0; i < representatives.length(); i++) {
-                JSONObject representative = representatives.optJSONObject(i);
-                if (representative == null) {
-                    continue;
-                }
-
-                String memberId = representative.optString(CommonConstants.MEMBER_ID_TAG, "");
-
-                // Normalize: remove tenant domain if present
-                if (memberId != null && memberId.contains("@")) {
-                    int lastAtIndex = memberId.lastIndexOf("@");
-                    int firstAtIndex = memberId.indexOf("@");
-
-                    // Only strip if there are multiple '@'
-                    if (lastAtIndex != firstAtIndex) {
-                        memberId = memberId.substring(0, lastAtIndex);
-                    }
-                }
-
-                if (memberId.equalsIgnoreCase(userId)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -509,22 +403,22 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
-     * Determines whether an account is eligible to be shown for consent selection.
-     *
-     * @param accountJson account json payload
-     * @param isJointAccount whether account is joint
-     * @param isSecondaryAccount whether account is secondary
-     * @param isBusinessAccount whether account is business
-     * @param userId authenticated user id
-     * @param secondaryInstructionStatusMap map of accountId to secondary account instruction status,
-     * @return true if account passes all eligibility checks
+     * Extracts the account owner IDs from a secondary account's JSON data.
+     * @param accountJson The account JSON object containing secondary account info
+     * @return list of account owner IDs, or an empty list if none are found
      */
-    private static boolean isAccountEligible(JSONObject accountJson, boolean isJointAccount, boolean isSecondaryAccount,
-                                             boolean isBusinessAccount, String userId,
-                                             Map<String, String> secondaryInstructionStatusMap) {
-        return (!isJointAccount || isJointAccountElectable(accountJson))
-                && (!isSecondaryAccount || isSecondaryAccountEligible(accountJson, secondaryInstructionStatusMap))
-                && (!isBusinessAccount || isBusinessAccountEligible(accountJson, userId));
+    private static List<String> extractSecondaryAccountOwners(JSONObject accountJson) {
+        List<String> accountOwners = new ArrayList<>();
+        if (accountJson.has(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)) {
+            JSONArray ownerArray = accountJson.getJSONObject(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
+                    .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG_IN_SHARABLE_ENDPOINT);
+            if (ownerArray != null) {
+                for (int j = 0; j < ownerArray.length(); j++) {
+                    accountOwners.add(ownerArray.getJSONObject(j).optString(CommonConstants.MEMBER_ID_TAG));
+                }
+            }
+        }
+        return accountOwners;
     }
 
     /**
@@ -550,25 +444,6 @@ public class ConsentAuthorizeUtil {
     }
 
     /**
-     * Extracts the account owner IDs from a secondary account's JSON data.
-     * @param accountJson The account JSON object containing secondary account info
-     * @return list of account owner IDs, or an empty list if none are found
-     */
-    private static List<String> extractSecondaryAccountOwners(JSONObject accountJson) {
-        List<String> accountOwners = new ArrayList<>();
-        if (accountJson.has(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)) {
-            JSONArray ownerArray = accountJson.getJSONObject(CommonConstants.SECONDARY_ACCOUNT_INFO_TAG)
-                    .optJSONArray(CommonConstants.SECONDARY_ACCOUNT_OWNER_TAG_IN_SHARABLE_ENDPOINT);
-            if (ownerArray != null) {
-                for (int j = 0; j < ownerArray.length(); j++) {
-                    accountOwners.add(ownerArray.getJSONObject(j).optString(CommonConstants.MEMBER_ID_TAG));
-                }
-            }
-        }
-        return accountOwners;
-    }
-
-    /**
      * Processes a single account by checking eligibility and enriching with type-specific properties.
      * Eligibility rules:
      *   Joint accounts must be electable (election status is not NOT_ELECTED)
@@ -584,14 +459,13 @@ public class ConsentAuthorizeUtil {
      * @param accountList The list of eligible accounts
      * @param blockedAccountsList The list of blocked accounts
      * @param userId authenticated user id
-     * @param hasMultipleAccounts hasMultipleAccounts Whether the authenticated user has multiple accounts
      * @param secondaryInstructionStatusMap map of accountId to secondary account instruction status,
      *                                      fetched once before the loop
      * */
     private static void processAccount(
             JSONObject accountJson, SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account,
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
-            List<AdditionalDataItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
+            List<AdditionalDataItem> blockedAccountsList, String userId,
             Map<String, String> secondaryInstructionStatusMap,
             Map<String, Boolean> blockedSecondaryAccountsByLegalEntity,
             Set<String> preSelectedAccountIds) {
@@ -624,16 +498,17 @@ public class ConsentAuthorizeUtil {
         List<String> linkedMembers = Collections.emptyList();
 
         // Setting Linked member Details for joint accounts.
-        if (isJointAccount) {
+        if (isJointAccount && !isSecondaryAccount) {
             linkedMembers = extractLinkedMembers(accountJson);
             account.setAdditionalProperty(CommonConstants.LINKED_MEMBERS, linkedMembers);
+            account.setTitle(CommonConstants.JOINT_ACCOUNT_TOOLTIP_TITLE);
+            account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
         }
 
         // Setting secondary account owners data for secondary accounts.
         if (isSecondaryAccount) {
             account.setAdditionalProperty(CommonConstants.SECONDARY_ACCOUNT_OWNERS_TAG,
                     extractSecondaryAccountOwners(accountJson));
-            account.setAdditionalProperty(CommonConstants.OTHER_ACCOUNTS_AVAILABILITY_FIELD, hasMultipleAccounts);
         }
 
         // Setting BNR and account owners data for business accounts.
@@ -650,11 +525,6 @@ public class ConsentAuthorizeUtil {
                 account.setAdditionalProperty(CommonConstants.PROFILE_NAME_TAG,
                         accountJson.optString(CommonConstants.PROFILE_NAME_RESPONSE_TAG, ""));
             }
-        }
-
-        if (isJointAccount && !isSecondaryAccount) {
-            account.setTitle(CommonConstants.JOINT_ACCOUNT_TOOLTIP_TITLE);
-            account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
         }
 
         account.setSelected(preSelectedAccountIds.contains(accountId));
@@ -795,7 +665,7 @@ public class ConsentAuthorizeUtil {
                     SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner account =
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
-                    processAccount(accountJson, account, accountList, blockedAccountsList, userId, hasMultipleAccounts,
+                    processAccount(accountJson, account, accountList, blockedAccountsList, userId,
                             secondaryInstructionStatusMap, blockedSecondaryAccountsByLegalEntity,
                             preSelectedAccountIds);
                 }
@@ -991,23 +861,129 @@ public class ConsentAuthorizeUtil {
 
     /**
      * Construct basic consent data for consent authorisation screen.
-     * @param expirationDate - expiration date time
-     * @param sharingDurationValue - sharing duration value
-     * @param permissionsList - list of permissions
-     * @return Map of basic consent data
+     *
+     * Builds an ordered map keyed by cluster title (e.g. "Account name, type, and balance"), each mapped to its
+     * list of human-readable data items, followed by the expiration date and sharing period entries. The JSP
+     * include {@code basic-consent-data.jsp} renders each entry as a bold heading with a bullet list of values,
+     * so the cluster title-per-entry shape produces the grouped UI directly.
+     *
+     * @param scopes               requested scopes (after profile-claim enrichment)
+     * @param customerType         {@link CommonConstants#INDIVIDUAL_PROFILE_TYPE} or
+     *                             {@link CommonConstants#ORGANISATION}, controls common:* cluster selection
+     * @param expirationDate       expiration date time string
+     * @param sharingDurationValue sharing duration in seconds (string)
+     * @return Map of basic consent data with deterministic insertion order
      */
-    private static Map<String, List<String>> constructBasicConsentData(String expirationDate,
-                                                                       String sharingDurationValue,
-                                                                       List<String> permissionsList) {
+    private static Map<String, List<String>> constructBasicConsentData(List<String> scopes, String customerType,
+                                                                       String expirationDate,
+                                                                       String sharingDurationValue) {
 
-        Map<String, List<String>> basicConsentData = new HashMap<>();
+        Map<String, List<String>> basicConsentData = new LinkedHashMap<>();
+
+        // Cluster entries first so they appear at the top of the consent screen.
+        for (Map.Entry<String, List<String>> cluster : getDataClusterFromScopes(scopes, customerType)) {
+            basicConsentData.put(cluster.getKey(), cluster.getValue());
+        }
+        for (Map.Entry<String, List<String>> cluster : processProfileClusters(scopes)) {
+            basicConsentData.put(cluster.getKey(), cluster.getValue());
+        }
 
         basicConsentData.put(CommonConstants.EXPIRATION_DATE_TITLE, Collections.singletonList(expirationDate));
-        basicConsentData.put(CommonConstants.PERMISSION_TITLE, permissionsList);
         basicConsentData.put(CommonConstants.SHARING_DURATION_DISPLAY_VALUE,
                 Collections.singletonList(buildSharingDurationMessage(Long.parseLong(sharingDurationValue))));
 
         return basicConsentData;
+    }
+
+    /**
+     * Map each requested scope to its {@code (cluster title, data items)} pair using the cluster definitions in
+     * {@link CommonConstants}. Skips {@code common:customer.basic:read} when {@code common:customer.detail:read}
+     * is also present (and the equivalent for the bank accounts pair) so the more detailed cluster wins.
+     * Profile/contact claims are handled separately by {@link #processProfileClusters(List)}.
+     *
+     * @param scopes       requested scopes
+     * @param customerType {@link CommonConstants#ORGANISATION} selects the business common:* clusters,
+     *                     anything else selects the individual common:* clusters
+     * @return ordered list of cluster entries, one per scope that maps to a cluster
+     */
+    private static List<Map.Entry<String, List<String>>> getDataClusterFromScopes(List<String> scopes,
+                                                                                  String customerType) {
+
+        List<Map.Entry<String, List<String>>> dataClusters = new ArrayList<>();
+
+        for (String scope : scopes) {
+            if (CommonConstants.COMMON_CUSTOMER_BASIC_READ_SCOPE.equalsIgnoreCase(scope)
+                    && scopes.contains(CommonConstants.COMMON_CUSTOMER_DETAIL_READ_SCOPE)) {
+                continue;
+            }
+            if (CommonConstants.COMMON_ACCOUNTS_BASIC_READ_SCOPE.equalsIgnoreCase(scope)
+                    && scopes.contains(CommonConstants.COMMON_ACCOUNTS_DETAIL_READ_SCOPE)) {
+                continue;
+            }
+
+            Map<String, List<String>> cluster;
+            if (scope.contains(CommonConstants.COMMON_SUBSTRING)
+                    && CommonConstants.ORGANISATION.equalsIgnoreCase(customerType)) {
+                cluster = CommonConstants.BUSINESS_CDS_DATA_CLUSTER.get(scope);
+            } else if (scope.contains(CommonConstants.COMMON_SUBSTRING)) {
+                cluster = CommonConstants.INDIVIDUAL_CDS_DATA_CLUSTER.get(scope);
+            } else {
+                cluster = CommonConstants.CDS_DATA_CLUSTER.get(scope);
+            }
+
+            if (cluster == null) {
+                // Profile / contact claims fall through here — handled by processProfileClusters
+                if (log.isDebugEnabled()) {
+                    log.debug(String.format("No data cluster found for scope: %s", scope));
+                }
+                continue;
+            }
+
+            dataClusters.addAll(cluster.entrySet());
+        }
+        return dataClusters;
+    }
+
+    /**
+     * Build the profile clusters (Name and Contact Details) based on which standard claims appear in the scope
+     * list. Mirrors the non-amendment path of OB3's {@code processProfileDataClusters} — if any name claim is
+     * present, the {@code name} entry from {@link CommonConstants#PROFILE_DATA_CLUSTER} is added; if any contact
+     * claim group is present, a sorted composite key (e.g. {@code contactDetails_email_phone}) is looked up.
+     *
+     * @param scopes requested scopes (already enriched with profile claims by {@code setClaimPermissions})
+     * @return ordered list of profile cluster entries
+     */
+    private static List<Map.Entry<String, List<String>>> processProfileClusters(List<String> scopes) {
+
+        List<Map.Entry<String, List<String>>> profileClusters = new ArrayList<>();
+
+        boolean hasNameClaim = CommonConstants.NAME_CLUSTER_PERMISSIONS.stream().anyMatch(scopes::contains);
+        if (hasNameClaim) {
+            Map<String, List<String>> nameCluster = CommonConstants.PROFILE_DATA_CLUSTER.get(
+                    CommonConstants.NAME_CLUSTER);
+            if (nameCluster != null) {
+                profileClusters.addAll(nameCluster.entrySet());
+            }
+        }
+
+        List<String> contactGroups = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : CommonConstants.CONTACT_CLUSTER_CLAIMS.entrySet()) {
+            if (entry.getValue().stream().anyMatch(scopes::contains)) {
+                contactGroups.add(entry.getKey());
+            }
+        }
+        if (!contactGroups.isEmpty()) {
+            Collections.sort(contactGroups);
+            String contactKey = CommonConstants.CONTACT_CLUSTER + "_" + String.join("_", contactGroups);
+            Map<String, List<String>> contactCluster = CommonConstants.PROFILE_DATA_CLUSTER.get(contactKey);
+            if (contactCluster != null) {
+                profileClusters.addAll(contactCluster.entrySet());
+            } else {
+                log.warn(String.format("No contact cluster definition found for key: %s", contactKey));
+            }
+        }
+
+        return profileClusters;
     }
 
     /**
