@@ -22,6 +22,7 @@ import com.nimbusds.jose.JOSEException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
 import org.json.JSONArray;
@@ -161,6 +162,51 @@ public class CDSAccountValidationMediator extends AbstractMediator {
 
             payload.put(CDSAccountValidationConstants.CONSENT_MAPPING_RESOURCES_TAG, filteredConsentMappings);
 
+            // Single-account validation: check if the requested accountId is in the allowed list
+            String electedResource = (String) messageContext.getProperty(
+                    CDSAccountValidationConstants.API_ELECTED_RESOURCE);
+            String fullRequestPath = (String) messageContext.getProperty(
+                    CDSAccountValidationConstants.REST_FULL_REQUEST_PATH);
+
+            if (electedResource != null && electedResource.contains(
+                    CDSAccountValidationConstants.API_ELECTED_RESOURCE_ACCOUNT_ID_PARAMETER)
+                    && fullRequestPath != null) {
+                String requestedAccountId = null;
+                String[] segments = fullRequestPath.split("/");
+                for (int i = 0; i < segments.length - 1; i++) {
+                    if ("accounts".equals(segments[i])) {
+                        requestedAccountId = segments[i + 1];
+                        break;
+                    }
+                }
+
+                if (requestedAccountId != null) {
+                    boolean isAllowed = false;
+                    for (int i = 0; i < filteredConsentMappings.length(); i++) {
+                        JSONObject mapping = filteredConsentMappings.getJSONObject(i);
+                        if (requestedAccountId.equals(
+                                mapping.optString(CDSAccountValidationConstants.CDS_ACCOUNT_ID_TAG))) {
+                            isAllowed = true;
+                            break;
+                        }
+                    }
+
+                    if (!isAllowed) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("[CDS-policy] Single-account request for blocked or unknown accountId: "
+                                    + requestedAccountId);
+                        }
+                        setErrorResponseProperties(messageContext,
+                                CDSAccountValidationConstants.RESOURCE_INVALID_BANKING_ACCOUNT,
+                                CDSAccountValidationConstants.INVALID_BANKING_ACCOUNT_TITLE,
+                                CDSAccountValidationConstants.INVALID_BANKING_ACCOUNT_DESC,
+                                CDSAccountValidationConstants.HTTP_SC_404);
+                        throw new SynapseException("Account " + requestedAccountId
+                                + " is not available for data sharing");
+                    }
+                }
+            }
+
             String signedJwt = CDSAccountValidationUtils.generateJWT(payload.toString());
             headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, signedJwt);
 
@@ -169,26 +215,34 @@ public class CDSAccountValidationMediator extends AbstractMediator {
         } catch (ParseException | JOSEException | JSONException | CDSAccountValidationException e) {
             String errorDescription = "Error during CDS mediation policy";
             log.error(errorDescription, e);
-            setErrorResponseProperties(messageContext, errorDescription);
+            setErrorResponseProperties(messageContext, "Internal Server Error", "CDS DOMS Policy Error",
+                    errorDescription, "500");
+            throw new SynapseException(errorDescription, e);
         }
 
         return true;
     }
 
     /**
-     * Sets standardized error response properties in the message context when CDS mediation fails.
+     * Sets error response properties in the message context.
      *
      * @param messageContext Synapse message context used to propagate error details
-     * @param errorDescription description of the error encountered during mediation
+     * @param errorCode error code value
+     * @param errorTitle error title
+     * @param errorDescription error description
+     * @param httpStatusCode HTTP status code as string
      */
     @Generated(message = "No testable logic")
     private static void setErrorResponseProperties(MessageContext messageContext,
-                                                   String errorDescription) {
+                                                   String errorCode,
+                                                   String errorTitle,
+                                                   String errorDescription,
+                                                   String httpStatusCode) {
 
-        messageContext.setProperty(CDSAccountValidationConstants.ERROR_CODE, "Internal Server Error");
-        messageContext.setProperty(CDSAccountValidationConstants.ERROR_TITLE, "CDS DOMS Policy Error");
+        messageContext.setProperty(CDSAccountValidationConstants.ERROR_CODE, errorCode);
+        messageContext.setProperty(CDSAccountValidationConstants.ERROR_TITLE, errorTitle);
         messageContext.setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION, errorDescription);
-        messageContext.setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC, "500");
+        messageContext.setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC, httpStatusCode);
     }
 
     /**

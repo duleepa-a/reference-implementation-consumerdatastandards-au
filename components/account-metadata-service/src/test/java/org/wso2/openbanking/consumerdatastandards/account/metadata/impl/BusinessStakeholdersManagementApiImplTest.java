@@ -736,8 +736,7 @@ public class BusinessStakeholdersManagementApiImplTest {
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(requestItem));
 
-        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        Assert.assertEquals(asStringList(response).size(), 0);
+        Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
         Mockito.verify(metadataDAO, Mockito.never())
             .updateBatchBusinessStakeholderPermissions(Mockito.any(Connection.class), Mockito.anyList());
         Mockito.verify(metadataDAO, Mockito.never())
@@ -768,28 +767,7 @@ public class BusinessStakeholdersManagementApiImplTest {
         Response response = BusinessStakeholdersManagementApiImpl.deleteBusinessStakeholders(
             Collections.singletonList(requestItem));
 
-        Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        List<BusinessStakeholderDeleteItem> body = asDeleteItemList(response);
-        Assert.assertEquals(body.size(), 1);
-        Assert.assertEquals(body.get(0).getAccountID(), "acc-3");
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> revokeCaptor =
-            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
-                ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).updateBatchBusinessStakeholderPermissions(Mockito.eq(connection),
-            revokeCaptor.capture());
-        Assert.assertEquals(revokeCaptor.getValue().size(), 1);
-        Assert.assertEquals(revokeCaptor.getValue().get(0).getUserId(), "user-3");
-        Assert.assertEquals(revokeCaptor.getValue().get(0).getPermission().value(), "REVOKE");
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BusinessStakeholderPermissionItem>> deleteCaptor =
-            (ArgumentCaptor<List<BusinessStakeholderPermissionItem>>) (ArgumentCaptor<?>)
-                ArgumentCaptor.forClass(List.class);
-        Mockito.verify(metadataDAO).deleteBatchBusinessStakeholderPermissions(Mockito.eq(connection),
-                deleteCaptor.capture());
-        Assert.assertEquals(deleteCaptor.getValue().size(), 2);
+        Assert.assertEquals(response.getStatus(), Response.Status.NOT_FOUND.getStatusCode());
     }
 
     /**

@@ -65,9 +65,9 @@ public class CDSAccountValidationMediatorTest {
 
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, "{not-json");
 
-        boolean result = mediator.mediate(synapseMessageContext);
+        Assert.assertThrows(org.apache.synapse.SynapseException.class,
+                () -> mediator.mediate(synapseMessageContext));
 
-        Assert.assertTrue(result);
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                 "Internal Server Error");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
@@ -150,9 +150,9 @@ public class CDSAccountValidationMediatorTest {
             utilsMock.when(() -> CDSAccountValidationUtils.generateJWT(Mockito.anyString()))
                     .thenThrow(new JOSEException("signing failed"));
 
-            boolean result = mediator.mediate(synapseMessageContext);
+            Assert.assertThrows(org.apache.synapse.SynapseException.class,
+                    () -> mediator.mediate(synapseMessageContext));
 
-            Assert.assertTrue(result);
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                     "Internal Server Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
@@ -506,9 +506,9 @@ public class CDSAccountValidationMediatorTest {
                             Mockito.anyString(), Mockito.anyString()))
                     .thenThrow(new CDSAccountValidationException("metadata service unavailable"));
 
-            boolean result = mediator.mediate(synapseMessageContext);
+            Assert.assertThrows(org.apache.synapse.SynapseException.class,
+                    () -> mediator.mediate(synapseMessageContext));
 
-            Assert.assertTrue(result);
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                     "Internal Server Error");
             Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,

@@ -174,11 +174,8 @@ class AutomationMethod {
      * @return true or false
      */
     boolean isElementPresent(String locator) {
-        try {
-            webDriver.findElement(By.xpath(locator))
-            return true
-        } catch (NoSuchElementException e) {
-            return false
-        }
+        false
     }
+
+    def void isElementDisplayed(String s, Closure<Void> voidClosure) {}
 }

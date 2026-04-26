@@ -53,6 +53,13 @@ public class CDSAccountValidationConstants {
     public static final String ERROR_DESCRIPTION = "ERROR_DESCRIPTION";
     public static final String CUSTOM_HTTP_SC = "CUSTOM_HTTP_SC";
 
+    // Single-account validation error constants
+    public static final String RESOURCE_INVALID_BANKING_ACCOUNT =
+            "urn:au-cds:error:cds-banking:Authorisation/InvalidBankingAccount";
+    public static final String INVALID_BANKING_ACCOUNT_TITLE = "Invalid Banking Account";
+    public static final String INVALID_BANKING_ACCOUNT_DESC =
+            "The accountId requested is not available for data sharing";
+    public static final String HTTP_SC_404 = "404";
 
     // Constants related to DOMS
     public static final String ACCOUNT_IDS_TAG = "accountIds";
@@ -65,22 +72,8 @@ public class CDSAccountValidationConstants {
     public static final String SECONDARY_ACCOUNTS_PATH = "/secondary-accounts";
     public static final String BUSINESS_STAKEHOLDERS_PATH = "/business-stakeholders";
     public static final String LEGAL_ENTITY_SHARING_PATH = "/legal-entity";
-    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
-
-    // IS applications API query and response fields
-    public static final String FILTER_TAG = "filter";
-    public static final String ATTRIBUTES_TAG = "attributes";
-    public static final String CLIENT_ID_FILTER_PREFIX = "clientId eq ";
-    public static final String ADVANCED_CONFIGURATIONS_TAG = "advancedConfigurations";
-    public static final String APPLICATIONS_TAG = "applications";
-    public static final String ADDITIONAL_SP_PROPERTIES_TAG = "additionalSpProperties";
-    public static final String NAME_TAG = "name";
-    public static final String VALUE_TAG = "value";
-    public static final String LEGAL_ENTITY_ID_PROPERTY_NAME = "legal_entity_id";
 
     // Legal entity sharing response fields
-    public static final String LEGAL_ENTITY_ID_TAG = "legalEntityID";
-    public static final String LEGAL_ENTITY_ID_CAMEL_CASE_TAG = "legalEntityId";
     public static final String LEGAL_ENTITY_SHARING_STATUS_TAG = "legalEntitySharingStatus";
     public static final String LEGAL_ENTITY_SHARING_STATUS_BLOCKED = "blocked";
     public static final String ACCOUNT_ID_UPPER_CASE_TAG = "accountID";
@@ -90,6 +83,11 @@ public class CDSAccountValidationConstants {
     public static final String SECONDARY_ACCOUNT_STATUS_INACTIVE = "inactive";
     public static final String SECONDARY_INDIVIDUAL_ACCOUNT_OWNER_TAG = "secondary_individual_account_owner";
     public static final String SECONDARY_JOINT_ACCOUNT_OWNER_TAG = "secondary_joint_account_owner";
+
+    // Message context properties
+    public static final String API_ELECTED_RESOURCE = "API_ELECTED_RESOURCE";
+    public static final String REST_FULL_REQUEST_PATH = "REST_FULL_REQUEST_PATH";
+    public static final String API_ELECTED_RESOURCE_ACCOUNT_ID_PARAMETER = "{accountId}";
 
     // Constants related to Business Accounts
     public static final String NOMINATED_REPRESENTATIVE_TAG = "nominated_representative";

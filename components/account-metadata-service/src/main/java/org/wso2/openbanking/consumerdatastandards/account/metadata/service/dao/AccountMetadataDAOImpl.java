@@ -51,7 +51,7 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
 
     // Column names for DOMS table.
     private static final String DISCLOSURE_OPTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
-    private static final String DISCLOSURE_OPTIONS_COLUMN_STATUS = "DISCLOSURE_OPTION_STATUS";
+    private static final String DISCLOSURE_OPTIONS_COLUMN_STATUS = "DISCLOSURE_OPTIONS_STATUS";
 
     // Column names for secondary user instructions table.
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";

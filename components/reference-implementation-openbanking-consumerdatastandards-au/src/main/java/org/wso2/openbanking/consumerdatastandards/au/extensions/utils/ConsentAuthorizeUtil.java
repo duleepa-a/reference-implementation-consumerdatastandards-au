@@ -31,6 +31,9 @@ import org.wso2.openbanking.consumerdatastandards.au.extensions.constants.Permis
 import org.wso2.openbanking.consumerdatastandards.au.extensions.exceptions.CdsConsentException;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.AdditionalDataItem;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.StoredAuthorization;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.StoredDetailedConsentResourceData;
+import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.StoredResource;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsentData;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsentDataPermissionsInner;
 import org.wso2.openbanking.consumerdatastandards.au.extensions.gen.model.SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData;
@@ -195,17 +198,40 @@ public class ConsentAuthorizeUtil {
      * @param userId The user id of the authenticated user.
      * @param consumerData Consumer data model to be populated.
      * @param displayData Display data model to be populated.
+     * @param consentResource The existing consent resource, used to pre-select previously authorized accounts.
      */
     public static void cdsConsumerDataRetrieval(JSONObject jsonRequestBody, String userId,
             SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData consumerData,
-            List<AdditionalData> displayData) throws CdsConsentException {
+            List<AdditionalData> displayData, StoredDetailedConsentResourceData consentResource)
+            throws CdsConsentException {
+
+        Set<String> preSelectedAccountIds = extractPreSelectedAccountIds(consentResource);
 
         // Append consumer data to response
         try {
-            validateAndAppendConsumerObjectToResponse(jsonRequestBody, userId, consumerData, displayData);
+            validateAndAppendConsumerObjectToResponse(jsonRequestBody, userId, consumerData, displayData,
+                    preSelectedAccountIds);
         } catch (CdsConsentException e) {
             throw new CdsConsentException(CdsErrorEnum.BAD_REQUEST, "Consumer data retrieval failed");
         }
+    }
+
+    private static Set<String> extractPreSelectedAccountIds(StoredDetailedConsentResourceData consentResource) {
+        if (consentResource == null || consentResource.getAuthorizations() == null) {
+            return Collections.emptySet();
+        }
+        Set<String> accountIds = new HashSet<>();
+        for (StoredAuthorization auth : consentResource.getAuthorizations()) {
+            if (auth.getResources() == null) {
+                continue;
+            }
+            for (StoredResource resource : auth.getResources()) {
+                if (StringUtils.isNotBlank(resource.getAccountId())) {
+                    accountIds.add(resource.getAccountId());
+                }
+            }
+        }
+        return accountIds;
     }
 
     /**
@@ -452,7 +478,8 @@ public class ConsentAuthorizeUtil {
             List<SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner> accountList,
             List<AdditionalDataItem> blockedAccountsList, String userId, boolean hasMultipleAccounts,
             Map<String, String> secondaryInstructionStatusMap,
-            Map<String, Boolean> blockedSecondaryAccountsByLegalEntity) {
+            Map<String, Boolean> blockedSecondaryAccountsByLegalEntity,
+            Set<String> preSelectedAccountIds) {
 
         String accountId = accountJson.getString(CommonConstants.ACCOUNT_ID);
         boolean isJointAccount = accountJson.optBoolean(CommonConstants.IS_JOINT_ACCOUNT_RESPONSE, false);
@@ -511,6 +538,7 @@ public class ConsentAuthorizeUtil {
             account.setDescription(buildJointAccountTooltipDescription(linkedMembers.size()));
         }
 
+        account.setSelected(preSelectedAccountIds.contains(accountId));
         account.setDisplayName(getDisplayNameWithAccountNumber(accountJson.getString(CommonConstants.DISPLAY_NAME),
                 accountId));
         accountList.add(account);
@@ -588,11 +616,12 @@ public class ConsentAuthorizeUtil {
      * @param userId The user id of the authenticated user.
      * @param consumerData Consumer data model to be populated.
      * @param displayData Display data model to be populated.
+     * @param preSelectedAccountIds Account IDs already authorized in the existing consent.
      */
     public static void validateAndAppendConsumerObjectToResponse(
             JSONObject jsonRequestBody, String userId,
             SuccessResponsePopulateConsentAuthorizeScreenDataConsumerData consumerData,
-            List<AdditionalData> displayData) throws CdsConsentException {
+            List<AdditionalData> displayData, Set<String> preSelectedAccountIds) throws CdsConsentException {
         try {
             String accountsURL = ConfigurableProperties.SHARABLE_ENDPOINT;
             if (StringUtils.isNotBlank(accountsURL)) {
@@ -611,8 +640,6 @@ public class ConsentAuthorizeUtil {
                 JSONObject jsonAccountData = new JSONObject(accountData);
                 JSONArray accountsJSON = (JSONArray) jsonAccountData.get(CommonConstants.DATA);
                 boolean hasMultipleAccounts = accountsJSON.length() > 1;
-
-                //TODO: Consent amendment flow. Mark pre-selected accounts
 
                 jsonRequestBody.put(CommonConstants.ACCOUNTS, accountsJSON);
 
@@ -643,7 +670,8 @@ public class ConsentAuthorizeUtil {
                             new SuccessResponsePopulateConsentAuthorizeScreenDataConsumerDataAccountsInner();
                     JSONObject accountJson = accountsJSON.getJSONObject(i);
                     processAccount(accountJson, account, accountList, blockedAccountsList, userId, hasMultipleAccounts,
-                            secondaryInstructionStatusMap, blockedSecondaryAccountsByLegalEntity);
+                            secondaryInstructionStatusMap, blockedSecondaryAccountsByLegalEntity,
+                            preSelectedAccountIds);
                 }
 
                 List<AdditionalData> resolvedDisplayData = setDisplayData(blockedAccountsList);

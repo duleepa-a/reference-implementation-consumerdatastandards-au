@@ -55,8 +55,8 @@ public class AccountMetadataDAOImplTest {
          */
         @Override
         public String getBatchAddDisclosureOptionQuery() {
-            return "INSERT INTO fs_account_doms_status (ACCOUNT_ID, DISCLOSURE_OPTION_STATUS, LAST_UPDATED_TIMESTAMP)" +
-                    " VALUES (?, ?, ?)";
+            return "INSERT INTO fs_account_doms_status (ACCOUNT_ID, DISCLOSURE_OPTIONS_STATUS, LAST_UPDATED_TIMESTAMP)"
+                    + " VALUES (?, ?, ?)";
         }
 
         /**
@@ -64,7 +64,7 @@ public class AccountMetadataDAOImplTest {
          */
         @Override
         public String getBatchUpdateDisclosureOptionQuery() {
-            return "UPDATE fs_account_doms_status SET DISCLOSURE_OPTION_STATUS = ?, LAST_UPDATED_TIMESTAMP = ?" +
+            return "UPDATE fs_account_doms_status SET DISCLOSURE_OPTIONS_STATUS = ?, LAST_UPDATED_TIMESTAMP = ?" +
                     " WHERE ACCOUNT_ID = ?";
         }
 
@@ -229,7 +229,7 @@ public class AccountMetadataDAOImplTest {
         Mockito.when(resultSet.next()).thenReturn(true).thenReturn(true).thenReturn(false);
         Mockito.when(resultSet.getString("ACCOUNT_ID"))
                 .thenReturn("acc-400").thenReturn("acc-401");
-        Mockito.when(resultSet.getString("DISCLOSURE_OPTION_STATUS"))
+        Mockito.when(resultSet.getString("DISCLOSURE_OPTIONS_STATUS"))
                 .thenReturn("no-sharing").thenReturn("pre-approval");
 
         Map<String, String> result = dao.getBatchDisclosureOptions(connection,
