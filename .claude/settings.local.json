@@ -6,7 +6,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(curl -s \"https://raw.githubusercontent.com/wso2/financial-services-accelerator/main/financial-services-accelerator/internal-webapps/org.wso2.financial.services.accelerator.consent.mgt.endpoint/src/main/java/org/wso2/financial/services/accelerator/consent/mgt/endpoint/error/ConsentThrowableMapper.java\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/wso2/financial-services-accelerator/main/financial-services-accelerator/internal-webapps/org.wso2.financial.services.accelerator.consent.mgt.endpoint/src/main/webapp/WEB-INF/web.xml\")",
-      "Bash(find c:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/components/policies/cds-account-validation-policy/target -name *.xml -o -name *.html)"
+      "Bash(find c:/Users/duleepa.a/Downloads/Implementation/Toolkit/reference-implementation-consumerdatastandards-au/components/policies/cds-account-validation-policy/target -name *.xml -o -name *.html)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

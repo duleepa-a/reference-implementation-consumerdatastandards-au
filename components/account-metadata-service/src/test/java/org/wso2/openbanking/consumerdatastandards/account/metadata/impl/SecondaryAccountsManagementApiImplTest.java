@@ -215,7 +215,7 @@ public class SecondaryAccountsManagementApiImplTest {
     @Test
     public void testUpdateSecondaryAccountInstructionsSuccess() throws Exception {
         SecondaryAccountInstructionItem existing = buildSecondaryItem(
-                "acc-2", "user-2", false, "inactive");
+                "acc-2", "user-2", true, "inactive");
         List<SecondaryAccountInstructionItem> request = Collections.singletonList(existing);
         Mockito.when(metadataDAO.getBatchSecondaryAccountInstructions(Mockito.eq(connection), Mockito.anyList()))
                 .thenReturn(Collections.singletonList(existing));
