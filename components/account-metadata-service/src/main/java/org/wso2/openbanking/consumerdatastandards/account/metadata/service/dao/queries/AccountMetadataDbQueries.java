@@ -94,6 +94,7 @@ public interface AccountMetadataDbQueries {
      */
     String getUpsertLegalEntitySharingStatusQuery();
 
+    // DB Queries related to BNR Feature.
     /**
      * Get the SQL query for retrieving business stakeholder permission records for
      * multiple account-user pairs.

@@ -57,6 +57,10 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             "INSTRUCTION_STATUS";
     private static final String SECONDARY_INSTRUCTIONS_COLUMN_OTHER_ACCOUNTS_AVAILABILITY =
         "OTHER_ACCOUNTS_AVAILABILITY";
+    // Column names for business stakeholder permissions table.
+    private static final String BNR_PERMISSIONS_COLUMN_ACCOUNT_ID = "ACCOUNT_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_USER_ID = "USER_ID";
+    private static final String BNR_PERMISSIONS_COLUMN_PERMISSION = "PERMISSION";
 
     private final AccountMetadataDbQueries dbQueries;
 
@@ -203,27 +207,18 @@ public class  AccountMetadataDAOImpl implements AccountMetadataDAO {
             List<Pair<String, String>> accountUserPairs) throws AccountMetadataException {
 
         if (accountUserPairs == null || accountUserPairs.isEmpty()) {
-            return Collections.emptyList();
+            throw new AccountMetadataException("Account-user pair list cannot be null or empty " +
+                    "when retrieving Secondary account instructions");
         }
 
-        List<Pair<String, String>> validAccountUserPairs = new ArrayList<>();
-        for (Pair<String, String> accountUserPair : accountUserPairs) {
-            if (accountUserPair != null) {
-                validAccountUserPairs.add(accountUserPair);
-            }
-        }
-
-        int pairCount = validAccountUserPairs.size();
-        if (pairCount == 0) {
-            return Collections.emptyList();
-        }
+        int pairCount = accountUserPairs.size();
 
         String sql = dbQueries.getBatchGetSecondaryAccountInstructionQuery(pairCount);
         List<SecondaryAccountInstructionItem> resultItems = new ArrayList<>();
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int parameterIndex = 1;
-            for (Pair<String, String> accountUserPair : validAccountUserPairs) {
+            for (Pair<String, String> accountUserPair : accountUserPairs) {
                 stmt.setString(parameterIndex++, accountUserPair.getLeft());
                 stmt.setString(parameterIndex++, accountUserPair.getRight());
             }
