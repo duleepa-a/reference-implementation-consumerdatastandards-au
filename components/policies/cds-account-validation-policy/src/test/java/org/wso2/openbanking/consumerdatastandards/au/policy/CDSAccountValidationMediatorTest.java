@@ -60,7 +60,7 @@ public class CDSAccountValidationMediatorTest {
     }
 
     /**
-     * Verifies invalid info-header payloads are handled by setting policy error properties.
+     * Verifies invalid info-header payloads are handled by throwing exception and setting policy error properties.
      */
     @Test
     public void testMediateHandlesDecodeError() throws Exception {
@@ -68,9 +68,9 @@ public class CDSAccountValidationMediatorTest {
 
         headers.put(CDSAccountValidationConstants.INFO_HEADER_TAG, "{not-json");
 
-        boolean result = mediator.mediate(synapseMessageContext);
+        Assert.assertThrows(org.apache.synapse.SynapseException.class,
+                () -> mediator.mediate(synapseMessageContext));
 
-        Assert.assertTrue(result);
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
                 "Internal Server Error");
         Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
@@ -198,14 +198,9 @@ public class CDSAccountValidationMediatorTest {
             boolean result = mediator.mediate(synapseMessageContext);
 
             Assert.assertTrue(result);
-            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_CODE,
-                    "Internal Server Error");
-            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_TITLE,
-                    "CDS DOMS Policy Error");
-            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.CUSTOM_HTTP_SC,
-                    "500");
-            Mockito.verify(synapseMessageContext).setProperty(CDSAccountValidationConstants.ERROR_DESCRIPTION,
-                    "Error during CDS mediation policy");
+            Assert.assertEquals(headers.get(CDSAccountValidationConstants.INFO_HEADER_TAG), "signed-jwt");
+            Mockito.verify(synapseMessageContext, Mockito.never())
+                    .setProperty(Mockito.eq(CDSAccountValidationConstants.ERROR_CODE), Mockito.any());
         }
     }
 

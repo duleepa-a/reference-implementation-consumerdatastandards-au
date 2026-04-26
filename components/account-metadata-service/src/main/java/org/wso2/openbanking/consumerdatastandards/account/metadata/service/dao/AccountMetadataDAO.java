@@ -20,11 +20,8 @@ package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.exceptions.AccountMetadataException;
-<<<<<<< HEAD
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.BusinessStakeholderPermissionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEntitySharingItem;
-=======
->>>>>>> 08908b0fe37d9db64a7ffaff82b0dd4c1ca9646e
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 
 import java.sql.Connection;

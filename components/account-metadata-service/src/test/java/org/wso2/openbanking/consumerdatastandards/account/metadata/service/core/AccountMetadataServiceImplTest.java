@@ -18,8 +18,6 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.core;
 
-import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -31,6 +29,8 @@ import org.wso2.openbanking.consumerdatastandards.account.metadata.model.LegalEn
 import org.wso2.openbanking.consumerdatastandards.account.metadata.model.SecondaryAccountInstructionItem;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao.AccountMetadataDAO;
 import org.wso2.openbanking.consumerdatastandards.account.metadata.utils.connection.provider.ConnectionProvider;
+
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -667,29 +667,6 @@ public class AccountMetadataServiceImplTest {
             item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.fromValue(status));
             return item;
         }
-
-        /**
-         * Builds a secondary instruction test item.
-         * @param accountId account id
-         * @param userId secondary user id
-         * @param otherAccountsAvailable whether other accounts are available
-         * @param status instruction status
-         * @return populated test item
-         */
-        private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-            boolean otherAccountsAvailable,
-            String status) {
-            SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
-
-            item.setAccountId(accountId);
-            item.setSecondaryUserId(userId);
-            item.setOtherAccountsAvailability(otherAccountsAvailable);
-            item.setSecondaryAccountInstructionStatus(
-                    SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.valueOf(status));
-
-            return item;
-        }
-
 
         /**
          * Builds a business stakeholder permission test item.
