@@ -42,6 +42,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildBusinessItem;
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
+
 /**
  * Unit tests for {@link AccountMetadataServiceImpl}.
  */

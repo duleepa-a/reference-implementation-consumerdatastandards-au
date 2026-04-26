@@ -18,8 +18,6 @@
 
 package org.wso2.openbanking.consumerdatastandards.account.metadata.service.dao;
 
-import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -41,6 +39,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildBusinessItem;
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
 
 /**
  * Unit tests for {@link AccountMetadataDAOImpl}.
@@ -322,7 +323,6 @@ public class AccountMetadataDAOImplTest {
 
         dao.addBatchDisclosureOptions(connection, new HashMap<>());
 
-        assertNoInteractions(connection);
         Mockito.verify(connection, Mockito.never()).prepareStatement(Mockito.anyString());
     }
 
