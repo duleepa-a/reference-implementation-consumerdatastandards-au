@@ -53,54 +53,6 @@ public class SecondaryAccountsManagementApiImpl {
     }
 
     /**
-     * Updates secondary account instructions for multiple account-user combinations.
-     *
-     * @param request list of secondary account instruction items to update
-     * @return response with list of updated items
-     */
-    public static Response updateSecondaryAccountInstructions(List<SecondaryAccountInstructionItem> request) {
-
-        try {
-            List<SecondaryAccountInstructionItem> validItems = validateRequest(request);
-            List<Pair<String, String>> accountUserPairs = buildAccountUserPairs(validItems);
-
-            List<SecondaryAccountInstructionItem> existingItems =
-                accountMetadataService.getBatchSecondaryAccountInstructions(accountUserPairs);
-            Set<String> existingKeys = existingItems.stream().map(SecondaryAccountsManagementApiImpl::buildCompositeKey)
-                    .collect(Collectors.toSet());
-
-            List<SecondaryAccountInstructionItem> itemsToUpdate = validItems.stream()
-                    .filter(item -> existingKeys.contains(buildCompositeKey(item)))
-                    .collect(Collectors.toList());
-
-            if (!itemsToUpdate.isEmpty()) {
-                List<SecondaryAccountInstructionItem> itemsRequiringConsentExpiry = itemsToUpdate.stream()
-                        .filter(SecondaryAccountsManagementApiImpl::isConsentExpiryRequired)
-                        .collect(Collectors.toList());
-
-                if (!itemsRequiringConsentExpiry.isEmpty()) {
-                    ConsentExpiryUtil.fetchAndExpireConsents(itemsRequiringConsentExpiry);
-                }
-                accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
-            }
-
-            if (log.isDebugEnabled()) {
-                log.debug("[Secondary Accounts] Updated secondary account instructions for " +
-                        itemsToUpdate.size() + " item(s)");
-            }
-
-            return Response.status(Response.Status.OK).entity(itemsToUpdate).build();
-
-        } catch (AccountMetadataException e) {
-            log.error("[Secondary Accounts] Failed to update secondary account instructions", e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(new ErrorResponse().errorDescription(
-                            "Failed to update secondary account instructions: " + e.getMessage()))
-                    .build();
-        }
-    }
-
-    /**
      * Retrieves secondary account instructions for a single user and multiple accounts.
      *
      * @param accountIds comma-separated list of account IDs
@@ -192,6 +144,13 @@ public class SecondaryAccountsManagementApiImpl {
             }
 
             if (!itemsToUpdate.isEmpty()) {
+                List<SecondaryAccountInstructionItem> itemsRequiringConsentExpiry = itemsToUpdate.stream()
+                        .filter(SecondaryAccountsManagementApiImpl::isConsentExpiryRequired)
+                        .collect(Collectors.toList());
+
+                if (!itemsRequiringConsentExpiry.isEmpty()) {
+                    ConsentExpiryUtil.fetchAndExpireConsents(itemsRequiringConsentExpiry);
+                }
                 accountMetadataService.updateBatchSecondaryAccountInstructions(itemsToUpdate);
             }
 

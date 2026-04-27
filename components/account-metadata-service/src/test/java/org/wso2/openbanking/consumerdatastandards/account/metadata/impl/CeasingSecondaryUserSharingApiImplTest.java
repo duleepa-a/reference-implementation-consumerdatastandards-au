@@ -37,6 +37,8 @@ import java.util.List;
 
 import javax.ws.rs.core.Response;
 
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildLegalEntityItem;
+
 /**
  * Unit tests for {@link CeasingSecondaryUserSharingApiImpl}.
  */
@@ -82,10 +84,10 @@ public class CeasingSecondaryUserSharingApiImplTest {
      */
     @Test
     public void testUpdateLegalEntitySharingStatusUpsertsItems() throws Exception {
-        LegalEntitySharingItem blockRequest = buildItem("user-1", "acc-1", "le-003",
-                LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked);
-        LegalEntitySharingItem activeRequest = buildItem("user-1", "acc-2", "le-001",
-                LegalEntitySharingItem.LegalEntitySharingStatusEnum.active);
+        LegalEntitySharingItem blockRequest = buildLegalEntityItem("user-1", "acc-1", "le-003",
+                String.valueOf(LegalEntitySharingItem.LegalEntitySharingStatusEnum.blocked));
+        LegalEntitySharingItem activeRequest = buildLegalEntityItem("user-1", "acc-2", "le-001",
+                String.valueOf(LegalEntitySharingItem.LegalEntitySharingStatusEnum.active));
 
         Response response = CeasingSecondaryUserSharingApiImpl.updateLegalEntitySharingStatus(
                 Arrays.asList(blockRequest, activeRequest));
@@ -115,18 +117,6 @@ public class CeasingSecondaryUserSharingApiImplTest {
         Assert.assertEquals(response.getStatus(), Response.Status.BAD_REQUEST.getStatusCode());
         Mockito.verify(metadataDAO, Mockito.never())
                 .getBatchLegalEntitySharingStatuses(Mockito.any(Connection.class), Mockito.anyList());
-    }
-
-    private LegalEntitySharingItem buildItem(String secondaryUserId,
-                                             String accountId,
-                                             String legalEntityId,
-                                             LegalEntitySharingItem.LegalEntitySharingStatusEnum status) {
-        LegalEntitySharingItem item = new LegalEntitySharingItem();
-        item.setSecondaryUserID(secondaryUserId);
-        item.setAccountID(accountId);
-        item.setLegalEntityID(legalEntityId);
-        item.setLegalEntitySharingStatus(status);
-        return item;
     }
 
     private void resetSingleton() throws Exception {

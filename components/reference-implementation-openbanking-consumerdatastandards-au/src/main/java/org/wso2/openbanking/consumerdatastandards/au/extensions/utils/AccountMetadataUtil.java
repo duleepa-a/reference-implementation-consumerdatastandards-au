@@ -46,7 +46,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -241,8 +240,8 @@ public class AccountMetadataUtil {
      * @param userId user ID
      * @return map of accountId to permission, or empty map when retrieval fails
      */
-    public static Map<String, String> getBusinessStakeholderPermissionsForAccounts(List<String> accountIds,
-                                                                                    String userId) throws CdsConsentException {
+    public static Map<String, String> getBusinessStakeholderPermissionsForAccounts(
+            List<String> accountIds, String userId) throws CdsConsentException {
 
         Map<String, String> permissionMap = new HashMap<>();
 

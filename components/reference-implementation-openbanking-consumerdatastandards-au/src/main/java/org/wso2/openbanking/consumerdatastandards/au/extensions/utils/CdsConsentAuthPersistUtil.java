@@ -388,6 +388,7 @@ public class CdsConsentAuthPersistUtil {
             List<AuthorizedResourcesAuthorizedDataInner> authorizedDataInners) {
 
         List<Resource> resources = new ArrayList<>();
+        Set<String> uniqueAccountIds = new HashSet<>();
         String accountsURL = ConfigurableProperties.SHARABLE_ENDPOINT;
         String accountId;
 
@@ -408,6 +409,11 @@ public class CdsConsentAuthPersistUtil {
                 //Get Account_Id from Display Name
                 accountId = CommonConsentExtensionUtil.getAccountIdByDisplayName(accountsURL,
                         displayName.split("<br>")[0]);
+
+                // Avoid duplicate resources when the same account appears under multiple permission scopes.
+                if (!uniqueAccountIds.add(accountId)) {
+                    continue;
+                }
 
                 // Set properties from the individual 'account' and the outer 'authorizedDataInner'
                 resource.setAccountId(accountId);

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildBusinessItem;
+import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildLegalEntityItem;
 import static org.wso2.openbanking.consumerdatastandards.account.metadata.utils.CommonTestUtils.buildSecondaryItem;
 
 /**
@@ -531,7 +532,7 @@ public class AccountMetadataDAOImplTest {
         Connection connection = Mockito.mock(Connection.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("bad"));
-    
+
         Map<String, String> accountMap = new HashMap<>();
         accountMap.put("acc-901", "no-sharing");
 
@@ -1028,7 +1029,7 @@ public class AccountMetadataDAOImplTest {
         PreparedStatement statement = Mockito.mock(PreparedStatement.class);
 
         Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
-        Mockito.when(statement.executeBatch()).thenReturn(new int[] {1, 1});
+        Mockito.when(statement.executeBatch()).thenReturn(new int[]{1, 1});
 
         List<LegalEntitySharingItem> items = Arrays.asList(
                 buildLegalEntityItem("acc-206", "user-206", "le-020", "blocked"),
@@ -1123,60 +1124,4 @@ public class AccountMetadataDAOImplTest {
                 "SELECT ACCOUNT_ID, USER_ID, PERMISSION FROM fs_account_bnr_permission " +
                         "WHERE (ACCOUNT_ID, USER_ID) IN ((?,?))");
     }
-
-    /**
-     * Builds a secondary instruction test item.
-     *
-     * @param accountId account id
-     * @param userId secondary user id
-     * @param otherAccountsAvailable whether other accounts are available
-     * @param status instruction status
-     * @return populated test item
-     */
-    private SecondaryAccountInstructionItem buildSecondaryItem(String accountId, String userId,
-                                                               boolean otherAccountsAvailable, String status) {
-
-        SecondaryAccountInstructionItem item = new SecondaryAccountInstructionItem();
-        item.setAccountId(accountId);
-        item.setSecondaryUserId(userId);
-        item.setOtherAccountsAvailability(otherAccountsAvailable);
-        item.setSecondaryAccountInstructionStatus(
-                SecondaryAccountInstructionItem.SecondaryAccountInstructionStatusEnum.fromValue(status));
-        return item;
-    }
-
-    /**
-     * Builds a business stakeholder permission test item.
-     */
-    private BusinessStakeholderPermissionItem buildBusinessItem(String accountId, String userId, String permission) {
-        BusinessStakeholderPermissionItem item = new BusinessStakeholderPermissionItem();
-        item.setAccountId(accountId);
-        item.setUserId(userId);
-        item.setPermission(permission != null
-                ? BusinessStakeholderPermissionItem.PermissionEnum.fromValue(permission) : null);
-        return item;
-    }
-
-    /**
-     * Builds a legal entity sharing test item.
-     */
-    private LegalEntitySharingItem buildLegalEntityItem(String accountId, String userId,
-                                                        String legalEntityId, String status) {
-        LegalEntitySharingItem item = new LegalEntitySharingItem();
-        item.setAccountID(accountId);
-        item.setSecondaryUserID(userId);
-        item.setLegalEntityID(legalEntityId);
-        item.setLegalEntitySharingStatus(LegalEntitySharingItem.LegalEntitySharingStatusEnum.fromValue(status));
-        return item;
-    }
-    
-    /**
-     * Asserts that the given mock object has no interactions (no method calls).
-     *
-     * @param mock the mock object to check
-     */
-    private void assertNoInteractions(Object mock) {
-        Assert.assertTrue(Mockito.mockingDetails(mock).getInvocations().isEmpty());
-    }
-
 }

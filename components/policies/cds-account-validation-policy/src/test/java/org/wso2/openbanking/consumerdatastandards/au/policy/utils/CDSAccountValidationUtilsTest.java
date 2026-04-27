@@ -548,10 +548,6 @@ public class CDSAccountValidationUtilsTest {
         Assert.assertFalse(blocked.contains("acc-4"));
     }
 
-    // ---- fetchBlockedBusinessAccountsFromService tests ----
-
-    // ---- fetchAllBlockedAccounts tests ----
-
     // ---- generateJWT tests ----
 
     /**

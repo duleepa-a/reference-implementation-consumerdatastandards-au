@@ -211,45 +211,6 @@ paths:
         - OAuth2: []
         - BasicAuth: []
 
-    put:
-      tags:
-        - Secondary User Instruction
-      summary: Update secondary accounts instruction status for one or more accounts
-      description: This API is used to update the CDS Secondary Accounts Instruction and Privilege Status.
-      operationId: updateSecondaryAccountStatusPut
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/SecondaryAccountInstructionItem'
-      responses:
-        '200':
-          description: Secondary accounts instruction status successfully updated
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SecondaryAccountInstructionItem'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - OAuth2: []
-        - BasicAuth: []
-
   /business-stakeholders:
     get:
       tags:
