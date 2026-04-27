@@ -39,7 +39,6 @@ public class CommonConstants {
     public static final String BNR_PERMISSION_VIEW = "VIEW";
 
     // IS Applications endpoint constants
-    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
     public static final String FILTER_TAG = "filter";
     public static final String ATTRIBUTES_TAG = "attributes";
     public static final String CLIENT_ID_FILTER_PREFIX = "clientId eq ";

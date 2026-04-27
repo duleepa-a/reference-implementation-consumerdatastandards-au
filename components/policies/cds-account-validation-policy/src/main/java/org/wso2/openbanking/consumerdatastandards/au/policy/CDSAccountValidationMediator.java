@@ -198,7 +198,7 @@ public class CDSAccountValidationMediator extends AbstractMediator {
             }
 
             // POST multi-account validation: all requested accountIds must be in the allowed list
-            String httpMethod = (String) messageContext.getProperty(CDSAccountValidationConstants.HTTP_METHOD);
+            String httpMethod = (String) messageContext.getProperty(CDSAccountValidationConstants.REST_METHOD);
             if (CDSAccountValidationConstants.POST_METHOD.equals(httpMethod)) {
                 String requestBody = (String) messageContext.getProperty(
                         CDSAccountValidationConstants.ORIGINAL_REQUEST_JSON_BODY);

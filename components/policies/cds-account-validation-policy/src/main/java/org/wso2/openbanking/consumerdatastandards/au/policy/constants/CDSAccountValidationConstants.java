@@ -97,7 +97,7 @@ public class CDSAccountValidationConstants {
     public static final String BUSINESS_PERMISSION_AUTHORIZE = "AUTHORIZE";
 
     // HTTP Method
-    public static final String HTTP_METHOD = "HTTP_METHOD";
+    public static final String REST_METHOD = "REST_METHOD";
     public static final String POST_METHOD = "POST";
 
     // POST request body property key (synapse messageContext property name)

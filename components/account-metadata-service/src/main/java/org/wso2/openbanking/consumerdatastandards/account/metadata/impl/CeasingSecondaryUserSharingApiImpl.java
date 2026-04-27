@@ -250,7 +250,7 @@ public class CeasingSecondaryUserSharingApiImpl {
                     CommonConstants.CLIENT_ID_FILTER_PREFIX + clientId, StandardCharsets.UTF_8);
             String attributesParam = URLEncoder.encode(
                     CommonConstants.ADVANCED_CONFIGURATIONS_TAG, StandardCharsets.UTF_8);
-            String requestUrl = CommonConstants.IS_APPLICATIONS_ENDPOINT + "?" + CommonConstants.FILTER_TAG + "="
+            String requestUrl = ConfigurableProperties.IS_APPLICATIONS_ENDPOINT + "?" + CommonConstants.FILTER_TAG + "="
                     + filterParam + "&" + CommonConstants.ATTRIBUTES_TAG + "=" + attributesParam;
 
             HttpGet request = new HttpGet(requestUrl);

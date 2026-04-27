@@ -130,26 +130,6 @@
             }
         }
 
-        // Also collect profile types from additionalData items
-        Object additionalDataForProfileCheck = session.getAttribute("additionalData");
-        if (additionalDataForProfileCheck == null) {
-            additionalDataForProfileCheck = request.getAttribute("additionalData");
-        }
-        if (additionalDataForProfileCheck instanceof List) {
-            for (Object sectionObj : (List) additionalDataForProfileCheck) {
-                if (!(sectionObj instanceof Map)) continue;
-                Object itemsObj = ((Map) sectionObj).get("items");
-                if (!(itemsObj instanceof List)) continue;
-                for (Object itemObj : (List) itemsObj) {
-                    if (!(itemObj instanceof Map)) continue;
-                    Object typeObj = ((Map) itemObj).get("type");
-                    String itemType = (typeObj == null || String.valueOf(typeObj).trim().isEmpty())
-                            ? "individual" : String.valueOf(typeObj);
-                    uniqueProfileIds.add(itemType);
-                }
-            }
-        }
-
         if (uniqueProfileIds.size() == 1) {
             selectedProfileId = String.valueOf(uniqueProfileIds.iterator().next());
             Object autoSelectedProfileName = profileNamesById.get(selectedProfileId);

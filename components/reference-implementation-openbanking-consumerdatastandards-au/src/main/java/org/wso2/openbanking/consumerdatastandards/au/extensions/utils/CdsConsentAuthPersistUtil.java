@@ -360,8 +360,13 @@ public class CdsConsentAuthPersistUtil {
         String memberUserId = entry.getKey();
         Set<String> accountIds = entry.getValue();
 
+        // Compare after removing tenant domain (e.g., "@carbon.super") from memberId
+        String normalizedMemberId = memberUserId.contains("@")
+                ? memberUserId.substring(0, memberUserId.lastIndexOf("@"))
+                : memberUserId;
+
         Authorization memberAuthorization = new Authorization();
-        memberAuthorization.setUserId(memberUserId);
+        memberAuthorization.setUserId(normalizedMemberId);
         memberAuthorization.setType(authType);
         memberAuthorization.setStatus(CommonConstants.AUTHORIZED_STATUS);
 

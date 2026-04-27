@@ -281,7 +281,7 @@ public class ConsentAuthorizeUtil {
     /**
      * Checks if a joint account is electable based on its election status.
      * @param accountJson The account JSON object containing joint account election status
-     * @return true if the account is electable (not in NOT_ELECTED status), false otherwise
+     * @return true if the account is electable (not in ELECTED status), false otherwise
      */
     private static boolean isJointAccountElectable(JSONObject accountJson) {
         return !CommonConstants.JOINT_ACCOUNT_ELECTION_STATUS_NOT_ELECTED
@@ -313,13 +313,20 @@ public class ConsentAuthorizeUtil {
                     continue;
                 }
 
-                if (representative.optString(CommonConstants.MEMBER_ID_TAG, "").equalsIgnoreCase(userId)) {
+                String memberId = representative.optString(CommonConstants.MEMBER_ID_TAG, "");
+
+                // Compare after removing tenant domain (e.g., "@carbon.super") from memberId
+                String normalizedMemberId = memberId.contains("@")
+                        ? memberId.substring(0, memberId.lastIndexOf("@"))
+                        : memberId;
+
+                if (normalizedMemberId.equalsIgnoreCase(userId)) {
                     return true;
                 }
             }
         }
 
-        return true;
+        return false;
     }
 
     /**
