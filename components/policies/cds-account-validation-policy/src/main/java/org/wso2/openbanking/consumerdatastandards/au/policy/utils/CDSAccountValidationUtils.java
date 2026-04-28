@@ -457,8 +457,6 @@ public class CDSAccountValidationUtils {
             log.error(errorMessage, e);
             throw new CDSAccountValidationException(errorMessage, e);
         }
-
         return blockedAccounts;
     }
-
 }

@@ -163,7 +163,7 @@ class DisclosureOptionManagementServiceTest extends AUTest {
                 .get("${AUConstants.BULK_ACCOUNT_PATH}/${AUConstants.jointAccountID}")
 
         //Blocked account should return 404
-        Assert.assertEquals(accountResponse.statusCode(), 404)
+        Assert.assertEquals(accountResponse.statusCode(), AUConstants.STATUS_CODE_404)
 
         //Response should contain the InvalidBankingAccount error
         def errorResponse = new JsonSlurper().parseText(accountResponse.asString())

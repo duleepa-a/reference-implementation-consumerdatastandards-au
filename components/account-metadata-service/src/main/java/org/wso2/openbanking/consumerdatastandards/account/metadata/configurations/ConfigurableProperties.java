@@ -26,35 +26,35 @@ public class ConfigurableProperties {
     public static final String ACCOUNT_METADATA_DATASOURCE_JNDI_NAME = "jdbc/ACCOUNT_METADATA_DB";
 
     /** User credentials for authenticating against the IS server when resolving a client ID to its legal entity ID. */
-    public static final String IS_USERNAME = "is_admin@wso2.com";
-    public static final String IS_PASSWORD = "wso2123";
-    public static final String IS_APPLICATIONS_ENDPOINT = "https://localhost:9446/api/server/v1/applications";
+    public static final String IS_USERNAME = "<IS_ADMIN_USERNAME>";
+    public static final String IS_PASSWORD = "<IS_ADMIN_PASSWORD>";
+    public static final String IS_APPLICATIONS_ENDPOINT = "https://<IS_HOST>:9446/api/server/v1/applications";
 
     // Accelerator token endpoint
     public static final String ACCELERATOR_TOKEN_ENDPOINT_URL =
-            "https://localhost:9446/oauth2/token";
+            "https://<IS_HOST>:9446/oauth2/token";
 
     // Accelerator consent admin search endpoint
     public static final String ACCELERATOR_CONSENT_SEARCH_URL =
-            "https://localhost:9446/api/fs/consent/admin/search";
+            "https://<IS_HOST>:9446/api/fs/consent/admin/search";
 
     // OAuth2 client credentials (Basic Auth for token request)
-    public static final String ACCOUNT_METADATA_CLIENT_APP_ID = "Hz49zCz6zQ2TxxM08Ojo3mpgAAoa";
+    public static final String ACCOUNT_METADATA_CLIENT_APP_ID = "<ACCOUNT_METADATA_CLIENT_APP_ID>";
     public static final String ACCOUNT_METADATA_CLIENT_APP_SECRET =
-            "35Jz7QEQjXyDMHoanQnIBpIM2Tf2L9KYoK1I41SVHesa";
+            "<ACCOUNT_METADATA_CLIENT_APP_SECRET>";
 
     // Resource-owner credentials and scope for password grant
-    public static final String CUSTOMER_CARE_OFFICER_USERNAME = "accountmetadata@gold.com";
-    public static final String CUSTOMER_CARE_OFFICER_PASSWORD = "Wso21234";
+    public static final String CUSTOMER_CARE_OFFICER_USERNAME = "<CUSTOMER_CARE_OFFICER_USERNAME>";
+    public static final String CUSTOMER_CARE_OFFICER_PASSWORD = "<CUSTOMER_CARE_OFFICER_PASSWORD>";
     public static final String CUSTOMER_CARE_OFFICER_TOKEN_SCOPE = "consents:read_all";
 
     // Accelerator consent update (expire) endpoint base URL
     public static final String ACCELERATOR_CONSENT_UPDATE_BASE_URL =
-            "https://localhost:9446/api/fs/consent/manage/account-access-consents";
+            "https://<IS_HOST>:9446/api/fs/consent/manage/account-access-consents";
 
     // Admin credentials for Basic Auth on the consent update endpoint
-    public static final String IS_ADMIN_USERNAME = "is_admin@wso2.com";
-    public static final String IS_ADMIN_PASSWORD = "wso2123";
+    public static final String IS_ADMIN_USERNAME = "<IS_ADMIN_USERNAME>";
+    public static final String IS_ADMIN_PASSWORD = "<IS_ADMIN_PASSWORD>";
 
     // HTTP timeouts (ms)
     public static final int ACCELERATOR_CONNECT_TIMEOUT_MILLIS = 5000;

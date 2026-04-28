@@ -117,5 +117,4 @@ public class CDSAccountValidationConstants {
     // Timeouts
     public static final int HTTP_CLIENT_CONNECT_TIMEOUT_MILLIS = 5000;
     public static final int HTTP_REQUEST_TIMEOUT_MILLIS = 10000;
-
 }
