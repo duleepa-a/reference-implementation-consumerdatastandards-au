@@ -319,9 +319,6 @@ public class BusinessStakeholdersManagementApiImpl {
             }
 
             String accountId = StringUtils.trimToEmpty(requestItem.getAccountID());
-            if (StringUtils.isBlank(accountId)) {
-                throw new AccountMetadataException("accountID is required");
-            }
 
             List<String> accountOwners = requestItem.getAccountOwners();
             // Add account owners with VIEW permission
@@ -388,9 +385,6 @@ public class BusinessStakeholdersManagementApiImpl {
             }
 
             String accountId = StringUtils.trimToEmpty(requestItem.getAccountID());
-            if (StringUtils.isBlank(accountId)) {
-                throw new AccountMetadataException("accountID is required");
-            }
 
             List<String> accountOwners = requestItem.getAccountOwners();
             if (accountOwners != null) {

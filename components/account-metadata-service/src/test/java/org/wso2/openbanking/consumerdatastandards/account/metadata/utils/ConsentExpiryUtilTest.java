@@ -69,6 +69,9 @@ public class ConsentExpiryUtilTest {
     // fetchConsentIdsForUsers
     // -------------------------------------------------------------------------
 
+    /**
+     * Verifies consent ID lookup fails when the token request cannot be executed.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUsers_tokenFailure_throwsException() throws Exception {
         Mockito.when(mockHttpClient.execute(Mockito.any()))
@@ -80,6 +83,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUsers(items);
     }
 
+    /**
+     * Verifies consent ID lookup deduplicates repeated user IDs before searching.
+     */
     @Test
     public void testFetchConsentIdsForUsers_deduplicatesUserIds() throws Exception {
         CloseableHttpResponse tokenResp =
@@ -104,6 +110,9 @@ public class ConsentExpiryUtilTest {
         Mockito.verify(mockHttpClient, Mockito.times(2)).execute(Mockito.any());
     }
 
+    /**
+     * Verifies consent ID lookup returns consent-client mappings for multiple users.
+     */
     @Test
     public void testFetchConsentIdsForUsers_multipleUsers() throws Exception {
         CloseableHttpResponse tokenResp =
@@ -135,6 +144,9 @@ public class ConsentExpiryUtilTest {
     // fetchAccessToken
     // -------------------------------------------------------------------------
 
+    /**
+     * Verifies access token retrieval returns the token value from a successful response.
+     */
     @Test
     public void testFetchAccessToken_success_returnsToken() throws Exception {
         CloseableHttpResponse resp =
@@ -145,6 +157,9 @@ public class ConsentExpiryUtilTest {
         Assert.assertEquals(token, "my-token");
     }
 
+    /**
+     * Verifies access token retrieval fails for a non-success HTTP response.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchAccessToken_non200_throwsException() throws Exception {
         CloseableHttpResponse resp = buildResponse(401, "{}");
@@ -153,6 +168,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchAccessToken();
     }
 
+    /**
+     * Verifies access token retrieval fails when the HTTP client throws an I/O error.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchAccessToken_ioException_throwsException() throws Exception {
         Mockito.when(mockHttpClient.execute(Mockito.any()))
@@ -165,26 +183,41 @@ public class ConsentExpiryUtilTest {
     // fetchConsentIdsForUser
     // -------------------------------------------------------------------------
 
+    /**
+     * Verifies consent lookup rejects a blank user ID.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_blankUserId_throwsException() throws Exception {
         ConsentExpiryUtil.fetchConsentIdsForUser("", "token");
     }
 
+    /**
+     * Verifies consent lookup rejects a null user ID.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_nullUserId_throwsException() throws Exception {
         ConsentExpiryUtil.fetchConsentIdsForUser(null, "token");
     }
 
+    /**
+     * Verifies consent lookup rejects a blank token.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_blankToken_throwsException() throws Exception {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "  ");
     }
 
+    /**
+     * Verifies consent lookup rejects a null token.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_nullToken_throwsException() throws Exception {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", null);
     }
 
+    /**
+     * Verifies consent lookup returns consent-client mappings for a single user.
+     */
     @Test
     public void testFetchConsentIdsForUser_success_returnsConsentClientMap() throws Exception {
         CloseableHttpResponse resp = buildResponse(200,
@@ -197,6 +230,9 @@ public class ConsentExpiryUtilTest {
         Assert.assertEquals(result.get("id2"), "cB");
     }
 
+    /**
+     * Verifies consent lookup fails when the response status is not successful.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_non200_throwsException() throws Exception {
         CloseableHttpResponse resp = buildResponse(403, "{}");
@@ -205,6 +241,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "tok123");
     }
 
+    /**
+     * Verifies consent lookup fails when the HTTP client throws an I/O error.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_ioException_throwsException() throws Exception {
         Mockito.when(mockHttpClient.execute(Mockito.any()))
@@ -213,6 +252,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "tok123");
     }
 
+    /**
+     * Verifies consent lookup returns an empty map when the response data array is empty.
+     */
     @Test
     public void testFetchConsentIdsForUser_emptyDataArray_returnsEmptyMap() throws Exception {
         CloseableHttpResponse resp = buildResponse(200, "{\"data\":[]}");
@@ -223,6 +265,9 @@ public class ConsentExpiryUtilTest {
         Assert.assertTrue(result.isEmpty());
     }
 
+    /**
+     * Verifies consent lookup fails when the expected data field is missing.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_missingDataField_throwsException() throws Exception {
         CloseableHttpResponse resp =
@@ -232,6 +277,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "tok123");
     }
 
+    /**
+     * Verifies consent lookup fails when the data field is not an array.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_dataNotArray_throwsException() throws Exception {
         CloseableHttpResponse resp =
@@ -241,6 +289,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "tok123");
     }
 
+    /**
+     * Verifies consent lookup fails when the response body contains invalid JSON.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testFetchConsentIdsForUser_invalidJson_throwsException() throws Exception {
         CloseableHttpResponse resp = buildResponse(200, "not-json");
@@ -249,6 +300,9 @@ public class ConsentExpiryUtilTest {
         ConsentExpiryUtil.fetchConsentIdsForUser("user1", "tok123");
     }
 
+    /**
+     * Verifies consent lookup stores an empty string when a consent item has no client ID.
+     */
     @Test
     public void testFetchConsentIdsForUser_missingClientId_storesEmptyString() throws Exception {
         CloseableHttpResponse resp = buildResponse(200, "{\"data\":[{\"consentId\":\"id1\"}]}");
@@ -263,6 +317,13 @@ public class ConsentExpiryUtilTest {
     // Helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * Build a mocked HTTP response for the given status code and body.
+     *
+     * @param statusCode the HTTP status code to return
+     * @param body the response payload to return
+     * @return a mocked closeable HTTP response
+     */
     private CloseableHttpResponse buildResponse(int statusCode, String body) {
         CloseableHttpResponse response = Mockito.mock(CloseableHttpResponse.class);
         StatusLine statusLine = Mockito.mock(StatusLine.class);
@@ -277,12 +338,18 @@ public class ConsentExpiryUtilTest {
     // expireConsents
     // -------------------------------------------------------------------------
 
+    /**
+     * Verifies consent expiry does nothing when the input map is empty.
+     */
     @Test
     public void testExpireConsents_emptyMap() throws AccountMetadataException {
         ConsentExpiryUtil.expireConsents(Collections.emptyMap());
         Mockito.verifyZeroInteractions(mockHttpClient);
     }
 
+    /**
+     * Verifies consent expiry issues one update request per consent in the input.
+     */
     @Test
     public void testExpireConsents_success_callsPutForEachConsent() throws Exception {
         CloseableHttpResponse ok1 = buildResponse(200, "{}");
@@ -300,6 +367,9 @@ public class ConsentExpiryUtilTest {
         Mockito.verify(mockHttpClient, Mockito.times(2)).execute(Mockito.any());
     }
 
+    /**
+     * Verifies consent expiry processes multiple consent entries.
+     */
     @Test
     public void testExpireConsents_multipleConsents_callsPutForAll() throws Exception {
         CloseableHttpResponse ok1 = buildResponse(200, "{}");
@@ -320,6 +390,9 @@ public class ConsentExpiryUtilTest {
         Mockito.verify(mockHttpClient, Mockito.times(3)).execute(Mockito.any());
     }
 
+    /**
+     * Verifies consent expiry throws when one of the updates fails after attempting all entries.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testExpireConsents_non200_throwsAfterAttemptingAll() throws Exception {
         CloseableHttpResponse fail = buildResponse(500, "{}");
@@ -338,6 +411,9 @@ public class ConsentExpiryUtilTest {
         Mockito.verify(mockHttpClient, Mockito.times(2)).execute(Mockito.any());
     }
 
+    /**
+     * Verifies consent expiry throws when the HTTP client raises an I/O error during processing.
+     */
     @Test(expectedExceptions = AccountMetadataException.class)
     public void testExpireConsents_ioException_throwsAfterAttemptingAll() throws Exception {
         Mockito.when(mockHttpClient.execute(Mockito.any()))
@@ -353,6 +429,13 @@ public class ConsentExpiryUtilTest {
         Mockito.verify(mockHttpClient, Mockito.times(2)).execute(Mockito.any());
     }
 
+    /**
+     * Build a secondary account instruction test item.
+     *
+     * @param accountId the account identifier
+     * @param userId the user identifier
+     * @return the constructed instruction item
+     */
     private SecondaryAccountInstructionItem buildItem(String accountId, String userId) {
         return new SecondaryAccountInstructionItem(
                 accountId, userId, false, SecondaryAccountInstructionStatusEnum.inactive);

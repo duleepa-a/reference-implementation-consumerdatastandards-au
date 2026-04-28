@@ -59,5 +59,4 @@ public class ConfigurableProperties {
     // HTTP timeouts (ms)
     public static final int ACCELERATOR_CONNECT_TIMEOUT_MILLIS = 5000;
     public static final int ACCELERATOR_SOCKET_TIMEOUT_MILLIS  = 10000;
-
 }

@@ -94,6 +94,14 @@ public class AccountMetadataThrowableMapper implements ExceptionMapper<Throwable
                 .build();
     }
 
+    /**
+     * Search the causal chain for a {@link WebApplicationException} and return it if found.
+     * This allows existing JAX-RS exceptions to be mapped through transparently.
+     *
+     * @param throwable the root throwable to inspect
+     * @return the first {@link WebApplicationException} found in the cause chain, or {@code null}
+     *         if none is present
+     */
     private static WebApplicationException findWebApplicationException(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {
@@ -106,9 +114,16 @@ public class AccountMetadataThrowableMapper implements ExceptionMapper<Throwable
     }
 
     /**
-     * Checks if a throwable is an instance of the given class by name, tolerating classloader boundaries.
-     * Using Class.getName() instead of instanceof handles the case where the exception is thrown by a class
-     * loaded in a different classloader (e.g. the server's OSGi Jackson bundle vs the WAR's WEB-INF/lib copy).
+     * Determine whether the provided {@code throwable} is an instance of the given
+     * {@code targetClass}, comparing by class name to tolerate classloader boundaries.
+     *
+     * <p>Using the class name rather than {@code instanceof} allows detection of
+     * exception types that may have been loaded by a different classloader (common
+     * in servlet/OSGi environments).</p>
+     *
+     * @param throwable the throwable to inspect
+     * @param targetClass the exception class to match (by name)
+     * @return {@code true} if the throwable is an instance of {@code targetClass}
      */
     private static boolean isCausedBy(Throwable throwable, Class<?> targetClass) {
         String targetName = targetClass.getName();

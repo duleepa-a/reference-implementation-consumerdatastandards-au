@@ -119,7 +119,12 @@ public class CeasingSecondaryUserSharingApiImplTest {
                 .getBatchLegalEntitySharingStatuses(Mockito.any(Connection.class), Mockito.anyList());
     }
 
-    private void resetSingleton() throws Exception {
+     /**
+     * Resets the singleton instance so each test runs with a clean service state.
+     *
+     * @throws Exception if reflection access fails
+     */
+     private void resetSingleton() throws Exception {
         Field instanceField = AccountMetadataServiceImpl.class.getDeclaredField("instance");
         instanceField.setAccessible(true);
         instanceField.set(null, null);

@@ -152,5 +152,4 @@ public interface AccountMetadataService {
      */
     void deleteBatchBusinessStakeholderPermissions(List<BusinessStakeholderPermissionItem> permissionItems)
         throws AccountMetadataException;
-
 }

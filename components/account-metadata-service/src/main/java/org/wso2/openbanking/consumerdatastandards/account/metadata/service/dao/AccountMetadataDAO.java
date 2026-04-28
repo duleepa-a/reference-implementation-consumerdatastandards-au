@@ -171,5 +171,4 @@ public interface AccountMetadataDAO {
      */
     void deleteBatchBusinessStakeholderPermissions(Connection conn,
             List<BusinessStakeholderPermissionItem> permissionItems) throws AccountMetadataException;
-
 }
