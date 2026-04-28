@@ -356,5 +356,4 @@ public class CommonConstants {
         contactClusters.put(PHONE_CLUSTER, PHONE_CLUSTER_CLAIMS);
         CONTACT_CLUSTER_CLAIMS = Collections.unmodifiableMap(contactClusters);
     }
-
 }
