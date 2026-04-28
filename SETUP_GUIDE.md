@@ -267,13 +267,17 @@ The file [components/account-metadata-service/src/main/java/org/wso2/openbanking
 | `ACCELERATOR_CONSENT_UPDATE_BASE_URL` | `https://localhost:9446/api/fs/consent/manage/account-access-consents` | IS consent expire (update) API |
 | `IS_ADMIN_USERNAME` | `is_admin@wso2.com` | Admin credentials for Basic Auth on the consent update endpoint |
 | `IS_ADMIN_PASSWORD` | `wso2123` | Admin password |
-| `ACCOUNT_METADATA_CLIENT_APP_ID` | `Hz49zCz6zQ2TxxM08Ojo3mpgAAoa` | OAuth2 client ID registered in IS for this webapp |
-| `ACCOUNT_METADATA_CLIENT_APP_SECRET` | `35Jz7QEQjXyDMHoanQnIBpIM2Tf2L9KYoK1I41SVHesa` | OAuth2 client secret |
+| `ACCOUNT_METADATA_CLIENT_APP_ID` | `Hz49zCz6zQ2TxxM08Ojo3mpgAAoa` | OAuth2 client ID of a valid registered app in IS with consent-manager functionality (used for consent search operations) |
+| `ACCOUNT_METADATA_CLIENT_APP_SECRET` | `35Jz7QEQjXyDMHoanQnIBpIM2Tf2L9KYoK1I41SVHesa` | OAuth2 client secret of the same registered app |
 | `CUSTOMER_CARE_OFFICER_USERNAME` | `accountmetadata@gold.com` | Resource-owner user for password-grant consent queries |
 | `CUSTOMER_CARE_OFFICER_PASSWORD` | `Wso21234` | Resource-owner password |
 | `CUSTOMER_CARE_OFFICER_TOKEN_SCOPE` | `consents:read_all` | Scope for resource-owner consent queries |
 | `ACCELERATOR_CONNECT_TIMEOUT_MILLIS` | `5000` | HTTP connection timeout (ms) for IS calls |
 | `ACCELERATOR_SOCKET_TIMEOUT_MILLIS` | `10000` | HTTP socket/read timeout (ms) for IS calls |
+
+> **Client app requirement for consent retrieval**
+> Use a real application registered in IS (not a placeholder client) that supports Consent Manager flows/capabilities, because this client is used by the account metadata service for consent retrieval operations.
+> Reference setup: https://ob.docs.wso2.com/en/latest/learn/consent-manager/
 
 ---
 

@@ -18,15 +18,10 @@
 
 package org.wso2.openbanking.consumerdatastandards.au.extensions.configurations;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * This class holds configurable properties for the CDS Open Banking implementation.
  */
 public class ConfigurableProperties {
-
-    private static final Log log = LogFactory.getLog(ConfigurableProperties.class);
 
     public static final String SHARABLE_ENDPOINT = "http://localhost:9766/api/openbanking/cds/backend/" +
             "services/bankaccounts/bankaccountservice/sharable-accounts";
