@@ -18,8 +18,6 @@
 
 package org.wso2.cds.test.framework.constant
 
-import org.apache.commons.lang3.StringUtils
-
 /**
  * Class for keep automation Page objects
  */
@@ -30,8 +28,8 @@ class AUPageObjects {
     public static String CONSENT_CANCEL_XPATH = "//*[@value='Cancel']"
     public static String CONFIRM_CONSENT_DENY_XPATH = "//*[@value='Yes cancel']"
     public static String ADR_NAME_HEADER_XPATH = "//h3[@class='ui header']"
-    public static String SINGLE_ACCOUNT_XPATH = "//input[@id='account_1']"
-    public static String ALT_SINGLE_ACCOUNT_XPATH = "//input[@id='account_2']"
+    public static String SINGLE_ACCOUNT_XPATH = "//input[@id='account_1<br>**********3456']"
+    public static String ALT_SINGLE_ACCOUNT_XPATH = "//input[@id='account_2<br>**********3459']"
     public static String LBL_WHERE_TO_MANAGE_INSTRUCTION_XPATH = "//div[contains(text(),'Where to manage this arrangement')]//h5"
     public static String LBL_NEW_PAYEES_INDICATOR_XPATH = "//button[contains(text(),'Saved payees')]/span[contains(text(),'New')]"
     public static String LBL_NEW_SHARING_DURATION_XPATH = "//button[@id='consent-expiry-date']/span[contains(text(),'New')]"
@@ -62,6 +60,32 @@ class AUPageObjects {
     public static String LBL_PERMISSION_LIST_ITEM_10 = "//h4[text()='Data requested:']/following-sibling::div//ul[@class='scopes-list padding']//li[10]"
     public static String LBL_PERMISSION_LIST_ITEM_11 = "//h4[text()='Data requested:']/following-sibling::div//ul[@class='scopes-list padding']//li[11]"
     public static String LBL_PERMISSION_HEADER = "//*[@class='padding']//button"
+
+    /**
+     * Build the XPath for a scope group's header label (the bold title of a
+     * "Data requested" group on the consent page, e.g. "Name, occupation, contact details").
+     *
+     * @param header the exact heading text shown in the {@code <b>} element
+     * @return XPath locating the {@code <b>} heading element
+     */
+    static String getScopeGroupHeaderXpath(String header) {
+        return "//div[contains(@style,'border:1px solid')]/b[normalize-space(text())='${header}']"
+    }
+
+    /**
+     * Build the XPath for a single list item under a scope group on the consent page.
+     * The new consent UI renders each scope group as a flat
+     * {@code <div><b>Header</b><ul class="scopes-list ..."><li>...</li></ul></div>}
+     * (no accordion / no expand button), so items are resolved relative to the heading text.
+     *
+     * @param header the exact group heading text (e.g. "Name, occupation, contact details")
+     * @param index  1-based index of the {@code <li>} within the group's scopes list
+     * @return XPath locating the requested list item
+     */
+    static String getScopeGroupListItemXpath(String header, int index) {
+        return "//div[contains(@style,'border:1px solid')]/b[normalize-space(text())='${header}']" +
+                "/following-sibling::ul[contains(@class,'scopes-list')]/li[${index}]"
+    }
     public static String LBL_SECONDARY_ACCOUNT_INDICATION= "//button[@id='secondary_account']/span[contains(text(),'New')]"
 
     public static String LBL_AUTHORISED_STATUS = "//div[@id='heading0acc']//div[@class='p1 consent-status ml-3 ml-auto align-self-center']"
@@ -189,22 +213,22 @@ class AUPageObjects {
 
     public static String VALUE = "value"
     public static String TEXT = "text"
-    public static String ORGANIZATION_A_PROFILE_SELECTION = "//input[@id='Organization A']"
-    public static String ORGANIZATION_B_PROFILE_SELECTION = "//input[@id='Organization B']"
-    public static String INDIVIDUAL_PROFILE_SELECTION = "//input[@id='Individual']"
+    public static String ORGANIZATION_A_PROFILE_SELECTION = "//input[@id='profile-00001']"
+    public static String ORGANIZATION_B_PROFILE_SELECTION = "//input[@id='profile-00002']"
+    public static String INDIVIDUAL_PROFILE_SELECTION = "//input[@id='profile-individual']"
     public static String PROFILE_SELECTION_NEXT_BUTTON = "//*[@id='btnNext']"
-    public static String CHK_ORG_A_BUSINESS_ACCOUNT_1 = "//input[@id='business_account_1']"
-    public static String CHK_ORG_B_BUSINESS_ACCOUNT_1 = "//input[@id='business_account_2']"
-    public static String CHK_ORG_B_BUSINESS_ACCOUNT_2 = "//input[@id='business_account_3']"
-    public static String SECONDARY_ACCOUNT_1 = "//input[@id='secondary_account_1']"
-    public static String SECONDARY_ACCOUNT_2 = "//input[@id='secondary_account_2']"
-    public static String LBL_ACCOUNTS_UNAVAILABLE_TO_SHARE= "//option[contains(text(),'Accounts unavailable to share')]"
-    public static String LBL_FIRST_UNAVAILABLE_ACCOUNT= "//input[@id='unavailable_account_1']//following::small[1]"
-    public static String SECONDARY_JOINT_ACCOUNT= "//input[@id='secondary_joint_account_1']"
-    public static String LBL_SECONDARY_ACCOUNT_1 = "//input[@id='secondary_account_1']/.."
-    public static String LBL_SECONDARY_ACCOUNT_2 = "//input[@id='secondary_account_2']/.."
-    public static String LBL_SECONDARY_ACCOUNT_3 = "//input[@id='secondary_account_3']/.."
-    public static String LBL_SECONDARY_JOINT_ACCOUNT_1 = "//input[@id='secondary_joint_account_1']/.."
+    public static String CHK_ORG_A_BUSINESS_ACCOUNT_1 = "//input[@id='business_account_1<br>*********1234']"
+    public static String CHK_ORG_B_BUSINESS_ACCOUNT_1 = "//input[@id='business_account_2<br>*********1234']"
+    public static String CHK_ORG_B_BUSINESS_ACCOUNT_2 = "//input[@id='business_account_3<br>*********0025']"
+    public static String SECONDARY_ACCOUNT_1 = "//input[@id='secondary_account_1<br>**********3500']"
+    public static String SECONDARY_ACCOUNT_2 = "//input[@id='secondary_account_2<br>**********3501']"
+    public static String LBL_ACCOUNTS_UNAVAILABLE_TO_SHARE = "//h4[contains(text(),'Accounts Unavailable To Share')]"
+    public static String LBL_FIRST_UNAVAILABLE_ACCOUNT = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div//label[1]"
+    public static String SECONDARY_JOINT_ACCOUNT = "//input[@id='secondary_joint_account_1<br>******1550']"
+    public static String LBL_SECONDARY_ACCOUNT_1 = "//input[@id='secondary_account_1<br>**********3500']/.."
+    public static String LBL_SECONDARY_ACCOUNT_2 = "//input[@id='secondary_account_2<br>**********3501']/.."
+    public static String LBL_SECONDARY_ACCOUNT_3 = "//input[@id='secondary_account_3<br>**********3510']/.."
+    public static String LBL_SECONDARY_JOINT_ACCOUNT_1 = "//input[@id='secondary_joint_account_1<br>******1550']/.."
 
     public static String LBL_BUSINESS_ACCOUNT_1 = "//strong[contains(text(),'business_account_1')]"
     public static String LBL_BUSINESS_ACCOUNT_2 = "//strong[contains(text(),'business_account_2')]"
@@ -212,14 +236,15 @@ class AUPageObjects {
     public static String LBL_NO_ELIGIBLE_ACCOUNTS = "//form[@id='oauth2_authz_consent']//div//p"
     public static String BTN_CANCEL = "//input[@id='cancel']"
     public static String TEXT_ATTRIBUTE = "text"
-    public static String JOINT_ACCOUNT_XPATH = "//input[@id='joint_account_1']"
-    public static String ALT_JOINT_ACCOUNT_XPATH = "//input[@id='joint_account_3']"
+    public static String JOINT_ACCOUNT_XPATH = "//input[@id='joint_account_1<br>******1232']"
+    public static String JOINT_ACCOUNT_2_XPATH = "//input[@id='joint_account_2<br>******1544']"
+    public static String ALT_JOINT_ACCOUNT_XPATH = "//input[@id='joint_account_3<br>******1545']"
     public static String LBL_ERROR_TRY_AGAIN = "//div[@id='error-msg']"
     public static String BTN_AUTHENTICATE = "//input[@id='authenticate']"
     public static String TXT_OTP_CODE = "OTPcode"
     public static BTN_CONSENT_EXPIRY_XPATH = "//button[@id='consent-expiry-date']"
     public static LBL_UNAVAILABLE_ACCOUNT = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/"
-    public static POPUP_UNAVAILABLE_ACCOUNTS = "//p[@id='UnavailableAccountPopover']"
+    public static POPUP_UNAVAILABLE_ACCOUNTS = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/p[contains(@class,'fs-tooltip-content')]"
     public static LBL_WHY_CANT_SHARE = "//h4[contains(text(),'Accounts Unavailable To Share')]/following-sibling::div/p[2]"
 
     static final String TXT_USERNAME = "//input[@id='txtUserName']"
